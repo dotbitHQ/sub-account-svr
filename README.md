@@ -17,15 +17,15 @@ Backend of .bit sub account service, including registration and management.
 # get the code
 git clone https://github.com/dotbitHQ/sub-account-svr
 
-# rename conf/config.yaml.example to conf/config.yaml, then edit conf/config.yaml before init mysql database
+# rename config/config.example.yaml to config/config.yaml, then edit config/config.yaml before init mysql database
 mysql -uroot -p
-> source sub-account-svr/tables/das_sub_account_db.sql;
+> source sub-account-svr/tables/sub_account_db.sql;
 > quit;
 
 # compile and run
 cd sub-account-svr
 make sub
-./sub_account --config=conf/config.yaml
+./sub_account --config=config/config.yaml
 ```
 
 ### Others

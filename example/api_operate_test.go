@@ -19,10 +19,10 @@ import (
 
 const (
 	// 0x15a33588908cf8edb27d1abe3852bf287abd3891
-	PrivateKey = "69fc8fe3e30f6cad2f1dbeec65dcf308f250af0d3ba2663d8b51fae8fcd67e54" //
+	PrivateKey = "" //
 
 	// 0xc9f53b1d85356B60453F867610888D89a0B667Ad
-	//PrivateKey = "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
+	//PrivateKey = ""
 )
 
 func TestSubAccountInit(t *testing.T) {
