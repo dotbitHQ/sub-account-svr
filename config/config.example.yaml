@@ -3,7 +3,7 @@ server:
   net: 1 # 1 mainnet 2 testnet
   http_server_addr: ":8125"
   http_server_internal_addr: ":8126"
-  parser_url: "" # das-database
+  parser_url: "http://127.0.0.1:8118/v1" # das-database
   manager_chain_type: 1
   manager_address: "0x000..."
   manager_private_key: ""
@@ -22,7 +22,7 @@ origins:
 chain:
   ckb_url: "http://127.0.0.1:8114"
   index_url: "http://127.0.0.1:8116"
-  current_block_number: 0
+  current_block_number: 6900000 # mainnet 6900000, testnet2 4808730
   confirm_num: 4
   concurrency_num: 100
 db:
