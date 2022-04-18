@@ -1,0 +1,86 @@
+package handle
+
+import (
+	"das_sub_account/config"
+	"das_sub_account/http_server/api_code"
+	"fmt"
+	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/gin-gonic/gin"
+	"github.com/scorpiotzh/toolib"
+	"net/http"
+)
+
+type ReqAccountList struct {
+	Pagination
+	api_code.ChainTypeAddress
+	chainType common.ChainType
+	address   string
+}
+
+type RespAccountList struct {
+	Total int64         `json:"total"`
+	List  []AccountData `json:"list"`
+}
+
+func (h *HttpHandle) AccountList(ctx *gin.Context) {
+	var (
+		funcName = "AccountList"
+		clientIp = GetClientIp(ctx)
+		req      ReqAccountList
+		apiResp  api_code.ApiResp
+		err      error
+	)
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+
+	if err = h.doAccountList(&req, &apiResp); err != nil {
+		log.Error("doAccountList err:", err.Error(), funcName, clientIp)
+	}
+
+	ctx.JSON(http.StatusOK, apiResp)
+}
+
+func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiResp) error {
+	var resp RespAccountList
+	resp.List = make([]AccountData, 0)
+
+	// check params
+	chainType, address, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+		return nil
+	}
+	if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
+		return nil
+	}
+	req.chainType, req.address = chainType, address
+
+	// account list
+	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset())
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
+		return fmt.Errorf("GetAccountList err: %s", err.Error())
+	}
+	for _, v := range list {
+		tmp := accountInfoToAccountData(&req.ChainTypeAddress, v)
+		resp.List = append(resp.List, tmp)
+	}
+
+	// total
+	count, err := h.DbDao.GetAccountListTotal(req.chainType, req.address)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account total")
+		return fmt.Errorf("GetAccountListTotal err: %s", err.Error())
+	}
+	resp.Total = count
+
+	apiResp.ApiRespOK(resp)
+	return nil
+}

@@ -1,0 +1,541 @@
+package example
+
+import (
+	"das_sub_account/http_server/api_code"
+	"das_sub_account/http_server/handle"
+	"das_sub_account/tables"
+	"das_sub_account/task"
+	"fmt"
+	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/DeAccountSystems/das-lib/sign"
+	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/scorpiotzh/toolib"
+	"log"
+	"regexp"
+	"sync"
+	"testing"
+	"time"
+)
+
+const (
+	// 0x15a33588908cf8edb27d1abe3852bf287abd3891
+	PrivateKey = "69fc8fe3e30f6cad2f1dbeec65dcf308f250af0d3ba2663d8b51fae8fcd67e54" //
+
+	// 0xc9f53b1d85356B60453F867610888D89a0B667Ad
+	//PrivateKey = "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
+)
+
+func TestSubAccountInit(t *testing.T) {
+	url := ApiUrl + "/sub/account/init"
+	req := handle.ReqSubAccountInit{
+		ChainTypeAddress: api_code.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: api_code.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+			},
+		},
+		Account: "aaaazzxxx.bit",
+	}
+
+	var data handle.RespSubAccountInit
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doSign(data.SignInfoList); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSend(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestSubAccountCheck(t *testing.T) {
+	url := ApiUrl + "/sub/account/check"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: api_code.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: api_code.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+			},
+		},
+		Account: "0001.bit",
+		SubAccountList: []handle.CreateSubAccount{
+			{
+				Account:       "00009.0001.bit",
+				RegisterYears: 1,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+			},
+			{
+				Account:       "00009.0001.bit",
+				RegisterYears: 1,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+			},
+		},
+	}
+
+	var data handle.RespSubAccountCheck
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSubAccountCreate(t *testing.T) {
+	url := ApiUrl + "/sub/account/create"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: api_code.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: api_code.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+			},
+		},
+		Account: "1234567883.bit",
+		SubAccountList: []handle.CreateSubAccount{
+			{
+				Account:       "00011.0001.bit",
+				RegisterYears: 2,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					},
+				},
+			},
+			{
+				Account:       "00012.0001.bit",
+				RegisterYears: 2,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+			},
+		},
+	}
+
+	req.SubAccountList = make([]handle.CreateSubAccount, 0)
+	for i := 0; i < 5; i++ {
+		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+			Account:       fmt.Sprintf("0002%d.1234567883.bit", i),
+			RegisterYears: 1,
+			ChainTypeAddress: api_code.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: api_code.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				},
+			},
+		})
+	}
+
+	var data handle.RespSubAccountCreate
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doSign(data.SignInfoList); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSend(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSubAccountCreate2(t *testing.T) {
+	url := ApiUrl + "/sub/account/create"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: api_code.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: api_code.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+			},
+		},
+		Account: "aaaazzxxx.bit",
+		SubAccountList: []handle.CreateSubAccount{
+			{
+				Account:       "00003.aaaazzxxx.bit",
+				RegisterYears: 1,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					},
+				},
+			},
+			{
+				Account:       "00004.aaaazzxxx.bit",
+				RegisterYears: 1,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					},
+				},
+			},
+		},
+	}
+
+	var data handle.RespSubAccountCreate
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+	if err := doSign(data.SignInfoList); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSend(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSubAccountCreate3(t *testing.T) {
+	url := ApiUrl + "/sub/account/create"
+
+	doCreate := func(account string) {
+		req := handle.ReqSubAccountCreate{
+			ChainTypeAddress: api_code.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: api_code.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+				},
+			},
+			Account: account, //"aaaazzxxx.bit",
+			SubAccountList: []handle.CreateSubAccount{
+				{
+					Account:       "00011.0001.bit",
+					RegisterYears: 2,
+					ChainTypeAddress: api_code.ChainTypeAddress{
+						Type: "blockchain",
+						KeyInfo: api_code.KeyInfo{
+							CoinType: "60",
+							ChainId:  "5",
+							Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+						},
+					},
+				},
+				{
+					Account:       "00012.0001.bit",
+					RegisterYears: 2,
+					ChainTypeAddress: api_code.ChainTypeAddress{
+						Type: "blockchain",
+						KeyInfo: api_code.KeyInfo{
+							CoinType: "60",
+							ChainId:  "5",
+							Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+						},
+					},
+				},
+			},
+		}
+
+		req.SubAccountList = make([]handle.CreateSubAccount, 0)
+		for i := 0; i < 100; i++ {
+			req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+				Account:       fmt.Sprintf("2007%d.%s", i, account),
+				RegisterYears: 1,
+				ChainTypeAddress: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					},
+				},
+			})
+		}
+
+		var data handle.RespSubAccountCreate
+
+		if err := doReq(url, req, &data); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := doSign(data.SignInfoList); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := doTransactionSend(handle.ReqTransactionSend{
+			SignInfoList: data.SignInfoList,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		doCreate("aaaazzxxx.bit")
+	}()
+	go func() {
+		defer wg.Done()
+		doCreate("0001.bit")
+	}()
+	wg.Wait()
+}
+
+func TestSubAccountEdit(t *testing.T) {
+	url := ApiUrl + "/sub/account/edit"
+	req := handle.ReqSubAccountEdit{
+		ChainTypeAddress: api_code.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: api_code.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+			},
+		},
+		Account: "00003.aaaazzxxx.bit",
+		EditKey: common.EditKeyRecords,
+		EditValue: handle.EditInfo{
+			Owner: api_code.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: api_code.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+				},
+			},
+			Manager: api_code.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: api_code.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				},
+			},
+			Records: []handle.EditRecord{
+				{
+					Key:   "twitter",
+					Type:  "profile",
+					Label: "",
+					Value: "111",
+					TTL:   "",
+				},
+			},
+			OwnerChainType:   0,
+			OwnerAddress:     "",
+			ManagerChainType: 0,
+			ManagerAddress:   "",
+		},
+	}
+
+	var data handle.RespSubAccountEdit
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doSign(data.SignInfoList); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSend(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSubAccountEdit2(t *testing.T) {
+	for i := 1; i < 2; i++ {
+		url := ApiUrl + "/sub/account/edit"
+		req := handle.ReqSubAccountEdit{
+			ChainTypeAddress: api_code.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: api_code.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				},
+			},
+			Account: fmt.Sprintf("0001%d.aaaazzxxx.bit", i),
+			EditKey: common.EditKeyRecords,
+			EditValue: handle.EditInfo{
+				Owner: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+				Manager: api_code.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: api_code.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					},
+				},
+				Records: []handle.EditRecord{
+					{
+						Key:   "twitter",
+						Type:  "profile",
+						Label: "",
+						Value: "111",
+						TTL:   "",
+					},
+				},
+				OwnerChainType:   0,
+				OwnerAddress:     "",
+				ManagerChainType: 0,
+				ManagerAddress:   "",
+			},
+		}
+		for j := 0; j < 45; j++ {
+			req.EditValue.Records = append(req.EditValue.Records, handle.EditRecord{
+				Index: 0,
+				Key:   "eth",
+				Type:  "address",
+				Label: "eth",
+				Value: "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				TTL:   "300",
+			})
+		}
+
+		var data handle.RespSubAccountEdit
+
+		if err := doReq(url, req, &data); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := doSign(data.SignInfoList); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := doTransactionSend(handle.ReqTransactionSend{
+			SignInfoList: data.SignInfoList,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+}
+
+func doSign(data handle.SignInfoList) error {
+	for i, _ := range data.List {
+		if err := task.DoSign(data.Action, data.List[i].SignList, PrivateKey); err != nil {
+			return fmt.Errorf("task.DoSign err: %s", err.Error())
+		}
+	}
+	fmt.Println("=========== doSign:", toolib.JsonString(data.List))
+	return nil
+}
+
+func doTransactionSend(req handle.ReqTransactionSend) error {
+	url := ApiUrl + "/transaction/send"
+
+	var data handle.RespTransactionSend
+
+	if err := doReq(url, req, &data); err != nil {
+		return fmt.Errorf("doReq err: %s", err.Error())
+	}
+	fmt.Println("=========== hash:", toolib.JsonString(data))
+	return nil
+}
+
+func TestTime(t *testing.T) {
+	t1 := "2022-03-21 20:00:00"
+	timeTemplate1 := "2006-01-02 15:04:05"
+	stamp, _ := time.ParseInLocation(timeTemplate1, t1, time.Local)
+	log.Println(stamp.Unix())
+
+	fmt.Println(time.Now().UnixNano()/1e6, time.Now().Add(time.Millisecond*100).UnixNano()/1e6)
+}
+
+func TestVerifyEthSignature(t *testing.T) {
+	signMsg := common.Hex2Bytes("0x030659a5613fdfa29453196400bf44d553fc883dbe757536ce9846a8e8324d29527bc4932cbdf0b485522331e1ed2b065bc6163712c373e362e34a0483125dce00")
+	rawByte := "from did: 0x6d616e6167657205c9f53b1d85356b60453f867610888d89a0b667ad0515a33588908cf8edb27d1abe3852bf287abd38910100000000000000"
+	address := "0x15a33588908cf8edb27d1abe3852bf287abd3891"
+
+	fmt.Println(sign.VerifyPersonalSignature(signMsg, []byte(rawByte), address))
+}
+
+func TestEditSubAccountCache(t *testing.T) {
+	var e handle.EditSubAccountCache
+	e.EditKey = common.EditKeyManager
+	e.EditValue.ManagerChainType = common.ChainTypeEth
+	e.EditValue.ManagerAddress = "0x15a33588908cf8edb27d1abe3852bf287abd3891"
+	subAcc := tables.TableAccountInfo{}
+	subAcc.OwnerChainType = common.ChainTypeEth
+	subAcc.Owner = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
+	res := e.GetSignData(&subAcc, nil)
+	fmt.Println(res)
+
+}
+
+func TestPersonalSignature(t *testing.T) {
+	data := []byte("from did: b41e6076a53bee960f1be92312b981f5a4eb0686ecb6dffeee4da308f791d6a4")
+	res, _ := sign.PersonalSignature(data, PrivateKey)
+	fmt.Println(common.Bytes2Hex(res))
+}
+
+func TestRecords(t *testing.T) {
+	var records []witness.SubAccountRecord
+
+	for i := 0; i < 46; i++ {
+		records = append(records, witness.SubAccountRecord{
+			Key:   "eth",
+			Type:  "address",
+			Label: "eth",
+			Value: "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+			TTL:   300,
+		})
+	}
+
+	wi := witness.ConvertToRecords(records)
+	fmt.Println(wi.TotalSize())
+}
+
+func TestAddress(t *testing.T) {
+	address := "0x15a33588908cf8edb27d1abe3852bf287abd3891"
+	fmt.Println(regexp.MatchString("^0x[0-9a-fA-F]{40}$", address))
+}

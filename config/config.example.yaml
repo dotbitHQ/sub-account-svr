@@ -1,0 +1,50 @@
+server:
+  is_update: false
+  net: 1 # 1 mainnet 2 testnet
+  http_server_addr: ":8125"
+  http_server_internal_addr: ":8126"
+  parser_url: "" # das-database
+  manager_chain_type: 1
+  manager_address: "0x000..."
+  manager_private_key: ""
+  server_address: ""
+  server_private_key: ""
+das:
+  max_register_years: 20
+  max_create_count: 100
+  max_edit_count: 10
+  max_edit_task_count: 2 # 1~5
+  max_retry: 10
+  is_edit_task_closed: false
+  is_create_task_closed: false
+origins:
+  - ""
+chain:
+  ckb_url: "http://127.0.0.1:8114"
+  index_url: "http://127.0.0.1:8116"
+  current_block_number: 0
+  confirm_num: 4
+  concurrency_num: 100
+db:
+  mysql:
+    addr: "127.0.0.1:3306"
+    user: "root"
+    password: ""
+    db_name: "sub_account_db"
+    max_open_conn: 100
+    max_idle_conn: 50
+  parser_mysql:
+    addr: "127.0.0.1:3306"
+    user: "root"
+    password: ""
+    db_name: "das_database"
+    max_open_conn: 100
+    max_idle_conn: 50
+  mongo:
+    uri: ""
+    smt_database: ""
+cache:
+  redis:
+    addr: ""
+    password: ""
+    db_num: 0
