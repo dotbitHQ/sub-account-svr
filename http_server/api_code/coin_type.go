@@ -15,8 +15,8 @@ func FormatCoinTypeToDasChainType(coinType CoinType) common.ChainType {
 	switch coinType {
 	case CoinTypeEth, CoinTypeBNB, CoinTypeMatic:
 		return common.ChainTypeEth
-		//case CoinTypeTrx:
-		//	return common.ChainTypeTron
+	case CoinTypeTrx:
+		return common.ChainTypeTron
 	}
 	return -1
 }

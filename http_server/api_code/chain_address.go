@@ -25,13 +25,6 @@ func (c *ChainTypeAddress) FormatChainTypeAddress(net common.DasNetType) (common
 	if dasChainType == -1 {
 		dasChainType = FormatChainIdToDasChainType(net, c.KeyInfo.ChainId)
 	}
-	//if dasChainType == -1 {
-	//	if strings.HasPrefix(c.KeyInfo.Key, "0x") && len(c.KeyInfo.Key) == 42 {
-	//		dasChainType = common.ChainTypeEth
-	//	} else if strings.HasPrefix(c.KeyInfo.Key, "0x") && len(c.KeyInfo.Key) == 66 {
-	//		dasChainType = common.ChainTypeMixin
-	//	}
-	//}
 	if dasChainType == -1 {
 		return dasChainType, "", fmt.Errorf("not support coin type[%s]-chain id[%s]", c.KeyInfo.CoinType, c.KeyInfo.ChainId)
 	}

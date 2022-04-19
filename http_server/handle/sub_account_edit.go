@@ -190,11 +190,19 @@ func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
+		if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
+			return
+		}
 		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = chainType, address
 	case common.EditKeyManager:
 		chainType, address, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			return
+		}
+		if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
 			return
 		}
 		r.EditValue.ManagerChainType, r.EditValue.ManagerAddress = chainType, address

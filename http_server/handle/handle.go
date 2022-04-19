@@ -60,9 +60,20 @@ func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {
 func checkRegisterChainTypeAndAddress(chainType common.ChainType, address string) bool {
 	switch chainType {
 	case common.ChainTypeTron:
-		if strings.HasPrefix(address, common.TronPreFix) || strings.HasPrefix(address, common.TronBase58PreFix) {
-			return true
+		if strings.HasPrefix(address, common.TronPreFix) {
+			if _, err := common.TronHexToBase58(address); err != nil {
+				log.Error("TronHexToBase58 err:", err.Error(), address)
+				return false
+			}
+		} else if strings.HasPrefix(address, common.TronBase58PreFix) {
+			if _, err := common.TronBase58ToHex(address); err != nil {
+				log.Error("TronBase58ToHex err:", err.Error(), address)
+				return false
+			}
+		} else {
+			return false
 		}
+
 	case common.ChainTypeEth:
 		if ok, _ := regexp.MatchString("^0x[0-9a-fA-F]{40}$", address); ok {
 			return true
