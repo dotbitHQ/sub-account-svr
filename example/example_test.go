@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/DeAccountSystems/das-lib/sign"
 	"github.com/DeAccountSystems/das-lib/smt"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/scorpiotzh/toolib"
@@ -87,4 +88,17 @@ func TestEditRecord(t *testing.T) {
 	fmt.Println(list)
 	sort.Sort(handle.EditRecordList(list))
 	fmt.Println(list)
+}
+
+func TestTronVerifySignature(t *testing.T) {
+	data := []byte("d1d66a597e0e651f1249b0d931154b490ee4e5ca69da960acd72bba7d0d19d19b31")
+	private := ""
+	res, _ := sign.TronSignature(true, data, private)
+	fmt.Println("res", common.Bytes2Hex(res))
+
+	//data := common.Hex2Bytes("d1dd861c62a955a042df9ce306c1a15fa479ad62dcaa35050485c98a45a3231105a")
+	//signAddress := "TQoLh9evwUmZKxpD1uhFttsZk3EBs8BksV"
+	//signMsg := common.Hex2Bytes("0x3104eb8ef51bc1c301a6a5f71054dbe8a73bea052d0007c090cb41267187124108890803d585dd55c198c4a1e8ebc79a87f3c916fb37f79d01785441dd3971091c")
+	//
+	//fmt.Println(sign.TronVerifySignature(true, signMsg, data, signAddress))
 }
