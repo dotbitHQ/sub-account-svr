@@ -158,6 +158,10 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 				return fmt.Errorf("VerifyEthSignature err: %s", err.Error())
 			}
 		case common.DasAlgorithmIdTron:
+			if signAddress, err = common.TronHexToBase58(signAddress); err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeSignError, "TronHexToBase58 error")
+				return fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
+			}
 			signOk = sign.TronVerifySignature(true, signMsg, data, signAddress)
 		case common.DasAlgorithmIdEd25519:
 			signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), data, signMsg)
