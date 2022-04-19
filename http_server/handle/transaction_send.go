@@ -110,7 +110,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 			}
 			taskInfo.InitTaskId()
 			if err := h.DbDao.CreateTask(&taskInfo); err != nil {
-				log.Error("CreateTask err: %s", err.Error())
+				log.Error("CreateTask err: ", err.Error())
 			}
 		}
 	case common.DasActionEditSubAccount:
@@ -229,7 +229,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 			}
 			h.DasCache.AddCellInputByAction("", signInfoCacheList.BuilderTxList[i].Transaction.Inputs)
 			if err := h.DbDao.UpdateTaskTxStatusToPending(signInfoCacheList.TaskIdList[i]); err != nil {
-				log.Error("UpdateTaskTxStatusToPending err: %s", err.Error())
+				log.Error("UpdateTaskTxStatusToPending err: ", err.Error())
 			}
 			time.Sleep(time.Second)
 		}

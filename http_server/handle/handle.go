@@ -73,6 +73,7 @@ func checkRegisterChainTypeAndAddress(chainType common.ChainType, address string
 		} else {
 			return false
 		}
+		return true
 
 	case common.ChainTypeEth:
 		if ok, _ := regexp.MatchString("^0x[0-9a-fA-F]{40}$", address); ok {
