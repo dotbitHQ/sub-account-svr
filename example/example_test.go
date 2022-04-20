@@ -104,3 +104,8 @@ func TestTronVerifySignature(t *testing.T) {
 	//
 	fmt.Println(sign.TronVerifySignature(true, signMsg, data, signAddress))
 }
+
+func TestFromDid(t *testing.T) {
+	fmt.Println(string(common.Hex2Bytes("66726f6d206469643a20")))
+	fmt.Println(common.Bytes2Hex([]byte("from did: ")))
+}
