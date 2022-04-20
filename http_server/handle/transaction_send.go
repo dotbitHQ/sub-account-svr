@@ -147,26 +147,28 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 		log.Warn("NewSignMsg:", signData.SignMsg, signAddress)
 
 		// check sign
-		data := []byte(signData.SignMsg)
-		signMsg := common.Hex2Bytes(req.List[0].SignList[0].SignMsg)
+		signMsg := req.List[0].SignList[0].SignMsg
 		signOk := false
 		switch signData.SignType {
 		case common.DasAlgorithmIdEth:
-			signOk, err = sign.VerifyPersonalSignature(signMsg, data, signAddress)
+			signMsg = fixSignature(signMsg)
+			log.Info("VerifyPersonalSignature:", signMsg, signData.SignMsg, signAddress)
+			signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
-				return fmt.Errorf("VerifyEthSignature err: %s", err.Error())
+				return fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
 			}
 		case common.DasAlgorithmIdTron:
-			data = common.Hex2Bytes(signData.SignMsg)
+			signMsg = fixSignature(signMsg)
 			if signAddress, err = common.TronHexToBase58(signAddress); err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeSignError, "TronHexToBase58 error")
 				return fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
 			}
-			log.Info("TronVerifySignature:", common.Bytes2Hex(signMsg), common.Bytes2Hex(data), signAddress)
-			signOk = sign.TronVerifySignature(true, signMsg, data, signAddress)
+			log.Info("TronVerifySignature:", signMsg, signData.SignMsg, signAddress)
+			signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
 		case common.DasAlgorithmIdEd25519:
-			signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), data, signMsg)
+			log.Info("VerifyEd25519Signature:", signMsg, signData.SignMsg, signAddress)
+			signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
 		default:
 			apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
 			return nil
@@ -189,7 +191,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 			RegisterYears:   0,
 			RegisterArgs:    "",
 			EditKey:         editCache.EditKey,
-			Signature:       req.List[0].SignList[0].SignMsg,
+			Signature:       signMsg,
 			EditArgs:        "",
 			RenewYears:      0,
 			EditRecords:     "",
@@ -247,4 +249,14 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func fixSignature(signMsg string) string {
+	if len(signMsg) >= 132 && signMsg[130:132] == "1b" {
+		signMsg = signMsg[0:130] + "00" + signMsg[132:]
+	}
+	if len(signMsg) >= 132 && signMsg[130:132] == "1c" {
+		signMsg = signMsg[0:130] + "01" + signMsg[132:]
+	}
+	return signMsg
 }
