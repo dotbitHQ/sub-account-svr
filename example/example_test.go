@@ -13,11 +13,12 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 func getClientTestnet2() (rpc.Client, error) {
-	ckbUrl := "http://47.243.90.165:8114"
-	indexerUrl := "http://47.243.90.165:8116"
+	ckbUrl := "http://127.0.0.1:8114"
+	indexerUrl := "http://127.0.0.1:8116"
 	return rpc.DialWithIndexer(ckbUrl, indexerUrl)
 }
 
@@ -125,4 +126,60 @@ func TestETH(t *testing.T) {
 func TestFromDid(t *testing.T) {
 	fmt.Println(string(common.Hex2Bytes("66726f6d206469643a20")))
 	fmt.Println(common.Bytes2Hex([]byte("from did: ")))
+}
+
+func TestAccountLen(t *testing.T) {
+	db, err := toolib.NewGormDB("", "", "", "das_parser", 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list []tables.TableAccountInfo
+	err = db.Where("parent_account_id=''").Order("registered_at").Find(&list).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	type RegisterInfo struct {
+		Count4     uint64
+		Count5     uint64
+		CountOwner uint64
+	}
+
+	//fmt.Println("account list:", len(list))
+	var res = make(map[string]RegisterInfo)
+	var owner = make(map[string]struct{})
+	for _, v := range list {
+		length := common.GetAccountLength(v.Account)
+		tm := time.Unix(int64(v.RegisteredAt), 0)
+		registeredAt := tm.Format("2006-01-02")
+		var tmp RegisterInfo
+		if item, ok := res[registeredAt]; ok {
+			tmp.Count4 = item.Count4
+			tmp.Count5 = item.Count5
+			tmp.CountOwner = item.CountOwner
+		}
+		if length == 4 {
+			tmp.Count4++
+		} else if length >= 5 {
+			tmp.Count5++
+		}
+
+		if _, ok := owner[strings.ToLower(v.Owner)]; !ok {
+			tmp.CountOwner++
+			owner[strings.ToLower(v.Owner)] = struct{}{}
+		}
+		res[registeredAt] = tmp
+	}
+
+	count := uint64(0)
+	var strList []string
+
+	for k, v := range res {
+		strList = append(strList, fmt.Sprintf("%s,%d,%d,%d", k, v.Count4, v.Count5, v.CountOwner))
+		count += v.CountOwner
+	}
+	fmt.Println("count:", count)
+	sort.Strings(strList)
+	for _, v := range strList {
+		fmt.Println(v)
+	}
 }
