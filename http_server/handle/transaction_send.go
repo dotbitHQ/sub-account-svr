@@ -153,7 +153,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 		case common.DasAlgorithmIdEth:
 			signMsg = fixSignature(signMsg)
 			log.Info("VerifyPersonalSignature:", signMsg, signData.SignMsg, signAddress)
-			signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
+			signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
 				return fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
