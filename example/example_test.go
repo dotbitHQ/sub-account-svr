@@ -91,18 +91,35 @@ func TestEditRecord(t *testing.T) {
 }
 
 func TestTronVerifySignature(t *testing.T) {
+	data := common.Hex2Bytes("363637323666366432303634363936343361323034323066333833383230653130376562316635343362383136613134333062333966643063663838666462393865643733386439663134346564383666656661")
+	fmt.Println(string(data))
+
 	//0x67180e3b847f126ac8f069c0281122ed2fb668b761f34b9059ec4673d9129cfa185c82973bc6d192a5e2e1f74b3e4df4f78de07d1f669737fb1f061e160b6a081c
-	data := common.Hex2Bytes("66726f6d206469643a2066a597e0e651f1249b0d931154b490ee4e5ca69da960acd72bba7d0d19d19b31")
+	data = common.Hex2Bytes("66726f6d206469643a20420f383820e107eb1f543b816a1430b39fd0cf88fdb98ed738d9f144ed86fefa")
 	private := ""
 	res, _ := sign.TronSignature(true, data, private)
 	fmt.Println("res", common.Bytes2Hex(res))
 
-	data = common.Hex2Bytes("66726f6d206469643a2066a597e0e651f1249b0d931154b490ee4e5ca69da960acd72bba7d0d19d19b31")
-	signAddress := "TQoLh9evwUmZKxpD1uhFttsZk3EBs8BksV"
-	signMsg := common.Hex2Bytes("0x67180e3b847f126ac8f069c0281122ed2fb668b761f34b9059ec4673d9129cfa185c82973bc6d192a5e2e1f74b3e4df4f78de07d1f669737fb1f061e160b6a081c")
-	signMsg = res
-	//
-	fmt.Println(sign.TronVerifySignature(true, signMsg, data, signAddress))
+	//data = common.Hex2Bytes("66726f6d206469643a2066a597e0e651f1249b0d931154b490ee4e5ca69da960acd72bba7d0d19d19b31")
+	//signAddress := "TQoLh9evwUmZKxpD1uhFttsZk3EBs8BksV"
+	//signMsg := common.Hex2Bytes("0x67180e3b847f126ac8f069c0281122ed2fb668b761f34b9059ec4673d9129cfa185c82973bc6d192a5e2e1f74b3e4df4f78de07d1f669737fb1f061e160b6a081c")
+	//signMsg = res
+	////
+	//fmt.Println(sign.TronVerifySignature(true, signMsg, data, signAddress))
+}
+
+func TestETH(t *testing.T) {
+	signMsg := "0xa6406c20a09e5194e5e20f12fbdaef920051a5d35d24a394077957ab2d6d913e3ca2ef6366439a1aa3ecc6ea41c00b8ffc46c3deb6de8f442b347a625be3958100"
+	data := "from did: 09c6905c30db97445c17df9a97079bc5f241c33199aa758e7682f5e9430c8f5c"
+	address := "0x15a33588908cf8edb27d1abe3852bf287abd3891"
+
+	fmt.Println(common.Bytes2Hex([]byte(data)))
+	fmt.Println(common.Hex2Bytes(data))
+
+	fmt.Println(sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), common.Hex2Bytes(data), address))
+	//data:=common.Hex2Bytes("66726f6d206469643a2030396336393035633330646239373434356331376466396139373037396263356632343163333331393961613735386537363832663565393433306338663563")
+	//private:=""
+	//fmt.Println(sign.PersonalSignature(data,private))
 }
 
 func TestFromDid(t *testing.T) {
