@@ -292,7 +292,13 @@ func (e *EditSubAccountCache) GetSignData(subAcc *tables.TableAccountInfo, apiRe
 	bys, _ := blake2b.Blake256(data)
 	log.Info("GetSignData:", common.Bytes2Hex(bys))
 
-	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+	if signData.SignType == common.DasAlgorithmIdTron {
+		signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+	} else {
+		signData.SignMsg = "from did: " + common.Bytes2Hex(bys)[2:]
+	}
+
+	//signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
 	return
 }
 
