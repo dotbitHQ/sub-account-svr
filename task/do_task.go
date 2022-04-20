@@ -281,13 +281,6 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 			continue
 		}
 
-		//var signMsg []byte
-		//switch action {
-		//case common.DasActionEditSubAccount:
-		//	signMsg = []byte(signData.SignMsg)
-		//default:
-		//	signMsg = common.Hex2Bytes(signData.SignMsg)
-		//}
 		signMsg := common.Hex2Bytes(signData.SignMsg)
 
 		switch signData.SignType {
