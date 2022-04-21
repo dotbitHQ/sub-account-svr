@@ -19,6 +19,18 @@
 
 ## API LIST
 
+Please familiarize yourself with the meaning of some common parameters before reading the API list:
+
+| param                                                                                    | description                                                         |
+| :-------------------------                                                               | :------------------------------------------------------------------ |
+| type                                                                                     | Filled with "blockchain" for now                                    |
+| coin\_type <sup>[1](https://github.com/satoshilabs/slips/blob/master/slip-0044.md)</sup> | 60: eth, 195: trx, 714: bnb, 966: matic                             |
+| chain\_id <sup>[2](https://github.com/ethereum-lists/chains)</sup>                       | 1: eth, 56: bsc, 137: polygon; 5: goerli, 97: bsct, 80001: mumbai   |
+| account                                                                                  | Contains the suffix `.bit` in it                                    |
+| key                                                                                      | Generally refers to the blockchain address for now                  |
+
+_You can provide either `coin_type` or `chain_id`. The `coin_type` will be used, if you provide both_
+
 ### Get Config Info
 
 #### Request
@@ -47,11 +59,6 @@
 #### Request
 
 * path: /v1/account/list
-* params:
-    * coin_type: 60: eth, 195: trx, 714: bnb, 966: matic
-    * chain_id: main-net[1: eth, 56: bsc, 137: polygon]; test-net[5: goerli, 97: bsct, 80001: mumbai]
-    * key: address
-    * type: "blockchain"
 
 ```json
 {
@@ -65,9 +72,6 @@
   }
 }
 ```
-
-* The `type` is filled with "blockchain" for now
-* You can provide either `coin_type` or `chain_id`. The `coin_type` will be used, if you provide both
 
 #### Response
 
