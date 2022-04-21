@@ -34,12 +34,14 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetSatisfiedCapacityLiveCellWithOrder err: %s", err.Error())
 	}
-	if p.taskInfo.TaskType == tables.TaskTypeDelegate {
-		var outpoints []string
-		for _, v := range liveCells {
-			outpoints = append(outpoints, common.OutPointStruct2String(v.OutPoint))
-		}
-		s.DasCache.AddOutPoint(outpoints)
+
+	//if p.taskInfo.TaskType == tables.TaskTypeDelegate {
+	var outpoints []string
+	for _, v := range liveCells {
+		outpoints = append(outpoints, common.OutPointStruct2String(v.OutPoint))
 	}
+	s.DasCache.AddOutPoint(outpoints)
+	//}
+
 	return total - p.needCapacity, liveCells, nil
 }
