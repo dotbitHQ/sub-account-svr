@@ -1,21 +1,19 @@
-
-
-   * [API LIST](#api-list)
-      * [Get Config Info](#get-config-info)
-      * [Get Account List](#get-account-list)
-      * [Get Account Detail](#get-account-detail)
-      * [Get Sub Account List](#get-sub-account-list)
-      * [Init Sub Account](#init-sub-account)
-      * [Check Sub Account](#check-sub-account)
-      * [Create Sub Account](#create-sub-account)
-      * [Edit Sub Account](#edit-sub-account)
-      * [Send Transaction](#send-transaction)
-      * [Transaction Status](#transaction-status)
-   * [INTERNAL API LIST](#internal-api-list)
-      * [Internal Create Sub Account](#internal-create-sub-account)
-      * [Internal Check Smt Info](#internal-check-smt-info)
-      * [Internal Update Smt](#internal-update-smt)
-
+* [API LIST](#api-list)
+    * [Get Config Info](#get-config-info)
+    * [Get Account List](#get-account-list)
+    * [Get Account Detail](#get-account-detail)
+    * [Get Sub Account List](#get-sub-account-list)
+    * [Init Sub Account](#init-sub-account)
+    * [Check Sub Account](#check-sub-account)
+    * [Create Sub Account](#create-sub-account)
+    * [Edit Sub Account](#edit-sub-account)
+    * [Send Transaction](#send-transaction)
+    * [Transaction Status](#transaction-status)
+    * [Task Status](#task-status)
+* [INTERNAL API LIST](#internal-api-list)
+    * [Internal Create Sub Account](#internal-create-sub-account)
+    * [Internal Check Smt Info](#internal-check-smt-info)
+    * [Internal Update Smt](#internal-update-smt)
 
 ## API LIST
 
@@ -521,6 +519,33 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "data": {
     "block_number": 0,
     "hash": "",
+    "status": 0
+  }
+}
+```
+
+### Task Status
+
+#### Request
+
+* path: /v1/task/status
+
+```json
+{
+  "task_id": "",
+  "hash": ""
+}
+```
+
+#### Response
+
+* status: 0: pending, 1: ok, 2: fail
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
     "status": 0
   }
 }

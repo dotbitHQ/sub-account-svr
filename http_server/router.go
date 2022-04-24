@@ -27,6 +27,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/account/detail", api_code.DoMonitorLog("account_detail"), cacheHandleShort, h.H.AccountDetail)
 		v1.POST("/sub/account/list", api_code.DoMonitorLog("sub_account_list"), cacheHandleShort, h.H.SubAccountList)
 		v1.POST("/transaction/status", api_code.DoMonitorLog("tx_status"), cacheHandleShort, h.H.TransactionStatus)
+		v1.POST("/task/status", api_code.DoMonitorLog("task_status"), cacheHandleShort, h.H.TaskInfo)
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), h.H.SubAccountCheck)

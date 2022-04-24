@@ -40,6 +40,7 @@ const (
 	ApiCodeNotHaveManagementPermission ApiCode = 40012
 	ApiCodeSmtDiff                     ApiCode = 40013
 	ApiCodeSuspendOperation            ApiCode = 40014
+	ApiCodeTaskNotExist                ApiCode = 40015
 )
 
 const (
