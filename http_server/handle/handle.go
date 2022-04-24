@@ -118,9 +118,9 @@ func doBuildTxs(err error, apiResp *api_code.ApiResp) error {
 	if strings.Contains(err.Error(), core.ErrRejectedOutPoint.Error()) {
 		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, core.ErrRejectedOutPoint.Error())
 	} else if strings.Contains(err.Error(), core.ErrInsufficientFunds.Error()) {
-		apiResp.ApiRespErr(api_code.ApiCodeInsufficientBalance, core.ErrRejectedOutPoint.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeInsufficientBalance, core.ErrInsufficientFunds.Error())
 	} else if strings.Contains(err.Error(), core.ErrNotEnoughChange.Error()) {
-		apiResp.ApiRespErr(api_code.ApiCodeNotEnoughChange, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeNotEnoughChange, core.ErrNotEnoughChange.Error())
 	} else {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 	}
