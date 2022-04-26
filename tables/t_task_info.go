@@ -35,18 +35,20 @@ const (
 )
 
 type TableTaskInfo struct {
-	Id              uint64    `json:"id" gorm:"column:id;primary_key;AUTO_INCREMENT"`
-	TaskId          string    `json:"task_id" gorm:"column:task_id"`
-	TaskType        TaskType  `json:"task_type" gorm:"column:task_type"`
-	ParentAccountId string    `json:"parent_account_id" gorm:"column:parent_account_id"`
-	Action          string    `json:"action" gorm:"column:action"`
-	RefOutpoint     string    `json:"ref_outpoint" gorm:"column:ref_outpoint"`
-	BlockNumber     uint64    `json:"block_number" gorm:"column:block_number"`
-	Outpoint        string    `json:"outpoint" gorm:"column:outpoint"`
-	Timestamp       int64     `json:"timestamp" gorm:"column:timestamp"`
-	SmtStatus       SmtStatus `json:"smt_status" gorm:"column:smt_status"`
-	TxStatus        TxStatus  `json:"tx_status" gorm:"column:tx_status"`
-	Retry           int       `json:"retry" gorm:"column:retry"`
+	Id              uint64    `json:"id" gorm:"column:id;primaryKey;type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT ''"`
+	TaskId          string    `json:"task_id" gorm:"column:task_id;uniqueIndex:uk_task_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	TaskType        TaskType  `json:"task_type" gorm:"column:task_type;index:k_task_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-delegate 1-normal 2-chain 3-closed'"`
+	ParentAccountId string    `json:"parent_account_id" gorm:"column:parent_account_id;index:k_parent_account_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'smt tree'"`
+	Action          string    `json:"action" gorm:"column:action;index:k_action;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	RefOutpoint     string    `json:"ref_outpoint" gorm:"column:ref_outpoint;index:k_ref_outpoint;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'ref sub account cell outpoint'"`
+	BlockNumber     uint64    `json:"block_number" gorm:"column:block_number;type:bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'tx block number'"`
+	Outpoint        string    `json:"outpoint" gorm:"column:outpoint;index:k_outpoint;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'new sub account cell outpoint'"`
+	Timestamp       int64     `json:"timestamp" gorm:"column:timestamp;type:bigint(20) NOT NULL DEFAULT '0' COMMENT 'record timestamp'"`
+	SmtStatus       SmtStatus `json:"smt_status" gorm:"column:smt_status;index:k_smt_tx;type:smallint(6) NOT NULL DEFAULT '0' COMMENT 'smt status'"`
+	TxStatus        TxStatus  `json:"tx_status" gorm:"column:tx_status;index:k_smt_tx;type:smallint(6) NOT NULL DEFAULT '0' COMMENT 'tx status'"`
+	Retry           int       `json:"retry" gorm:"column:retry;type:smallint(6) NOT NULL DEFAULT '0' COMMENT ''"`
+	CreatedAt       time.Time `json:"created_at" gorm:"column:created_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT ''"`
+	UpdatedAt       time.Time `json:"updated_at" gorm:"column:updated_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''"`
 }
 
 const (

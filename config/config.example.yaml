@@ -27,24 +27,24 @@ chain:
   concurrency_num: 100
 db:
   mysql:
-    addr: "127.0.0.1:3306"
+    addr: "127.0.0.1:3306" # 172.17.0.1: docker 182.17.0.1: docker-compose
     user: "root"
-    password: ""
-    db_name: "sub_account_db"
+    password: "123456"
+    db_name: "sub_account"
     max_open_conn: 100
     max_idle_conn: 50
   parser_mysql:
-    addr: "127.0.0.1:3306"
+    addr: "127.0.0.1:3306" # 172.17.0.1: docker 182.17.0.1: docker-compose
     user: "root"
-    password: ""
-    db_name: "das_database"
+    password: "123456"
+    db_name: "bit_database"
     max_open_conn: 100
     max_idle_conn: 50
   mongo:
-    uri: ""
-    smt_database: ""
+    uri: "mongodb://admin:123456@127.0.0.1:27017/admin"
+    smt_database: "smt"
 cache:
   redis:
-    addr: ""
+    addr: "127.0.0.1:6379" # 172.17.0.1: docker 182.17.0.1: docker-compose
     password: ""
     db_num: 0

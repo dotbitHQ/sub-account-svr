@@ -28,5 +28,14 @@ make sub
 ./sub_account --config=config/config.yaml
 ```
 
+## Docker Install & Run
+```bash
+# if you already have a mysql and mongo database installed, just run
+docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
+
+# if not, you need docker-compose to automate the installation
+docker-compose up -d
+```
+
 ### Others
 More APIs see [API.md](https://github.com/dotbitHQ/sub-account-svr/blob/main/API.md)
