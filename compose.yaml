@@ -38,6 +38,18 @@ services:
     networks:
       - mynetwork
 
+  mongo:
+    image: mongo:4.2
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - $PWD/mongo-data:/data
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+      - MONGO_INITDB_DATABASE=smt
+
   redis:
     image: redis:5.0
     restart: always
@@ -58,6 +70,7 @@ services:
       - $PWD/config/config.yaml:/app/config/config.yaml
     depends_on:
       - bit-database
+      - mongo
       - redis
     networks:
       - mynetwork

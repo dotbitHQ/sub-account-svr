@@ -19,3 +19,4 @@
 config/config.yaml
 config/config.database.yaml
 mysql-data
+mongo-data
