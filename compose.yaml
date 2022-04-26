@@ -44,11 +44,13 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - $PWD/mongo-data:/data
+      - $PWD/mongo-data:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=123456
       - MONGO_INITDB_DATABASE=smt
+    networks:
+      - mynetwork
 
   redis:
     image: redis:5.0
