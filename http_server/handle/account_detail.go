@@ -85,7 +85,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
 	}
-	resp.AccountInfo = accountInfoToAccountData(nil, acc)
+	resp.AccountInfo = h.accountInfoToAccountData(acc)
 
 	// get records
 	list, err := h.DbDao.GetRecordsByAccountId(accountId)
@@ -102,16 +102,24 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 	return nil
 }
 
-func accountInfoToAccountData(cta *api_code.ChainTypeAddress, acc tables.TableAccountInfo) AccountData {
+func (h *HttpHandle) accountInfoToAccountData(acc tables.TableAccountInfo) AccountData {
 	var owner, manager api_code.ChainTypeAddress
-	if cta != nil {
-		owner, manager = *cta, *cta
-		owner.KeyInfo.Key = core.FormatHexAddressToNormal(acc.OwnerChainType, acc.Owner)
-		manager.KeyInfo.Key = core.FormatHexAddressToNormal(acc.ManagerChainType, acc.Manager)
-	} else {
-		owner = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.OwnerChainType, acc.Owner)
-		manager = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, acc.Manager)
-	}
+
+	ownerHex, _ := h.DasCore.Daf().HexToNormal(core.DasAddressHex{
+		DasAlgorithmId: acc.OwnerChainType.ToDasAlgorithmId(true),
+		AddressHex:     acc.Owner,
+		IsMulti:        false,
+		ChainType:      acc.OwnerChainType,
+	})
+	managerHex, _ := h.DasCore.Daf().HexToNormal(core.DasAddressHex{
+		DasAlgorithmId: acc.ManagerChainType.ToDasAlgorithmId(true),
+		AddressHex:     acc.Manager,
+		IsMulti:        false,
+		ChainType:      acc.ManagerChainType,
+	})
+
+	owner = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.OwnerChainType, ownerHex.AddressNormal)
+	manager = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, managerHex.AddressNormal)
 
 	return AccountData{
 		Account:              acc.Account,

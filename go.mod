@@ -3,7 +3,7 @@ module das_sub_account
 go 1.15
 
 require (
-	github.com/DeAccountSystems/das-lib v0.0.0-20220415104407-b31442fdb7e0
+	github.com/DeAccountSystems/das-lib v0.0.0-20220427084013-4ddc1197fa0f
 	github.com/elazarl/goproxy v0.0.0-20220115173737-adb46da277ac // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.7.2
@@ -17,3 +17,5 @@ require (
 	gorm.io/gorm v1.22.1
 	moul.io/http2curl v1.0.0 // indirect
 )
+
+replace github.com/ethereum/go-ethereum v1.9.14 => github.com/ethereum/go-ethereum v1.10.17

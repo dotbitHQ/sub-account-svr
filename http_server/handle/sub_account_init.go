@@ -60,16 +60,12 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	resp.List = make([]SignInfo, 0)
 
 	// check params
-	chainType, address, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
 	}
-	if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-		return nil
-	}
-	req.chainType, req.address = chainType, address
+	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
 	// check update
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
@@ -122,10 +118,10 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
 	// check balance
-	dasLock, dasType, err := h.DasCore.FormatAddressToDasLockScript(req.chainType, req.address, true)
+	dasLock, dasType, err := h.DasCore.Daf().HexToScript(*addrHex)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("FormatAddressToDasLockScript err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
+		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
 	liveCells, total, err := core.GetSatisfiedCapacityLiveCellWithOrder(h.DasCore.Client(), h.DasCache, dasLock, dasType, capacityNeed, capacityForChange, indexer.SearchOrderAsc)

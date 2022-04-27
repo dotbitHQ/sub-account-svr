@@ -137,7 +137,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 		}
 
 		// check now sign msg
-		signData := editCache.GetSignData(subAcc, apiResp)
+		signData := editCache.GetSignData(h.DasCore.Daf(), subAcc, apiResp)
 		if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		} else if signData.SignMsg != editCache.OldSignMsg {
@@ -198,7 +198,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 			Timestamp:       time.Now().UnixNano() / 1e6,
 		}
 
-		if err := editCache.InitRecord(subAcc, &record); err != nil {
+		if err := editCache.InitRecord(h.DasCore.Daf(), subAcc, &record); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}

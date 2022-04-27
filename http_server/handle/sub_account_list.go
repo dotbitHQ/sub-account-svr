@@ -53,16 +53,12 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 
 	// check params
 	if req.ChainTypeAddress.KeyInfo.Key != "" {
-		chainType, address, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return nil
 		}
-		if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-			return nil
-		}
-		req.chainType, req.address = chainType, address
+		req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 	}
 
 	// check params
@@ -79,7 +75,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 		return fmt.Errorf("GetSubAccountListByParentAccountId err: %s", err.Error())
 	}
 	for _, v := range list {
-		tmp := accountInfoToAccountData(nil, v)
+		tmp := h.accountInfoToAccountData(v)
 		resp.List = append(resp.List, tmp)
 	}
 

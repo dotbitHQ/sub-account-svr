@@ -82,8 +82,11 @@ func (h *HttpHandle) doInternalSubAccountCreate(req *ReqSubAccountCreate, apiRes
 		apiResp.ApiRespErr(api_code.ApiCodeSuspendOperation, "suspend operation")
 		return nil
 	}
-	taskList, taskMap := getTaskAndTaskMap(req, parentAccountId, tables.TaskTypeDelegate)
-
+	taskList, taskMap, err := getTaskAndTaskMap(h.DasCore.Daf(), req, parentAccountId, tables.TaskTypeDelegate)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("getTaskAndTaskMap err: %s", err.Error())
+	}
 	//
 	for i, v := range taskList {
 		records, _ := taskMap[v.TaskId]

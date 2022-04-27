@@ -140,7 +140,7 @@ func (h *HttpHandle) doSubAccountEdit(req *ReqSubAccountEdit, apiResp *api_code.
 	}
 
 	// cache sign info
-	signData := editCache.GetSignData(subAcc, apiResp)
+	signData := editCache.GetSignData(h.DasCore.Daf(), subAcc, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
@@ -171,41 +171,29 @@ func (h *HttpHandle) doSubAccountEdit(req *ReqSubAccountEdit, apiResp *api_code.
 
 func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_code.ApiResp) {
 	// check params
-	chainType, address, err := r.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return
 	}
-	if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-		return
-	}
-	r.chainType, r.address = chainType, address
+	r.chainType, r.address = addrHex.ChainType, addrHex.AddressHex
 
 	// check edit value
 	switch r.EditKey {
 	case common.EditKeyOwner:
-		chainType, address, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
-		if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-			return
-		}
-		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = chainType, address
+		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = addrHex.ChainType, addrHex.AddressHex
 	case common.EditKeyManager:
-		chainType, address, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
-		if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-			return
-		}
-		r.EditValue.ManagerChainType, r.EditValue.ManagerAddress = chainType, address
+		r.EditValue.ManagerChainType, r.EditValue.ManagerAddress = addrHex.ChainType, addrHex.AddressHex
 	case common.EditKeyRecords:
 		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsRecordNamespace)
 		if err != nil {
@@ -251,19 +239,45 @@ func (e *EditSubAccountCache) CacheKey() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(key)))
 }
 
-func (e *EditSubAccountCache) GetSignData(subAcc *tables.TableAccountInfo, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
+func (e *EditSubAccountCache) GetSignData(daf *core.DasAddressFormat, subAcc *tables.TableAccountInfo, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
 	subAccountId := subAcc.AccountId
 	data := common.Hex2Bytes(subAccountId)
 	data = append(data, []byte(e.EditKey)...)
 	log.Info("GetSignData:", e.EditKey)
 	switch e.EditKey {
 	case common.EditKeyOwner:
-		args := core.FormatOwnerManagerAddressToArgs(e.EditValue.OwnerChainType, e.EditValue.OwnerChainType, e.EditValue.OwnerAddress, e.EditValue.OwnerAddress)
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: e.EditValue.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     e.EditValue.OwnerAddress,
+			IsMulti:        false,
+			ChainType:      e.EditValue.OwnerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, ownerHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToArgs err: %s", err.Error()))
+			return
+		}
 		data = append(data, args...)
 		log.Info("GetSignData:", common.Bytes2Hex(args))
 		signData.SignType = subAcc.OwnerAlgorithmId
 	case common.EditKeyManager:
-		args := core.FormatOwnerManagerAddressToArgs(subAcc.OwnerChainType, e.EditValue.ManagerChainType, subAcc.Owner, e.EditValue.ManagerAddress)
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     subAcc.Owner,
+			IsMulti:        false,
+			ChainType:      subAcc.OwnerChainType,
+		}
+		managerHex := core.DasAddressHex{
+			DasAlgorithmId: e.EditValue.ManagerChainType.ToDasAlgorithmId(true),
+			AddressHex:     e.EditValue.ManagerAddress,
+			IsMulti:        false,
+			ChainType:      e.EditValue.ManagerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, managerHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToArgs err: %s", err.Error()))
+			return
+		}
 		data = append(data, args...)
 		log.Info("GetSignData:", common.Bytes2Hex(args))
 		signData.SignType = subAcc.ManagerAlgorithmId
@@ -364,13 +378,37 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 	return signAddress, &subAcc, nil
 }
 
-func (e *EditSubAccountCache) InitRecord(subAcc *tables.TableAccountInfo, record *tables.TableSmtRecordInfo) error {
+func (e *EditSubAccountCache) InitRecord(daf *core.DasAddressFormat, subAcc *tables.TableAccountInfo, record *tables.TableSmtRecordInfo) error {
 	switch e.EditKey {
 	case common.EditKeyOwner:
-		args := core.FormatOwnerManagerAddressToArgs(e.EditValue.OwnerChainType, e.EditValue.OwnerChainType, e.EditValue.OwnerAddress, e.EditValue.OwnerAddress)
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: e.EditValue.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     e.EditValue.OwnerAddress,
+			IsMulti:        false,
+			ChainType:      e.EditValue.OwnerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, ownerHex)
+		if err != nil {
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
 		record.EditArgs = common.Bytes2Hex(args)
 	case common.EditKeyManager:
-		args := core.FormatOwnerManagerAddressToArgs(subAcc.OwnerChainType, e.EditValue.ManagerChainType, subAcc.Owner, e.EditValue.ManagerAddress)
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     subAcc.Owner,
+			IsMulti:        false,
+			ChainType:      subAcc.OwnerChainType,
+		}
+		managerHex := core.DasAddressHex{
+			DasAlgorithmId: e.EditValue.ManagerChainType.ToDasAlgorithmId(true),
+			AddressHex:     e.EditValue.ManagerAddress,
+			IsMulti:        false,
+			ChainType:      e.EditValue.ManagerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, managerHex)
+		if err != nil {
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
 		record.EditArgs = common.Bytes2Hex(args)
 	case common.EditKeyRecords:
 		records := e.FormatRecords()

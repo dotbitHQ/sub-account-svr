@@ -105,7 +105,12 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 	//	}
 	//} else
 	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
-		balanceDasLock, balanceDasType, err = h.DasCore.FormatAddressToDasLockScript(acc.ManagerChainType, acc.Manager, true)
+		balanceDasLock, balanceDasType, err = h.DasCore.Daf().HexToScript(core.DasAddressHex{
+			DasAlgorithmId: acc.ManagerChainType.ToDasAlgorithmId(true),
+			AddressHex:     acc.Manager,
+			IsMulti:        false,
+			ChainType:      acc.ManagerChainType,
+		})
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("FormatAddressToDasLockScript err: %s", err.Error())
@@ -122,8 +127,11 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeSuspendOperation, "suspend operation")
 		return nil
 	}
-	taskList, taskMap := getTaskAndTaskMap(req, parentAccountId, tables.TaskTypeNormal)
-
+	taskList, taskMap, err := getTaskAndTaskMap(h.DasCore.Daf(), req, parentAccountId, tables.TaskTypeNormal)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("getTaskAndTaskMap err: %s", err.Error())
+	}
 	// do check
 	resCheck, err := h.TxTool.DoCheckBeforeBuildTx(parentAccountId)
 	if err != nil {
@@ -224,7 +232,7 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 	return nil
 }
 
-func getTaskAndTaskMap(req *ReqSubAccountCreate, parentAccountId string, taskType tables.TaskType) ([]tables.TableTaskInfo, map[string][]tables.TableSmtRecordInfo) {
+func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentAccountId string, taskType tables.TaskType) ([]tables.TableTaskInfo, map[string][]tables.TableSmtRecordInfo, error) {
 	var taskList []tables.TableTaskInfo
 	var taskMap = make(map[string][]tables.TableSmtRecordInfo)
 	taskId, count := "", 0
@@ -252,7 +260,18 @@ func getTaskAndTaskMap(req *ReqSubAccountCreate, parentAccountId string, taskTyp
 		}
 		count++
 		subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-		registerArgs := core.FormatOwnerManagerAddressToArgs(v.chainType, v.chainType, v.address, v.address)
+
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: v.chainType.ToDasAlgorithmId(true),
+			AddressHex:     v.address,
+			IsMulti:        false,
+			ChainType:      v.chainType,
+		}
+		registerArgs, err := daf.HexToArgs(ownerHex, ownerHex)
+		if err != nil {
+			return nil, nil, fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+
 		tmpRecord := tables.TableSmtRecordInfo{
 			Id:              0,
 			AccountId:       subAccountId,
@@ -273,5 +292,5 @@ func getTaskAndTaskMap(req *ReqSubAccountCreate, parentAccountId string, taskTyp
 		}
 		taskMap[taskId] = append(taskMap[taskId], tmpRecord)
 	}
-	return taskList, taskMap
+	return taskList, taskMap, nil
 }

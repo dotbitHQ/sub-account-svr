@@ -91,16 +91,12 @@ func (h *HttpHandle) doSubAccountCheckParams(req *ReqSubAccountCreate, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("more than max register num %d", config.Cfg.Das.MaxCreateCount))
 		return nil
 	}
-	chainType, address, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
 	}
-	if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-		return nil
-	}
-	req.chainType, req.address = chainType, address
+	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 	return nil
 }
 
@@ -183,20 +179,16 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("invalid character")
 			isOk = false
 		} else {
-			c, a, e := v.FormatChainTypeAddress(config.Cfg.Server.Net)
+			addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net)
 			if e != nil {
 				tmp.Status = CheckStatusFail
 				tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
-				isOk = false
-			} else if ok := checkRegisterChainTypeAndAddress(c, a); !ok {
-				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("chain type and address [%s-%s] invalid", c.String(), a)
 				isOk = false
 			} else {
 				accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
 				accountIds = append(accountIds, accId)
 			}
-			req.SubAccountList[i].chainType, req.SubAccountList[i].address = c, a
+			req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
 		}
 		subAccountMap[accountId] = i
 		resp.Result = append(resp.Result, tmp)

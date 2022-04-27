@@ -17,22 +17,32 @@ type KeyInfo struct {
 	Key      string   `json:"key"`
 }
 
-func (c *ChainTypeAddress) FormatChainTypeAddress(net common.DasNetType) (common.ChainType, string, error) {
+func (c *ChainTypeAddress) FormatChainTypeAddress(net common.DasNetType) (*core.DasAddressHex, error) {
 	if c.Type != "blockchain" {
-		return -1, "", fmt.Errorf("not support type[%s]", c.Type)
+		return nil, fmt.Errorf("not support type[%s]", c.Type)
 	}
 	dasChainType := FormatCoinTypeToDasChainType(c.KeyInfo.CoinType)
 	if dasChainType == -1 {
 		dasChainType = FormatChainIdToDasChainType(net, c.KeyInfo.ChainId)
 	}
 	if dasChainType == -1 {
-		return dasChainType, "", fmt.Errorf("not support coin type[%s]-chain id[%s]", c.KeyInfo.CoinType, c.KeyInfo.ChainId)
+		return nil, fmt.Errorf("not support coin type[%s]-chain id[%s]", c.KeyInfo.CoinType, c.KeyInfo.ChainId)
 	}
 
-	return dasChainType, core.FormatAddressToHex(dasChainType, c.KeyInfo.Key), nil
+	daf := core.DasAddressFormat{DasNetType: net}
+	addrHex, err := daf.NormalToHex(core.DasAddressNormal{
+		ChainType:     dasChainType,
+		AddressNormal: c.KeyInfo.Key,
+		Is712:         true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("address NormalToHex err")
+	}
+
+	return &addrHex, nil
 }
 
-func FormatChainTypeAddress(net common.DasNetType, chainType common.ChainType, address string) ChainTypeAddress {
+func FormatChainTypeAddress(net common.DasNetType, chainType common.ChainType, key string) ChainTypeAddress {
 	var coinType CoinType
 	switch chainType {
 	case common.ChainTypeEth:
@@ -59,7 +69,7 @@ func FormatChainTypeAddress(net common.DasNetType, chainType common.ChainType, a
 		KeyInfo: KeyInfo{
 			CoinType: coinType,
 			ChainId:  chainId,
-			Key:      core.FormatHexAddressToNormal(chainType, address),
+			Key:      key,
 		},
 	}
 }

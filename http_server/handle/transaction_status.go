@@ -63,16 +63,12 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	var resp RespTransactionStatus
 
 	// check params
-	chainType, address, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
 	}
-	if ok := checkRegisterChainTypeAndAddress(chainType, address); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("chain type and address [%s-%s] invalid", chainType.String(), address))
-		return nil
-	}
-	req.chainType, req.address = chainType, address
+	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
 	// check account
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
