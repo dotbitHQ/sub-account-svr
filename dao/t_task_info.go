@@ -19,7 +19,7 @@ func (d *DbDao) UpdateTaskStatusToRejected(ids []uint64) error {
 		return nil
 	}
 	return d.db.Model(tables.TableTaskInfo{}).
-		Where("id IN(?)", ids).
+		Where("id IN(?) AND smt_status=? AND tx_status=?", ids, tables.SmtStatusWriteComplete, tables.TxStatusPending).
 		Updates(map[string]interface{}{
 			"smt_status": tables.SmtStatusNeedToRollback,
 			"tx_status":  tables.TxStatusRejected,
@@ -27,7 +27,8 @@ func (d *DbDao) UpdateTaskStatusToRejected(ids []uint64) error {
 }
 
 func (d *DbDao) UpdateTaskTxStatusToPending(taskId string) error {
-	return d.db.Model(tables.TableTaskInfo{}).Where("task_id=?", taskId).
+	return d.db.Model(tables.TableTaskInfo{}).Where("task_id=? AND smt_status=? AND tx_status=?",
+		taskId, tables.SmtStatusWriting, tables.TxStatusUnSend).
 		Updates(map[string]interface{}{
 			"smt_status": tables.SmtStatusWriteComplete,
 			"tx_status":  tables.TxStatusPending,
@@ -118,8 +119,9 @@ func (d *DbDao) GetNeedToDoTaskListByAction(action common.DasAction) (list []tab
 }
 
 func (d *DbDao) GetTaskByRefOutpointAndOutpoint(refOutpoint, outpoint string) (task tables.TableTaskInfo, err error) {
-	err = d.db.Where("ref_outpoint=? AND outpoint=?",
-		refOutpoint, outpoint).Order("id DESC").Find(&task).Error
+	err = d.db.Where("ref_outpoint=? AND outpoint=? AND smt_status=? AND tx_status=?",
+		refOutpoint, outpoint, tables.SmtStatusWriteComplete, tables.TxStatusPending).
+		Order("id DESC").Find(&task).Error
 	return
 }
 
@@ -236,7 +238,7 @@ func (d *DbDao) GetNeedDoCheckErrorTaskList() (list []tables.TableTaskInfo, err 
 
 func (d *DbDao) UpdateTaskStatusToRollback(ids []uint64) error {
 	return d.db.Model(tables.TableTaskInfo{}).
-		Where("id IN(?)", ids).
+		Where("id IN(?) AND smt_status=? AND tx_status=?", ids, tables.SmtStatusWriting, tables.TxStatusUnSend).
 		Updates(map[string]interface{}{
 			"smt_status": tables.SmtStatusNeedToRollback,
 		}).Error
