@@ -349,7 +349,7 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 		}
 		signAddress = subAcc.Owner
 	} else if e.EditKey == common.EditKeyManager {
-		if e.ChainType != subAcc.ManagerChainType || !strings.EqualFold(e.Address, subAcc.Manager) {
+		if e.ChainType != subAcc.OwnerChainType || !strings.EqualFold(e.Address, subAcc.Owner) {
 			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 			return "", nil, nil
 		} else if e.EditValue.ManagerChainType == subAcc.ManagerChainType && strings.EqualFold(e.EditValue.ManagerAddress, subAcc.Manager) {
