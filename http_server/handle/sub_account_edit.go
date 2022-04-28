@@ -280,7 +280,7 @@ func (e *EditSubAccountCache) GetSignData(daf *core.DasAddressFormat, subAcc *ta
 		}
 		data = append(data, args...)
 		log.Info("GetSignData:", common.Bytes2Hex(args))
-		signData.SignType = subAcc.ManagerAlgorithmId
+		signData.SignType = subAcc.OwnerAlgorithmId
 	case common.EditKeyRecords:
 		list := e.FormatRecords()
 		records := witness.ConvertToRecords(list)
