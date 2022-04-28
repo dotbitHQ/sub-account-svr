@@ -356,7 +356,7 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 			apiResp.ApiRespErr(api_code.ApiCodeSameLock, "same address")
 			return "", nil, nil
 		}
-		signAddress = subAcc.Manager
+		signAddress = subAcc.Owner
 	} else if e.EditKey == common.EditKeyRecords {
 		if e.ChainType != subAcc.ManagerChainType || !strings.EqualFold(e.Address, subAcc.Manager) {
 			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
