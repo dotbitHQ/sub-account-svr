@@ -29,11 +29,20 @@ make sub
 ```
 
 ## Docker Install & Run
-```bash
-# if you already have a mysql and mongo database installed, just run
-docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
+* docker >= 20.10
+* docker-compose >= 2.2.2
 
-# if not, you need docker-compose to automate the installation
+if you already have a mysql database installed, just run
+```bash
+docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
+```
+
+if not, you need docker-compose to automate the installation
+```bash
+curl -SL https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+
+sudo chmod +x /usr/local/bin/docker-compose
+
 docker-compose up -d
 ```
 
