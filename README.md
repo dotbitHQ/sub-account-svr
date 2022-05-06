@@ -13,6 +13,8 @@ Backend of .bit sub account service, including registration and management.
 
 ## Install & Run
 
+### Source Compile
+
 ```bash
 # get the code
 git clone https://github.com/dotbitHQ/sub-account-svr
@@ -28,22 +30,20 @@ make sub
 ./sub_account --config=config/config.yaml
 ```
 
-## Docker Install & Run
+### Docker
 * docker >= 20.10
 * docker-compose >= 2.2.2
 
-if you already have a mysql database installed, just run
 ```bash
-docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+docker-compose up -d
 ```
 
-if not, you need docker-compose to automate the installation
+_if you already have a mysql installed, just run_
 ```bash
-curl -SL https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-
-sudo chmod +x /usr/local/bin/docker-compose
-
-docker-compose up -d
+docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
 ```
 
 ### Others
