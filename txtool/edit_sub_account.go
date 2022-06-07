@@ -120,6 +120,24 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness
 	}
 
+	// account cell witness
+	accTx, err := s.DasCore.Client().GetTransaction(s.Ctx, p.AccountOutPoint.TxHash)
+	if err != nil {
+		return nil, fmt.Errorf("GetTransaction acc tx err: %s", err.Error())
+	}
+	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	accBuilder, ok := accBuilderMap[p.Account.AccountId]
+	if !ok {
+		return nil, fmt.Errorf("accBuilderMap is nil: %s", p.Account.AccountId)
+	}
+	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
+		OldIndex: 0,
+		Action:   common.DasActionEditSubAccount,
+	})
+	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	// so
 	soEd25519, _ := core.GetDasSoScript(common.SoScriptTypeEd25519)
 	soEth, _ := core.GetDasSoScript(common.SoScriptTypeEth)
@@ -127,6 +145,10 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 
 	// cell deps
 	txParams.CellDeps = append(txParams.CellDeps,
+		&types.CellDep{
+			OutPoint: p.AccountOutPoint,
+			DepType:  types.DepTypeCode,
+		},
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ContractDas.ToCellDep(),
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
@@ -134,10 +156,6 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 		p.BaseInfo.TimeCell.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
-		&types.CellDep{
-			OutPoint: p.AccountOutPoint,
-			DepType:  types.DepTypeCode,
-		},
 		soEd25519.ToCellDep(),
 		soEth.ToCellDep(),
 		soTron.ToCellDep(),
