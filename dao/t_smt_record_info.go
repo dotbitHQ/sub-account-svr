@@ -66,6 +66,12 @@ func (d *DbDao) GetLatestSmtRecordByAccountIdAction(accountId, action string) (r
 	return
 }
 
+func (d *DbDao) GetLatestMintRecord(accountId, action string) (record tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND action=?", accountId, action).
+		Order("id DESC").Limit(1).Find(&record).Error
+	return
+}
+
 func (d *DbDao) GetLatestNonceSmtRecordByAccountId(accountId string, recordType tables.RecordType) (record tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("account_id=? AND record_type=?", accountId, recordType).
 		Order("nonce DESC").Limit(1).Find(&record).Error
