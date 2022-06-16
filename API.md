@@ -10,8 +10,10 @@
     * [Send Transaction](#send-transaction)
     * [Transaction Status](#transaction-status)
     * [Task Status](#task-status)
+    * [Sub Account Mint Status](#sub-account-mint-status)
 * [INTERNAL API LIST](#internal-api-list)
     * [Internal Create Sub Account](#internal-create-sub-account)
+    * [Internal Mint Sub Account](#internal-mint-sub-account)  
     * [Internal Check Smt Info](#internal-check-smt-info)
     * [Internal Update Smt](#internal-update-smt)
 
@@ -551,6 +553,32 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 }
 ```
 
+### Sub Account Mint Status
+
+#### Request
+
+* path: /v1/sub/account/mint/status
+
+```json
+{
+  "sub_account": ""
+}
+```
+
+#### Response
+
+* status: 0: pending, 1: ok, 2: fail
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "status": 0
+  }
+}
+```
+
 ## INTERNAL API LIST
 
 ### Internal Create Sub Account
@@ -594,6 +622,47 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       ""
     ]
   }
+}
+```
+
+
+### Internal Mint Sub Account 
+
+#### Request
+
+* path: /v1/internal/sub/account/mint
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "chain_id": "1",
+    "key": "0x111"
+  },
+  "account": "",
+  "sub_account_list": [
+    {
+      "account": "",
+      "register_years": 1,
+      "type": "blockchain",
+      "key_info": {
+        "coin_type": "60",
+        "chain_id": "1",
+        "key": "0x111..."
+      }
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {}
 }
 ```
 
