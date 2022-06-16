@@ -11,6 +11,10 @@ func (d *DbDao) CreateSmtRecordInfo(record tables.TableSmtRecordInfo) error {
 	return d.db.Create(&record).Error
 }
 
+func (d *DbDao) CreateSmtRecordList(recordList []tables.TableSmtRecordInfo) error {
+	return d.db.Create(&recordList).Error
+}
+
 func (d *DbDao) GetNeedDoDistributionRecordList(action common.DasAction) (list []tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("task_id='' AND action=?", action).Order("parent_account_id,id").
 		Limit(100).Find(&list).Error
