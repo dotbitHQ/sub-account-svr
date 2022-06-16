@@ -151,6 +151,7 @@ func runServer(ctx *cli.Context) error {
 	smtTask.RunCheckError()
 	smtTask.RunTaskRollback()
 	smtTask.RunTaskDistribution()
+	smtTask.RunMintTaskDistribution()
 	smtTask.RunEditSubAccountTask()
 	smtTask.RunCreateSubAccountTask()
 	log.Infof("task ok")

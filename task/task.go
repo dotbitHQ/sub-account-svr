@@ -30,7 +30,7 @@ type SmtTask struct {
 
 // task_id='' -> task_id!=''
 func (t *SmtTask) RunTaskDistribution() {
-	tickerDistribution := time.NewTicker(time.Second * 20)
+	tickerDistribution := time.NewTicker(time.Second * 50)
 	t.Wg.Add(1)
 	go func() {
 		for {
@@ -44,6 +44,28 @@ func (t *SmtTask) RunTaskDistribution() {
 				log.Info("doDistribution end ...")
 			case <-t.Ctx.Done():
 				log.Info("task Distribution done")
+				t.Wg.Done()
+				return
+			}
+		}
+	}()
+}
+
+func (t *SmtTask) RunMintTaskDistribution() {
+	tickerDistribution := time.NewTicker(time.Minute)
+	t.Wg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-tickerDistribution.C:
+				log.Info("RunMintTaskDistribution start ...")
+				if err := t.doMintDistribution(); err != nil {
+					log.Error("doMintDistribution err:", err.Error())
+					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doMintDistribution", err.Error())
+				}
+				log.Info("RunMintTaskDistribution end ...")
+			case <-t.Ctx.Done():
+				log.Info("task RunMintTaskDistribution done")
 				t.Wg.Done()
 				return
 			}

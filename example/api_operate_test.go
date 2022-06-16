@@ -3,7 +3,6 @@ package example
 import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/http_server/handle"
-	"das_sub_account/tables"
 	"das_sub_account/task"
 	"fmt"
 	"github.com/DeAccountSystems/das-lib/common"
@@ -497,19 +496,6 @@ func TestVerifyEthSignature(t *testing.T) {
 	address := "0x15a33588908cf8edb27d1abe3852bf287abd3891"
 
 	fmt.Println(sign.VerifyPersonalSignature(signMsg, []byte(rawByte), address))
-}
-
-func TestEditSubAccountCache(t *testing.T) {
-	var e handle.EditSubAccountCache
-	e.EditKey = common.EditKeyManager
-	e.EditValue.ManagerChainType = common.ChainTypeEth
-	e.EditValue.ManagerAddress = "0x15a33588908cf8edb27d1abe3852bf287abd3891"
-	subAcc := tables.TableAccountInfo{}
-	subAcc.OwnerChainType = common.ChainTypeEth
-	subAcc.Owner = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
-	res := e.GetSignData(&subAcc, nil)
-	fmt.Println(res)
-
 }
 
 func TestPersonalSignature(t *testing.T) {
