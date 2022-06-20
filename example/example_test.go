@@ -43,7 +43,7 @@ func TestGetLiveCell(t *testing.T) {
 }
 
 func TestAccount(t *testing.T) {
-	account := "00001.0001.bit"
+	account := "0😊😊0😊0😊0😊1😊.0001.bit"
 	fmt.Println(account[strings.Index(account, "."):])
 	accountCharSet, err := common.AccountToAccountChars(account[:strings.Index(account, ".")])
 	fmt.Println(toolib.JsonString(accountCharSet), err)
