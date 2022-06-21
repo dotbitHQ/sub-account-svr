@@ -127,6 +127,7 @@ func runServer(ctx *cli.Context) error {
 		DbDao:              dbDao,
 		ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
 		ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+		Mongo:              mongoClient,
 		Ctx:                ctxServer,
 		Wg:                 &wgServer,
 	}

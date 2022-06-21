@@ -12,6 +12,7 @@ import (
 	"github.com/DeAccountSystems/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/mylog"
+	"go.mongodb.org/mongo-driver/mongo"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,6 +28,7 @@ type BlockParser struct {
 	DbDao                *dao.DbDao
 	ConcurrencyNum       uint64
 	ConfirmNum           uint64
+	Mongo                *mongo.Client
 	Ctx                  context.Context
 	Wg                   *sync.WaitGroup
 }
