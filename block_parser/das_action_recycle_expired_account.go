@@ -17,12 +17,18 @@ func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleRe
 	}
 	log.Info("DasActionRecycleExpiredAccount:", req.BlockNumber, req.TxHash)
 
-	builder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
+	builderMap, err := witness.AccountIdCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
 	if err != nil {
 		resp.Err = fmt.Errorf("AccountCellDataBuilderFromTx err: %s", err.Error())
 		return
 	}
-	if builder.EnableSubAccount == 1 {
+	var builder *witness.AccountCellDataBuilder
+	for _, v := range builderMap {
+		if v.Index == 1 {
+			builder = v
+		}
+	}
+	if builder != nil && builder.EnableSubAccount == 1 {
 		if err = b.Mongo.Database(config.Cfg.DB.Mongo.SmtDatabase).Collection(builder.AccountId).Drop(b.Ctx); err != nil {
 			resp.Err = fmt.Errorf("Mongo Drop err: %s ", err.Error())
 			return
