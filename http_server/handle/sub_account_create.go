@@ -149,9 +149,9 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 
 	// check root
 	currentRoot, _ := tree.Root()
-	smtRoot, _ := witness.ConvertSubAccountCellOutputData(resCheck.SubAccountLiveCell.OutputData)
-	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(smtRoot))
-	if bytes.Compare(currentRoot, smtRoot) != 0 {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(resCheck.SubAccountLiveCell.OutputData)
+	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeSmtDiff, "smt root diff")
 		return nil
 	}

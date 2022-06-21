@@ -145,8 +145,10 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	}
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub account
 	// root+profit
-	_, profit := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
-	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subAccountParamList[len(subAccountParamList)-1].CurrentRoot, profit+registerCapacity)
+	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
+	subDataDetail.SmtRoot = subAccountParamList[len(subAccountParamList)-1].CurrentRoot
+	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
+	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
 	// change

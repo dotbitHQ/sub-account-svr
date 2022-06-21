@@ -215,9 +215,9 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 
 	// check root
 	currentRoot, _ := tree.Root()
-	smtRoot, _ := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
-	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(smtRoot))
-	if bytes.Compare(currentRoot, smtRoot) != 0 {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
+	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
 		return fmt.Errorf("smt root diff: %s", parentAccountId)
 	}
 
