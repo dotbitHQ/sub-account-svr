@@ -247,10 +247,10 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 		Type:     contractSubAccount.ToScript(common.Hex2Bytes(p.acc.AccountId)),
 	})
 	subDataDetail := witness.SubAccountCellDataDetail{
-		SmtRoot:    smt.H256Zero(),
-		DasProfit:  0,
-		HashType:   nil,
-		CustomArgs: nil,
+		SmtRoot:          smt.H256Zero(),
+		DasProfit:        0,
+		OwnerProfit:      0,
+		CustomScriptArgs: nil,
 	}
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
