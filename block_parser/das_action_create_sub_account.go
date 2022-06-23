@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/DeAccountSystems/das-lib/core"
 )
 
 func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -18,10 +19,31 @@ func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (r
 	}
 	log.Info("DasActionCreateSubAccount:", req.BlockNumber, req.TxHash)
 
-	// get parentAccountId, refOutpoint, outpoint
-	parentAccountId := common.Bytes2Hex(req.Tx.Outputs[1].Type.Args)
-	refOutpoint := common.OutPointStruct2String(req.Tx.Inputs[1].PreviousOutput)
-	outpoint := common.OutPoint2String(req.TxHash, 1)
+	// check sub-account config custom-script-args or not
+	contractSub, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+	if err != nil {
+		resp.Err = fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		return
+	}
+	var parentAccountId, outpoint, refOutpoint string
+	for i, v := range req.Tx.Outputs {
+		if v.Type != nil && contractSub.IsSameTypeId(v.Type.CodeHash) {
+			parentAccountId = common.Bytes2Hex(v.Type.Args)
+			outpoint = common.OutPoint2String(req.TxHash, uint(i))
+		}
+	}
+	for _, v := range req.Tx.Inputs {
+		res, err := b.DasCore.Client().GetTransaction(b.Ctx, v.PreviousOutput.TxHash)
+		if err != nil {
+			resp.Err = fmt.Errorf("GetTransaction err: %s", err.Error())
+			return
+		}
+		tmp := res.Transaction.Outputs[v.PreviousOutput.Index]
+		if tmp.Type != nil && contractSub.IsSameTypeId(tmp.Type.CodeHash) {
+			refOutpoint = common.OutPointStruct2String(v.PreviousOutput)
+			break
+		}
+	}
 
 	// get sub account
 	taskInfo, smtRecordList, err := getTaskAndSmtRecords(&req, parentAccountId, refOutpoint, outpoint)
