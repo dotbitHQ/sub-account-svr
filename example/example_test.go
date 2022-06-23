@@ -183,3 +183,13 @@ func TestAccountLen(t *testing.T) {
 		fmt.Println(v)
 	}
 }
+
+func TestAccountIndex(t *testing.T) {
+	acc := "aaaaa.bit"
+	index := strings.Index(acc, ".")
+	fmt.Println(index)
+	fmt.Println(acc[index:])
+	suffix := strings.TrimLeft(acc[index:], ".")
+
+	fmt.Println(suffix, acc[strings.Index(acc, ".")+1:])
+}
