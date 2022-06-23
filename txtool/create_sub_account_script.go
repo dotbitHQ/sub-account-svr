@@ -122,7 +122,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
-	// todo account-cell-witness cell-deps
+	// account-cell-witness cell-deps
 	txParams.Witnesses = append(txParams.Witnesses, p.AccountCellWitness) // account
 
 	smtWitnessList, _ := getSubAccountWitness(subAccountParamList)
