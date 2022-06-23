@@ -59,13 +59,14 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 	subAccountOutpoint := p.SubAccountLiveCell.OutPoint
 
 	// account
+	isCustomScript := s.isCustomScript(p.SubAccountLiveCell.OutputData)
+	subAccountCellOutput := p.SubAccountLiveCell.Output
+	subAccountOutputsData := p.SubAccountLiveCell.OutputData
 	accOutpoint := common.String2OutPointStruct(p.Account.Outpoint)
-	accountCellOutput, accountCellWitness, accountCellData, err := s.getAccountByOutpoint(accOutpoint, p.Account.AccountId)
+	accountCellOutput, accountCellWitness, accountCellData, err := s.getAccountByOutpoint(accOutpoint, p.Account.AccountId, isCustomScript)
 	if err != nil {
 		return nil, fmt.Errorf("getAccountByOutpoint err: %s", err.Error())
 	}
-	subAccountCellOutput := p.SubAccountLiveCell.Output
-	subAccountOutputsData := p.SubAccountLiveCell.OutputData
 
 	// note: rollback all latest records
 	//if err := s.RollbackSmtRecords(p.Tree, p.SubAccountIds, p.SubAccountValueMap); err != nil {
@@ -80,26 +81,51 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 		}
 		switch task.Action {
 		case common.DasActionCreateSubAccount:
-			resCreate, err := s.BuildCreateSubAccountTx(&ParamBuildCreateSubAccountTx{
-				TaskInfo:              &p.TaskList[i],
-				SmtRecordInfoList:     records,
-				BaseInfo:              p.BaseInfo,
-				Tree:                  p.Tree,
-				AccountOutPoint:       accountOutPoint,
-				SubAccountOutpoint:    subAccountOutpoint,
-				NewSubAccountPrice:    newSubAccountPrice,
-				CommonFee:             commonFee,
-				AccountCellOutput:     accountCellOutput,
-				AccountCellData:       accountCellData,
-				AccountCellWitness:    accountCellWitness,
-				SubAccountCellOutput:  subAccountCellOutput,
-				SubAccountOutputsData: subAccountOutputsData,
-				BalanceDasLock:        p.BalanceDasLock,
-				BalanceDasType:        p.BalanceDasType,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("BuildCreateSubAccountTx err: %s", err.Error())
+			var resCreate *ResultBuildCreateSubAccountTx
+			if isCustomScript {
+				resCreate, err = s.BuildCreateSubAccountTxByScript(&ParamBuildCreateSubAccountTx{
+					TaskInfo:              &p.TaskList[i],
+					SmtRecordInfoList:     records,
+					BaseInfo:              p.BaseInfo,
+					Tree:                  p.Tree,
+					AccountOutPoint:       accountOutPoint,
+					SubAccountOutpoint:    subAccountOutpoint,
+					NewSubAccountPrice:    newSubAccountPrice,
+					CommonFee:             commonFee,
+					AccountCellOutput:     accountCellOutput,
+					AccountCellData:       accountCellData,
+					AccountCellWitness:    accountCellWitness,
+					SubAccountCellOutput:  subAccountCellOutput,
+					SubAccountOutputsData: subAccountOutputsData,
+					BalanceDasLock:        p.BalanceDasLock,
+					BalanceDasType:        p.BalanceDasType,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("BuildCreateSubAccountTx err: %s", err.Error())
+				}
+			} else {
+				resCreate, err = s.BuildCreateSubAccountTx(&ParamBuildCreateSubAccountTx{
+					TaskInfo:              &p.TaskList[i],
+					SmtRecordInfoList:     records,
+					BaseInfo:              p.BaseInfo,
+					Tree:                  p.Tree,
+					AccountOutPoint:       accountOutPoint,
+					SubAccountOutpoint:    subAccountOutpoint,
+					NewSubAccountPrice:    newSubAccountPrice,
+					CommonFee:             commonFee,
+					AccountCellOutput:     accountCellOutput,
+					AccountCellData:       accountCellData,
+					AccountCellWitness:    accountCellWitness,
+					SubAccountCellOutput:  subAccountCellOutput,
+					SubAccountOutputsData: subAccountOutputsData,
+					BalanceDasLock:        p.BalanceDasLock,
+					BalanceDasType:        p.BalanceDasType,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("BuildCreateSubAccountTx err: %s", err.Error())
+				}
 			}
+
 			accountOutPoint = resCreate.AccountOutPoint
 			subAccountOutpoint = resCreate.SubAccountOutpoint
 			subAccountOutputsData = resCreate.SubAccountOutputsData
