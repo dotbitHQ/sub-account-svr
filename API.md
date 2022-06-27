@@ -176,6 +176,8 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 * params:
     * key_info: not necessary
     * type: not necessary
+    * CategoryExpireSoon=4
+    * CategoryToBeRecycled=5
 
 ```json
 {
@@ -187,7 +189,9 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     "coin_type": "60",
     "chain_id": "1",
     "key": "0x111..."
-  }
+  },
+  "keyword": "",
+  "category": 0
 }
 ```
 
