@@ -4,8 +4,8 @@ import (
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 )
 
 func (b *BlockParser) DasActionEditSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {

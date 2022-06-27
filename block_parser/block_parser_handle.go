@@ -3,8 +3,8 @@ package block_parser
 import (
 	"das_sub_account/dao"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 

@@ -3,7 +3,7 @@ package dao
 import (
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
 )
 

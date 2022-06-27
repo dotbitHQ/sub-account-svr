@@ -3,8 +3,8 @@ package block_parser
 import (
 	"das_sub_account/config"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 )
 
 func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {

@@ -3,8 +3,8 @@ package block_parser
 import (
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 )
 
 func (b *BlockParser) DasActionEnableSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {

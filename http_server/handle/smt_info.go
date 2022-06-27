@@ -4,7 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
