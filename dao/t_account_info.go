@@ -30,7 +30,7 @@ func (d *DbDao) GetSubAccountListByParentAccountId(parentAccountId string, chain
 		db = db.Where("expired_at<=?", expiredAt)
 	}
 	if keyword != "" {
-		db = db.Where("account LIKE ?", "%"+keyword+"%")
+		db = db.Where("account LIKE ?", keyword+"%")
 	}
 	err = db.Order("account").Limit(limit).Offset(offset).Find(&list).Error
 
