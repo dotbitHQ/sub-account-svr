@@ -16,7 +16,7 @@ github.com/decred/dcrd/dcrec/secp256k1/v4
 github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
-# github.com/dotbitHQ/das-lib v0.0.0-20220627090951-5b3398fd1c30
+# github.com/dotbitHQ/das-lib v0.0.0-20220627094103-16e251842f6a
 ## explicit
 github.com/dotbitHQ/das-lib/common
 github.com/dotbitHQ/das-lib/core
