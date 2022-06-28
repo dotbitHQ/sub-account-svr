@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/DeAccountSystems/das-lib/common"
+	"strings"
 )
 
 func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -65,7 +66,7 @@ func doNotify(smtRecordList []tables.TableSmtRecordInfo) {
 		registerYears := uint64(1)
 		registerYears = v.RegisterYears
 
-		content += fmt.Sprintf(`%s registered for %d year(s)
+		content += fmt.Sprintf(`** %s ** registered for %d year(s)
 `, account, registerYears)
 		count++
 		if count == 30 {
@@ -79,7 +80,16 @@ func doNotify(smtRecordList []tables.TableSmtRecordInfo) {
 	}
 	go func() {
 		for _, v := range contentList {
-			notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", v)
+			if err := notify.SendNotifyDiscord(config.Cfg.Notify.DiscordCreateSubAccountKey, v); err != nil {
+				log.Error("notify.SendNotifyDiscord err: ", err.Error(), v)
+			}
+		}
+	}()
+	go func() {
+		for _, v := range contentList {
+			tmp := strings.Replace(v, "** ", "", -1)
+			tmp = strings.Replace(tmp, " **", "", -1)
+			notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", tmp)
 		}
 	}()
 }
