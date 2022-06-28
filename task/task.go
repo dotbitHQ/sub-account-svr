@@ -30,7 +30,7 @@ type SmtTask struct {
 
 // task_id='' -> task_id!=''
 func (t *SmtTask) RunTaskDistribution() {
-	tickerDistribution := time.NewTicker(time.Second * 50)
+	tickerDistribution := time.NewTicker(time.Minute * 3)
 	t.Wg.Add(1)
 	go func() {
 		for {
