@@ -52,7 +52,7 @@ func (t *SmtTask) RunTaskDistribution() {
 }
 
 func (t *SmtTask) RunMintTaskDistribution() {
-	tickerDistribution := time.NewTicker(time.Minute)
+	tickerDistribution := time.NewTicker(time.Minute * 3)
 	t.Wg.Add(1)
 	go func() {
 		for {
