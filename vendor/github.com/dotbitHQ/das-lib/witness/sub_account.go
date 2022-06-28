@@ -191,7 +191,13 @@ func SubAccountBuilderFromBytes(dataBys []byte) (*SubAccountBuilder, error) {
 		resp.Account = subAccount.Account()
 		return &resp, nil
 	default:
-		return nil, fmt.Errorf("sub account version: %d", resp.Version)
+		subAccount, err := ConvertToSubAccount(subAccountBys)
+		if err != nil {
+			return nil, fmt.Errorf("ConvertToSubAccount err: %s", err.Error())
+		}
+		resp.SubAccount = subAccount
+		resp.Account = subAccount.Account()
+		return &resp, nil
 	}
 }
 
@@ -214,12 +220,12 @@ func (s *SubAccountBuilder) ConvertToEditValue() (*SubAccountEditValue, error) {
 }
 
 func (s *SubAccountBuilder) ConvertEditValueToExpiredAt() *molecule.Uint64 {
-	expiredAt, _ := molecule.Uint64FromSlice(s.EditValue, false)
+	expiredAt, _ := molecule.Uint64FromSlice(s.EditValue, true)
 	return expiredAt
 }
 
 func (s *SubAccountBuilder) ConvertEditValueToRecords() *molecule.Records {
-	records, _ := molecule.RecordsFromSlice(s.EditValue, false)
+	records, _ := molecule.RecordsFromSlice(s.EditValue, true)
 	return records
 }
 
@@ -255,8 +261,8 @@ func ConvertToAccountCharSets(accountChars *molecule.AccountChars) []common.Acco
 
 /****************************************** Parting Line ******************************************/
 
-func ConvertToSubAccount(subAccountBys []byte) (*SubAccount, error) {
-	subAccount, err := molecule.SubAccountFromSlice(subAccountBys, false)
+func ConvertToSubAccount(slice []byte) (*SubAccount, error) {
+	subAccount, err := molecule.SubAccountFromSlice(slice, true)
 	if err != nil {
 		return nil, fmt.Errorf("SubAccountDataFromSlice err: %s", err.Error())
 	}
@@ -310,7 +316,7 @@ func ConvertToRecords(subAccountRecords []SubAccountRecord) *molecule.Records {
 func (s *SubAccount) ConvertToMoleculeSubAccount() *molecule.SubAccount {
 	lock := molecule.CkbScript2MoleculeScript(s.Lock)
 	accountChars := ConvertToAccountChars(s.AccountCharSet)
-	accountId, _ := molecule.AccountIdFromSlice(common.Hex2Bytes(s.AccountId), false)
+	accountId, _ := molecule.AccountIdFromSlice(common.Hex2Bytes(s.AccountId), true)
 	suffix := molecule.GoBytes2MoleculeBytes([]byte(s.Suffix))
 	registeredAt := molecule.GoU64ToMoleculeU64(s.RegisteredAt)
 	expiredAt := molecule.GoU64ToMoleculeU64(s.ExpiredAt)
@@ -427,11 +433,12 @@ func ConvertSubAccountCellOutputData(data []byte) (detail SubAccountCellDataDeta
 
 func BuildSubAccountCellOutputData(detail SubAccountCellDataDetail) []byte {
 	dasProfit := molecule.GoU64ToMoleculeU64(detail.DasProfit)
-
 	data := append(detail.SmtRoot, dasProfit.RawData()...)
-	if detail.DasProfit > 0 || len(detail.CustomScriptArgs) > 0 {
-		ownerProfit := molecule.GoU64ToMoleculeU64(detail.OwnerProfit)
-		data = append(data, ownerProfit.RawData()...)
+
+	ownerProfit := molecule.GoU64ToMoleculeU64(detail.OwnerProfit)
+	data = append(data, ownerProfit.RawData()...)
+
+	if len(detail.CustomScriptArgs) == 33 {
 		data = append(data, detail.CustomScriptArgs...)
 	}
 	return data

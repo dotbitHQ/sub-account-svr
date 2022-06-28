@@ -95,7 +95,7 @@ func AccountCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.Data
 
 			switch version {
 			case common.GoDataEntityVersion1:
-				accountData, err := molecule.AccountCellDataV1FromSlice(dataEntity.Entity().RawData(), false)
+				accountData, err := molecule.AccountCellDataV1FromSlice(dataEntity.Entity().RawData(), true)
 				if err != nil {
 					return false, fmt.Errorf("AccountCellDataV1FromSlice err: %s", err.Error())
 				}
@@ -108,7 +108,7 @@ func AccountCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.Data
 				resp.RecordsHashBys, _ = blake2b.Blake256(accountData.Records().AsSlice())
 				respMap[resp.Account] = &resp
 			case common.GoDataEntityVersion2:
-				accountData, err := molecule.AccountCellDataV2FromSlice(dataEntity.Entity().RawData(), false)
+				accountData, err := molecule.AccountCellDataV2FromSlice(dataEntity.Entity().RawData(), true)
 				if err != nil {
 					return false, fmt.Errorf("AccountCellDataV2FromSlice err: %s", err.Error())
 				}
@@ -121,22 +121,15 @@ func AccountCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.Data
 				resp.RecordsHashBys, _ = blake2b.Blake256(accountData.Records().AsSlice())
 				respMap[resp.Account] = &resp
 			case common.GoDataEntityVersion3:
-				accountData, err := molecule.AccountCellDataFromSlice(dataEntity.Entity().RawData(), false)
-				if err != nil {
-					return false, fmt.Errorf("AccountCellDataFromSlice err: %s", err.Error())
+				if err = ConvertToAccountCellDataBuilder(&resp, dataEntity.Entity().RawData()); err != nil {
+					return false, fmt.Errorf("ConvertToAccountCellDataBuilder err: %s", err.Error())
 				}
-				resp.AccountCellData = accountData
-				resp.Account = common.AccountCharsToAccount(accountData.Account())
-				resp.AccountId = common.Bytes2Hex(accountData.Id().RawData())
-				resp.Status, _ = molecule.Bytes2GoU8(accountData.Status().RawData())
-				resp.RegisteredAt, _ = molecule.Bytes2GoU64(accountData.RegisteredAt().RawData())
-				resp.Records = accountData.Records()
-				resp.RecordsHashBys, _ = blake2b.Blake256(accountData.Records().AsSlice())
-				resp.EnableSubAccount, _ = molecule.Bytes2GoU8(accountData.EnableSubAccount().RawData())
-				resp.RenewSubAccountPrice, _ = molecule.Bytes2GoU64(accountData.RenewSubAccountPrice().RawData())
 				respMap[resp.Account] = &resp
 			default:
-				return false, fmt.Errorf("account version: %d", version)
+				if err = ConvertToAccountCellDataBuilder(&resp, dataEntity.Entity().RawData()); err != nil {
+					return false, fmt.Errorf("ConvertToAccountCellDataBuilder err: %s", err.Error())
+				}
+				respMap[resp.Account] = &resp
 			}
 		}
 		return true, nil
@@ -149,6 +142,23 @@ func AccountCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.Data
 		return nil, fmt.Errorf("not exist account cell")
 	}
 	return respMap, nil
+}
+
+func ConvertToAccountCellDataBuilder(resp *AccountCellDataBuilder, slice []byte) error {
+	accountData, err := molecule.AccountCellDataFromSlice(slice, true)
+	if err != nil {
+		return fmt.Errorf("AccountCellDataFromSlice err: %s", err.Error())
+	}
+	resp.AccountCellData = accountData
+	resp.Account = common.AccountCharsToAccount(accountData.Account())
+	resp.AccountId = common.Bytes2Hex(accountData.Id().RawData())
+	resp.Status, _ = molecule.Bytes2GoU8(accountData.Status().RawData())
+	resp.RegisteredAt, _ = molecule.Bytes2GoU64(accountData.RegisteredAt().RawData())
+	resp.Records = accountData.Records()
+	resp.RecordsHashBys, _ = blake2b.Blake256(accountData.Records().AsSlice())
+	resp.EnableSubAccount, _ = molecule.Bytes2GoU8(accountData.EnableSubAccount().RawData())
+	resp.RenewSubAccountPrice, _ = molecule.Bytes2GoU64(accountData.RenewSubAccountPrice().RawData())
+	return nil
 }
 
 func AccountIdCellDataBuilderFromTx(tx *types.Transaction, dataType common.DataType) (map[string]*AccountCellDataBuilder, error) {
@@ -351,7 +361,7 @@ func (a *AccountCellDataBuilder) GenWitness(p *AccountCellParam) ([]byte, []byte
 			witness := GenDasDataWitness(common.ActionDataTypeAccountCell, &tmp)
 			return witness, common.Blake2b(newAccountCellData.AsSlice()), nil
 		} else if p.SubAction == "new" {
-			accountId, err := molecule.AccountIdFromSlice(common.Hex2Bytes(p.AccountId), false)
+			accountId, err := molecule.AccountIdFromSlice(common.Hex2Bytes(p.AccountId), true)
 			if err != nil {
 				return nil, nil, fmt.Errorf("AccountIdFromSlice err: %s", err.Error())
 			}

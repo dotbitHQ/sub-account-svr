@@ -43,7 +43,7 @@ func OfferCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.DataTy
 			}
 			resp.Version = version
 
-			offerCellData, err := molecule.OfferCellDataFromSlice(dataEntity.Entity().RawData(), false)
+			offerCellData, err := molecule.OfferCellDataFromSlice(dataEntity.Entity().RawData(), true)
 			if err != nil {
 				return false, fmt.Errorf("AccountSaleCellDataFromSlice err: %s", err.Error())
 			}
@@ -51,8 +51,8 @@ func OfferCellDataBuilderMapFromTx(tx *types.Transaction, dataType common.DataTy
 			resp.Account = string(offerCellData.Account().RawData())
 			resp.Price, _ = molecule.Bytes2GoU64(offerCellData.Price().RawData())
 			resp.Message = string(offerCellData.Message().RawData())
-			resp.InviterLock, _ = molecule.ScriptFromSlice(offerCellData.InviterLock().AsSlice(), false)
-			resp.ChannelLock, _ = molecule.ScriptFromSlice(offerCellData.ChannelLock().AsSlice(), false)
+			resp.InviterLock, _ = molecule.ScriptFromSlice(offerCellData.InviterLock().AsSlice(), true)
+			resp.ChannelLock, _ = molecule.ScriptFromSlice(offerCellData.ChannelLock().AsSlice(), true)
 			if resp.InviterLock == nil {
 				tmp := molecule.ScriptDefault()
 				resp.InviterLock = &tmp
