@@ -8,19 +8,12 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/smt"
-	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/scorpiotzh/toolib"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 )
-
-func getClientTestnet2() (rpc.Client, error) {
-	ckbUrl := "http://127.0.0.1:8114"
-	indexerUrl := "http://127.0.0.1:8116"
-	return rpc.DialWithIndexer(ckbUrl, indexerUrl)
-}
 
 func TestAccountId(t *testing.T) {
 	accountId := "0x16fcb57af932d4b5729224627105cc1165a9bf90"

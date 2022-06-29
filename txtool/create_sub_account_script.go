@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
@@ -22,10 +23,34 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		return nil, fmt.Errorf("getCustomScriptLiveCell err: %s", err.Error())
 	}
 
-	// todo get price
-	var balanceLiveCells []*indexer.LiveCell
-	var registerCapacity uint64
-	var change uint64
+	// get price
+	builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+	}
+	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+	if err != nil {
+		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
+	}
+	resPrice, err := GetCustomScriptMintTotalCapacity(&ParamCustomScriptMintTotalCapacity{
+		PriceApi:                              &PriceApiDefault{},
+		MintList:                              p.SmtRecordInfoList,
+		Quote:                                 p.BaseInfo.QuoteCell.Quote(),
+		NewSubAccountCustomPriceDasProfitRate: newRate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomScriptMintTotalCapacity err: %s", err.Error())
+	}
+	registerCapacity := resPrice.DasCapacity + resPrice.OwnerCapacity
+	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
+		taskInfo:     p.TaskInfo,
+		dasLock:      p.BalanceDasLock,
+		dasType:      p.BalanceDasType,
+		needCapacity: p.CommonFee + registerCapacity,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+	}
 
 	// create task and records
 	if p.TaskInfo.Id == 0 {
