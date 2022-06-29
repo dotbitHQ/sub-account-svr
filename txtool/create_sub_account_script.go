@@ -127,7 +127,8 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountParamList[len(subAccountParamList)-1].CurrentRoot
-	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
+	subDataDetail.DasProfit += resPrice.DasCapacity
+	subDataDetail.OwnerProfit += resPrice.OwnerCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 

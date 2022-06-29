@@ -8,6 +8,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/molecule"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"sync"
 	"testing"
@@ -86,4 +87,9 @@ func TestGetCustomScriptMintTotalCapacity(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(res.OwnerCapacity, res.DasCapacity)
+}
+
+func TestData(t *testing.T) {
+	d := witness.ConvertSubAccountCellOutputData(common.Hex2Bytes("0xa17b63dfc8051cbb333936d19a9a9df3e8032f2f8751f53ac249edef81aae94500ea37f006000000000000000000000001f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"))
+	fmt.Println(d.OwnerProfit, d.DasProfit)
 }
