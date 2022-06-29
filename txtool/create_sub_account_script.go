@@ -143,6 +143,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
 		p.BaseInfo.HeightCell.ToCellDep(),
 		p.BaseInfo.TimeCell.ToCellDep(),
+		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellDigit.ToCellDep(),
@@ -231,6 +232,7 @@ func (s *SubAccountTxTool) getCustomScriptLiveCell(data []byte) (*indexer.LiveCe
 	if subLen := len(customScriptCell.Objects); subLen != 1 {
 		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
 	}
+	log.Info("getCustomScriptLiveCell:", common.OutPointStruct2String(customScriptCell.Objects[0].OutPoint))
 	return customScriptCell.Objects[0], nil
 }
 

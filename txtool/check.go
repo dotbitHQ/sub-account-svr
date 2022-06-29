@@ -53,6 +53,7 @@ type BaseInfo struct {
 	ContractAS                *core.DasContractInfo
 	HeightCell                *core.HeightCell
 	TimeCell                  *core.TimeCell
+	QuoteCell                 *core.QuoteCell
 	ConfigCellSubAcc          *core.DasConfigCellInfo
 	ConfigCellRecordNamespace *core.DasConfigCellInfo
 	ConfigCellAcc             *core.DasConfigCellInfo
@@ -94,6 +95,11 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	bi.TimeCell, err = s.DasCore.GetTimeCell()
 	if err != nil {
 		return nil, fmt.Errorf("GetTimeCell err: %s", err.Error())
+	}
+
+	bi.QuoteCell, err = s.DasCore.GetQuoteCell()
+	if err != nil {
+		return nil, fmt.Errorf("GetQuoteCell err: %s", err.Error())
 	}
 
 	bi.ConfigCellAcc, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsAccount)
