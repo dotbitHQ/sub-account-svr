@@ -202,7 +202,10 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 
 	for i, _ := range taskList {
 		var skipGroups []int
-		skipGroups = []int{1}
+		skipGroups = []int{1} // skip sub-account-cell
+		if res.IsCustomScript {
+			skipGroups = []int{0}
+		}
 		log.Info("skipGroups:", res.DasTxBuilderList[i].ServerSignGroup)
 		signList, err := res.DasTxBuilderList[i].GenerateDigestListFromTx(skipGroups)
 		if err != nil {

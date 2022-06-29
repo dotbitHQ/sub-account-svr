@@ -45,6 +45,7 @@ type ParamBuildTxs struct {
 }
 
 type ResultBuildTxs struct {
+	IsCustomScript   bool
 	DasTxBuilderList []*txbuilder.DasTxBuilder
 }
 
@@ -59,11 +60,11 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 	subAccountOutpoint := p.SubAccountLiveCell.OutPoint
 
 	// account
-	isCustomScript := s.isCustomScript(p.SubAccountLiveCell.OutputData)
+	res.IsCustomScript = s.isCustomScript(p.SubAccountLiveCell.OutputData)
 	subAccountCellOutput := p.SubAccountLiveCell.Output
 	subAccountOutputsData := p.SubAccountLiveCell.OutputData
 	accOutpoint := common.String2OutPointStruct(p.Account.Outpoint)
-	accountCellOutput, accountCellWitness, accountCellData, err := s.getAccountByOutpoint(accOutpoint, p.Account.AccountId, isCustomScript)
+	accountCellOutput, accountCellWitness, accountCellData, err := s.getAccountByOutpoint(accOutpoint, p.Account.AccountId, res.IsCustomScript)
 	if err != nil {
 		return nil, fmt.Errorf("getAccountByOutpoint err: %s", err.Error())
 	}
@@ -82,7 +83,7 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 		switch task.Action {
 		case common.DasActionCreateSubAccount:
 			var resCreate *ResultBuildCreateSubAccountTx
-			if isCustomScript {
+			if res.IsCustomScript {
 				resCreate, err = s.BuildCreateSubAccountTxByScript(&ParamBuildCreateSubAccountTx{
 					TaskInfo:              &p.TaskList[i],
 					SmtRecordInfoList:     records,
