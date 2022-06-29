@@ -51,13 +51,13 @@ func TestGetCustomScriptMintTotalCapacity(t *testing.T) {
 	priceApi := txtool.PriceApiDefault{}
 	var mintList []tables.TableSmtRecordInfo
 	mintList = append(mintList, tables.TableSmtRecordInfo{
-		Account:       "12345.a.bit",
-		RegisterYears: 1,
+		Account:       "tzh13.a.bit",
+		RegisterYears: 2,
 	})
-	//mintList = append(mintList, tables.TableSmtRecordInfo{
-	//	Account:       "1234.a.bit",
-	//	RegisterYears: 1,
-	//})
+	mintList = append(mintList, tables.TableSmtRecordInfo{
+		Account:       "tzh14.a.bit",
+		RegisterYears: 3,
+	})
 
 	dc, err := getNewDasCoreTestnet2()
 	if err != nil {
@@ -86,7 +86,7 @@ func TestGetCustomScriptMintTotalCapacity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(res.OwnerCapacity, res.DasCapacity)
+	fmt.Println(res.OwnerCapacity, res.DasCapacity, res.OwnerCapacity+res.DasCapacity)
 }
 
 func TestConvertSubAccountCellOutputData(t *testing.T) {
