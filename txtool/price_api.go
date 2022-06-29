@@ -65,19 +65,14 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 		if err != nil {
 			return nil, fmt.Errorf("GetPrice err: %s", err.Error())
 		}
-		dasCkb, ownerCkb := uint64(0), uint64(0)
 
-		if resPrice.Price == 0 {
-			dasCkb = common.OneCkb * v.RegisterYears
-			ownerCkb = 0
-		} else {
-			priceCkb := (resPrice.Price / p.Quote) * common.OneCkb
-			dasCkb = (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
-			ownerCkb = priceCkb - dasCkb
-			if dasCkb < common.OneCkb {
-				return nil, fmt.Errorf("price is invalid: %s[%d<%d]", v.Account, dasCkb, common.OneCkb)
-			}
+		priceCkb := (resPrice.Price / p.Quote) * common.OneCkb * v.RegisterYears
+		dasCkb := (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
+		ownerCkb := priceCkb - dasCkb
+		if dasCkb < common.OneCkb {
+			return nil, fmt.Errorf("price is invalid: %s[%d<%d]", v.Account, dasCkb, common.OneCkb)
 		}
+
 		log.Info("price:", v.Account, v.RegisterYears, dasCkb, ownerCkb, resPrice.Price, dasCkb+ownerCkb)
 		res.DasCapacity += dasCkb
 		res.OwnerCapacity += ownerCkb
