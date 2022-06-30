@@ -13,6 +13,7 @@ type PriceApi interface {
 }
 
 type ParamGetPrice struct {
+	Action        common.DasAction
 	SubAccount    string
 	RegisterYears uint64
 }
@@ -26,23 +27,29 @@ type PriceApiDefault struct{}
 
 func (r *PriceApiDefault) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	var res ResGetPrice
-	if index := strings.Index(p.SubAccount, "."); index == -1 {
-		return nil, fmt.Errorf("sub account invalid")
-	} else {
-		accLen := common.GetAccountLength(p.SubAccount[:index])
-		switch accLen {
-		case 1:
-			res.Price = 16000000
-		case 2:
-			res.Price = 8000000
-		case 3:
-			res.Price = 4000000
-		case 4:
-			res.Price = 2000000
-		default:
-			res.Price = 1000000
+	switch p.Action {
+	case common.DasActionCreateSubAccount:
+		if index := strings.Index(p.SubAccount, "."); index == -1 {
+			return nil, fmt.Errorf("sub account invalid")
+		} else {
+			accLen := common.GetAccountLength(p.SubAccount[:index])
+			switch accLen {
+			case 1:
+				res.Price = 16000000
+			case 2:
+				res.Price = 8000000
+			case 3:
+				res.Price = 4000000
+			case 4:
+				res.Price = 2000000
+			default:
+				res.Price = 1000000
+			}
+			log.Info("GetPrice:", res.Price, p.RegisterYears)
+			res.Price *= p.RegisterYears
 		}
 	}
+
 	return &res, nil
 }
 
@@ -59,6 +66,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 	var res ResCustomScriptMintTotalCapacity
 	for _, v := range p.MintList {
 		resPrice, err := p.PriceApi.GetPrice(&ParamGetPrice{
+			Action:        p.Action,
 			SubAccount:    v.Account,
 			RegisterYears: v.RegisterYears,
 		})
@@ -66,7 +74,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 			return nil, fmt.Errorf("GetPrice err: %s", err.Error())
 		}
 
-		priceCkb := (resPrice.Price * v.RegisterYears / p.Quote) * common.OneCkb
+		priceCkb := (resPrice.Price / p.Quote) * common.OneCkb
 		log.Info("priceCkb:", priceCkb)
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
 		ownerCkb := priceCkb - dasCkb
@@ -74,7 +82,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 			return nil, fmt.Errorf("price is invalid: %s[%d<%d]", v.Account, dasCkb, common.OneCkb)
 		}
 
-		log.Info("price:", v.Account, v.RegisterYears, dasCkb, ownerCkb, resPrice.Price, dasCkb+ownerCkb)
+		log.Info("price:", v.Account, v.RegisterYears, dasCkb, ownerCkb, dasCkb+ownerCkb)
 		res.DasCapacity += dasCkb
 		res.OwnerCapacity += ownerCkb
 	}
@@ -83,6 +91,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 }
 
 type ParamCustomScriptMintTotalCapacity struct {
+	Action                                common.DasAction
 	PriceApi                              PriceApi
 	MintList                              []tables.TableSmtRecordInfo
 	Quote                                 uint64

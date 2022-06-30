@@ -78,6 +78,7 @@ func TestGetCustomScriptMintTotalCapacity(t *testing.T) {
 	}
 
 	res, err := txtool.GetCustomScriptMintTotalCapacity(&txtool.ParamCustomScriptMintTotalCapacity{
+		Action:                                common.DasActionCreateSubAccount,
 		PriceApi:                              &priceApi,
 		MintList:                              mintList,
 		Quote:                                 quoteCell.Quote(),
