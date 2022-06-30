@@ -153,6 +153,12 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, err
 		return "", nil, fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 
+	if p.action == common.DasActionConfigSubAccountCustomScript {
+		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+		changeCapacity := txBuilder.Transaction.Outputs[1].Capacity - sizeInBlock - 1000
+		txBuilder.Transaction.Outputs[1].Capacity = changeCapacity
+	}
+
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
 	if err != nil {
 		return "", nil, fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())

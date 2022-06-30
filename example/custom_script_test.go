@@ -22,7 +22,7 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "00acc2022042902.bit",
+		Account:          "aaatzh0630.bit",
 		CustomScriptArgs: args,
 	}
 	var data handle.RespCustomScript
@@ -30,7 +30,7 @@ func TestCustomScript(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
