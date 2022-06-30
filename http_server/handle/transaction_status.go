@@ -86,7 +86,8 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	}
 
 	switch req.Action {
-	case common.DasActionEnableSubAccount, common.DasActionCreateSubAccount:
+	case common.DasActionEnableSubAccount, common.DasActionCreateSubAccount,
+		common.DasActionConfigSubAccountCustomScript:
 		task, err := h.DbDao.GetTaskInfoByParentAccountIdWithAction(accountId, req.Action)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query task")
