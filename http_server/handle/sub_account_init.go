@@ -152,35 +152,22 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		return fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 
-	signList, err := txBuilder.GenerateDigestListFromTx([]int{})
+	signKey, signList, err := h.buildTx(&paramBuildTx{
+		txParams:   txParams,
+		skipGroups: []int{},
+		chainType:  req.chainType,
+		address:    req.address,
+		action:     common.DasActionEnableSubAccount,
+		account:    req.Account,
+	})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "GenerateDigestListFromTx err: "+err.Error())
-		return fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
-	}
-
-	log.Info("buildTx:", txBuilder.TxString())
-
-	// cache
-	sic := SignInfoCache{
-		ChainType: req.chainType,
-		Address:   req.address,
-		Action:    common.DasActionEnableSubAccount,
-		Account:   req.Account,
-		Capacity:  0,
-		BuilderTx: nil,
-	}
-	sic.BuilderTx = txBuilder.DasTxBuilderTransaction
-	signKey := sic.SignKey()
-	cacheStr := toolib.JsonString(&sic)
-	if err = h.RC.SetSignTxCache(signKey, cacheStr); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "SetSignTxCache err: "+err.Error())
-		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
+		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
 
 	resp.Action = common.DasActionEnableSubAccount
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
-		//SignKey:  "",
 		SignList: signList,
 	})
 

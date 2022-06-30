@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ApiUrlInternal = "http://127.0.0.1:8126/v1"
+	ApiUrlInternal = "http://127.0.0:8126/v1"
 )
 
 func TestInternalSubAccountCreate(t *testing.T) {
@@ -173,8 +173,8 @@ func TestInternalSubAccountMint(t *testing.T) {
 		Account: "0001.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "tzh10.0001.bit",
-				RegisterYears: 1,
+				Account:       "tzh12.0001.bit",
+				RegisterYears: 3,
 				ChainTypeAddress: api_code.ChainTypeAddress{
 					Type: "blockchain",
 					KeyInfo: api_code.KeyInfo{
@@ -185,7 +185,7 @@ func TestInternalSubAccountMint(t *testing.T) {
 				},
 			},
 			{
-				Account:       "tzh11.0001.bit",
+				Account:       "tzh13.0001.bit",
 				RegisterYears: 2,
 				ChainTypeAddress: api_code.ChainTypeAddress{
 					Type: "blockchain",
