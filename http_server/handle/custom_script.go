@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
@@ -104,9 +105,27 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		}
 		customScriptArgs = tmpArgs
 	}
+	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+	}
+	subAccountLiveCell, err := h.getSubAccountCell(contractSubAcc, acc.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("getSubAccountCell err: %s", err.Error())
+	}
+	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeSameCustomScript, "same custom script")
+		return nil
+	}
+
 	p := paramCustomScriptTx{
-		acc:              &acc,
-		customScriptArgs: customScriptArgs,
+		acc:                &acc,
+		customScriptArgs:   customScriptArgs,
+		subAccountLiveCell: subAccountLiveCell,
+		contractSubAcc:     contractSubAcc,
 	}
 	txParams, err := h.buildCustomScriptTx(&p)
 	if err != nil {
@@ -186,8 +205,10 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, err
 }
 
 type paramCustomScriptTx struct {
-	acc              *tables.TableAccountInfo
-	customScriptArgs []byte
+	acc                *tables.TableAccountInfo
+	customScriptArgs   []byte
+	subAccountLiveCell *indexer.LiveCell
+	contractSubAcc     *core.DasContractInfo
 }
 
 func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.BuildTransactionParams, error) {
@@ -199,16 +220,8 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		PreviousOutput: accOutPoint,
 	})
 
-	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
-	if err != nil {
-		return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
-	}
-	subAccountLiveCell, err := h.getSubAccountCell(contractSubAcc, p.acc.AccountId)
-	if err != nil {
-		return nil, fmt.Errorf("getSubAccountCell err: %s", err.Error())
-	}
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-		PreviousOutput: subAccountLiveCell.OutPoint,
+		PreviousOutput: p.subAccountLiveCell.OutPoint,
 	})
 
 	// outputs account cell
@@ -225,11 +238,11 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 
 	// outputs sub-sccount cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: subAccountLiveCell.Output.Capacity,
-		Lock:     subAccountLiveCell.Output.Lock,
-		Type:     subAccountLiveCell.Output.Type,
+		Capacity: p.subAccountLiveCell.Output.Capacity,
+		Lock:     p.subAccountLiveCell.Output.Lock,
+		Type:     p.subAccountLiveCell.Output.Type,
 	})
-	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	subDataDetail.CustomScriptArgs = p.customScriptArgs
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
@@ -285,7 +298,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	txParams.CellDeps = append(txParams.CellDeps,
 		contractDasLock.ToCellDep(),
 		contractAcc.ToCellDep(),
-		contractSubAcc.ToCellDep(),
+		p.contractSubAcc.ToCellDep(),
 		heightCell.ToCellDep(),
 		timeCell.ToCellDep(),
 		configCellAcc.ToCellDep(),
