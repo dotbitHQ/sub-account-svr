@@ -127,7 +127,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
 
-	resp.Action = common.DasActionEnableSubAccount
+	resp.Action = common.DasActionConfigSubAccountCustomScript
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		//SignKey:  "",
