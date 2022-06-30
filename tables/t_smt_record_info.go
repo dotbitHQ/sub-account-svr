@@ -50,7 +50,7 @@ const (
 	RecordTypeChain   RecordType = 2
 )
 
-func (t *TableSmtRecordInfo) getEditRecords() (records []witness.SubAccountRecord, err error) {
+func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err error) {
 	err = json.Unmarshal([]byte(t.EditRecords), &records)
 	return
 }

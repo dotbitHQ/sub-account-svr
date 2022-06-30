@@ -490,10 +490,10 @@ func TestVerifyEthSignature(t *testing.T) {
 }
 
 func TestRecords(t *testing.T) {
-	var records []witness.SubAccountRecord
+	var records []witness.Record
 
 	for i := 0; i < 46; i++ {
-		records = append(records, witness.SubAccountRecord{
+		records = append(records, witness.Record{
 			Key:   "eth",
 			Type:  "address",
 			Label: "eth",
@@ -502,7 +502,7 @@ func TestRecords(t *testing.T) {
 		})
 	}
 
-	wi := witness.ConvertToRecords(records)
+	wi := witness.ConvertToCellRecords(records)
 	fmt.Println(wi.TotalSize())
 }
 

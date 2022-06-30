@@ -283,7 +283,7 @@ func (e *EditSubAccountCache) GetSignData(daf *core.DasAddressFormat, subAcc *ta
 		signData.SignType = subAcc.OwnerAlgorithmId
 	case common.EditKeyRecords:
 		list := e.FormatRecords()
-		records := witness.ConvertToRecords(list)
+		records := witness.ConvertToCellRecords(list)
 		bys := records.AsSlice()
 		log.Info("GetSignData:", common.Bytes2Hex(bys))
 		data = append(data, bys...)
@@ -365,7 +365,7 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 		signAddress = subAcc.Manager
 		// max records
 		records := e.FormatRecords()
-		wi := witness.ConvertToRecords(records)
+		wi := witness.ConvertToCellRecords(records)
 		if wi.TotalSize() > 4800 {
 			apiResp.ApiRespErr(api_code.ApiCodeRecordsTotalLengthExceeded, fmt.Sprintf("records len exceeded, current: [%d]", wi.TotalSize()))
 			return "", nil, nil
@@ -419,15 +419,15 @@ func (e *EditSubAccountCache) InitRecord(daf *core.DasAddressFormat, subAcc *tab
 	return nil
 }
 
-func (e *EditSubAccountCache) FormatRecords() []witness.SubAccountRecord {
+func (e *EditSubAccountCache) FormatRecords() []witness.Record {
 	sort.Sort(EditRecordList(e.EditValue.Records))
-	records := make([]witness.SubAccountRecord, 0)
+	records := make([]witness.Record, 0)
 	for _, v := range e.EditValue.Records {
 		ttl, _ := strconv.ParseInt(v.TTL, 10, 64)
 		if ttl <= 0 {
 			ttl = 300
 		}
-		tmp := witness.SubAccountRecord{
+		tmp := witness.Record{
 			Key:   v.Key,
 			Type:  v.Type,
 			Label: v.Label,
