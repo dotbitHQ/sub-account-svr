@@ -16,14 +16,6 @@ import (
 	"time"
 )
 
-const (
-	// 0x15a33588908cf8edb27d1abe3852bf287abd3891
-	PrivateKey = "" //
-
-	// 0xc9f53b1d85356B60453F867610888D89a0B667Ad
-	//PrivateKey = ""
-)
-
 func TestSubAccountInit(t *testing.T) {
 	url := ApiUrl + "/sub/account/init"
 	req := handle.ReqSubAccountInit{
@@ -44,7 +36,7 @@ func TestSubAccountInit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -165,7 +157,7 @@ func TestSubAccountCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -221,7 +213,7 @@ func TestSubAccountCreate2(t *testing.T) {
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
-	if err := doSign(data.SignInfoList); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -296,7 +288,7 @@ func TestSubAccountCreate3(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := doSign(data.SignInfoList); err != nil {
+		if err := doSign(data.SignInfoList, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -372,7 +364,7 @@ func TestSubAccountEdit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -446,7 +438,7 @@ func TestSubAccountEdit2(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := doSign(data.SignInfoList); err != nil {
+		if err := doSign(data.SignInfoList, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -459,9 +451,9 @@ func TestSubAccountEdit2(t *testing.T) {
 
 }
 
-func doSign(data handle.SignInfoList) error {
+func doSign(data handle.SignInfoList, privateKey string) error {
 	for i, _ := range data.List {
-		if err := task.DoSign(data.Action, data.List[i].SignList, PrivateKey); err != nil {
+		if err := task.DoSign(data.Action, data.List[i].SignList, privateKey); err != nil {
 			return fmt.Errorf("task.DoSign err: %s", err.Error())
 		}
 	}
@@ -496,12 +488,6 @@ func TestVerifyEthSignature(t *testing.T) {
 	address := "0x15a33588908cf8edb27d1abe3852bf287abd3891"
 
 	fmt.Println(sign.VerifyPersonalSignature(signMsg, []byte(rawByte), address))
-}
-
-func TestPersonalSignature(t *testing.T) {
-	data := []byte("from did: b41e6076a53bee960f1be92312b981f5a4eb0686ecb6dffeee4da308f791d6a4")
-	res, _ := sign.PersonalSignature(data, PrivateKey)
-	fmt.Println(common.Bytes2Hex(res))
 }
 
 func TestRecords(t *testing.T) {

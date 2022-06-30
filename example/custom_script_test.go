@@ -29,4 +29,14 @@ func TestCustomScript(t *testing.T) {
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
+
+	if err := doSign(data.SignInfoList, "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSend(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
