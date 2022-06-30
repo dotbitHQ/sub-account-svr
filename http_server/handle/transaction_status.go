@@ -132,6 +132,9 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				}
 			}
 		}
+	default:
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exits action[%s]", req.Action))
+		return nil
 	}
 
 	apiResp.ApiRespOK(resp)

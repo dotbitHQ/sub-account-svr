@@ -10,7 +10,7 @@ import (
 
 func TestCustomScript(t *testing.T) {
 	args := common.Bytes2Hex(make([]byte, 33))
-	//args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
+	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
 	url := ApiUrl + "/sub/account/custom/script"
 	req := handle.ReqCustomScript{

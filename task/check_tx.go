@@ -29,6 +29,7 @@ func (t *SmtTask) doCheckTx() error {
 			return fmt.Errorf("GetTransaction err: %s", err.Error())
 		}
 
+		log.Info("doCheckTx:", v.TaskId, v.Outpoint, res.TxStatus.Status)
 		if res.TxStatus.Status == types.TransactionStatusRejected {
 			rollbackList = append(rollbackList, v.Id)
 			mapRejected[v.Outpoint] = struct{}{}
