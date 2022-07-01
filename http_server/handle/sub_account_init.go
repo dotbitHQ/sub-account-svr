@@ -234,6 +234,7 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 		Type:     contractSubAccount.ToScript(common.Hex2Bytes(p.acc.AccountId)),
 	})
 	subDataDetail := witness.SubAccountCellDataDetail{
+		Action:           common.DasActionEnableSubAccount,
 		SmtRoot:          smt.H256Zero(),
 		DasProfit:        0,
 		OwnerProfit:      0,
