@@ -3,8 +3,8 @@ package block_parser
 import (
 	"das_sub_account/dao"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
@@ -15,11 +15,13 @@ func (b *BlockParser) registerTransactionHandle() {
 	b.mapTransactionHandle[common.DasActionEnableSubAccount] = b.DasActionEnableSubAccount
 	b.mapTransactionHandle[common.DasActionCreateSubAccount] = b.DasActionCreateSubAccount
 	b.mapTransactionHandle[common.DasActionEditSubAccount] = b.DasActionEditSubAccount
-	b.mapTransactionHandle[common.DasActionRenewSubAccount] = b.DasActionRenewSubAccount                 // todo
-	b.mapTransactionHandle[common.DasActionRecycleSubAccount] = b.DasActionRecycleSubAccount             // todo
-	b.mapTransactionHandle[common.DasActionRecycleExpiredAccount] = b.DasActionRecycleSubAccount         // todo
+	b.mapTransactionHandle[common.DasActionRenewSubAccount] = b.DasActionRenewSubAccount     // todo
+	b.mapTransactionHandle[common.DasActionRecycleSubAccount] = b.DasActionRecycleSubAccount // todo
+	b.mapTransactionHandle[common.DasActionRecycleExpiredAccount] = b.DasActionRecycleExpiredAccount
 	b.mapTransactionHandle[common.DasActionLockSubAccountForCrossChain] = b.DasActionRecycleSubAccount   // todo
 	b.mapTransactionHandle[common.DasActionUnlockSubAccountForCrossChain] = b.DasActionRecycleSubAccount // todo
+	b.mapTransactionHandle[common.DasActionConfigSubAccountCustomScript] = b.DasActionConfigSubAccountCustomScript
+
 }
 
 func isCurrentVersionTx(tx *types.Transaction, name common.DasContractName) (bool, error) {

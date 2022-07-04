@@ -2,12 +2,12 @@ package txtool
 
 import (
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
-func (s *SubAccountTxTool) getAccountByOutpoint(accOutpoint *types.OutPoint, accountId string) (*types.CellOutput, []byte, []byte, error) {
+func (s *SubAccountTxTool) getAccountByOutpoint(accOutpoint *types.OutPoint, accountId string, isCustomScript bool) (*types.CellOutput, []byte, []byte, error) {
 	tx, err := s.DasCore.Client().GetTransaction(s.Ctx, accOutpoint.TxHash)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
@@ -20,9 +20,10 @@ func (s *SubAccountTxTool) getAccountByOutpoint(accOutpoint *types.OutPoint, acc
 		return nil, nil, nil, fmt.Errorf("not exist acc builder: %s", accountId)
 	} else {
 		accWitness, accData, err := item.GenWitness(&witness.AccountCellParam{
-			OldIndex: 0,
-			NewIndex: 0,
-			Action:   common.DasActionCreateSubAccount,
+			OldIndex:       0,
+			NewIndex:       0,
+			Action:         common.DasActionCreateSubAccount,
+			IsCustomScript: isCustomScript,
 		})
 		accData = append(accData, tx.Transaction.OutputsData[item.Index][32:]...)
 		accCellOutput := types.CellOutput{

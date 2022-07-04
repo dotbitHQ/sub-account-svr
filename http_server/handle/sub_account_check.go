@@ -5,7 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -146,51 +146,59 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			Status:           0,
 			Message:          "",
 		}
-		suffix := strings.TrimLeft(v.Account[strings.Index(v.Account, "."):], ".")
-		if suffix != req.Account {
+		index := strings.Index(v.Account, ".")
+		if index == -1 {
 			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
-			isOk = false
-		}
-
-		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-		accLen := common.GetAccountLength(v.Account[:strings.Index(v.Account, ".")])
-		if uint32(accLen) > maxLength {
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
-			isOk = false
-		} else if index, ok := subAccountMap[accountId]; ok {
-			resp.Result[index].Status = CheckStatusFail
-			resp.Result[index].Message = fmt.Sprintf("same account")
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("same account")
-			isOk = false
-		} else if v.RegisterYears <= 0 {
-			tmp.Status = CheckStatusFail
-			tmp.Message = "register years less than 1"
-			isOk = false
-		} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
-			isOk = false
-		} else if _, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-			// check char set
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("invalid character")
+			tmp.Message = fmt.Sprintf("sub account invalid: %s", v.Account)
 			isOk = false
 		} else {
-			addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net)
-			if e != nil {
+			suffix := strings.TrimLeft(v.Account[index:], ".")
+			if suffix != req.Account {
 				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
+				tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
 				isOk = false
 			} else {
-				accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-				accountIds = append(accountIds, accId)
+				accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+				accLen := common.GetAccountLength(v.Account[:index])
+				if uint32(accLen) > maxLength {
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
+					isOk = false
+				} else if index, ok := subAccountMap[accountId]; ok {
+					resp.Result[index].Status = CheckStatusFail
+					resp.Result[index].Message = fmt.Sprintf("same account")
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("same account")
+					isOk = false
+				} else if v.RegisterYears <= 0 {
+					tmp.Status = CheckStatusFail
+					tmp.Message = "register years less than 1"
+					isOk = false
+				} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
+					isOk = false
+				} else if _, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
+					// check char set
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("invalid character")
+					isOk = false
+				} else {
+					addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net)
+					if e != nil {
+						tmp.Status = CheckStatusFail
+						tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
+						isOk = false
+					} else {
+						accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+						accountIds = append(accountIds, accId)
+					}
+					req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
+				}
+				subAccountMap[accountId] = i
 			}
-			req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
 		}
-		subAccountMap[accountId] = i
+
 		resp.Result = append(resp.Result, tmp)
 	}
 

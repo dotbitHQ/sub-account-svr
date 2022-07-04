@@ -3,11 +3,11 @@ package txtool
 import (
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
-	"github.com/DeAccountSystems/das-lib/smt"
-	"github.com/DeAccountSystems/das-lib/txbuilder"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 )
@@ -104,9 +104,10 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput)
 	// root+profit
-	_, profit := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
-	log.Info("ConvertSubAccountCellOutputData:", profit, common.Bytes2Hex(p.SubAccountOutputsData))
-	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subAccountParamList[len(subAccountParamList)-1].CurrentRoot, profit)
+	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
+	log.Info("ConvertSubAccountCellOutputData:", subDataDetail.DasProfit, common.Bytes2Hex(p.SubAccountOutputsData))
+	subDataDetail.SmtRoot = subAccountParamList[len(subAccountParamList)-1].CurrentRoot
+	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
 	// witness

@@ -12,7 +12,7 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 .idea
 
 # temp file
@@ -20,3 +20,4 @@ config/config.yaml
 config/config.database.yaml
 mysql-data
 mongo-data
+sub_account

@@ -7,9 +7,9 @@ import (
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/sign"
-	"github.com/DeAccountSystems/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/scorpiotzh/toolib"
@@ -71,7 +71,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 	}
 
 	switch req.Action {
-	case common.DasActionEnableSubAccount:
+	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript:
 		var sic SignInfoCache
 		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 			if err == redis.Nil {
@@ -100,7 +100,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 				TaskId:          "",
 				TaskType:        tables.TaskTypeNormal,
 				ParentAccountId: accountId,
-				Action:          common.DasActionEnableSubAccount,
+				Action:          req.Action,
 				RefOutpoint:     "",
 				BlockNumber:     0,
 				Outpoint:        common.OutPoint2String(hash.Hex(), 1),

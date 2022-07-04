@@ -5,7 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -86,7 +86,8 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	}
 
 	switch req.Action {
-	case common.DasActionEnableSubAccount, common.DasActionCreateSubAccount:
+	case common.DasActionEnableSubAccount, common.DasActionCreateSubAccount,
+		common.DasActionConfigSubAccountCustomScript:
 		task, err := h.DbDao.GetTaskInfoByParentAccountIdWithAction(accountId, req.Action)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query task")
@@ -132,6 +133,9 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				}
 			}
 		}
+	default:
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exits action[%s]", req.Action))
+		return nil
 	}
 
 	apiResp.ApiRespOK(resp)

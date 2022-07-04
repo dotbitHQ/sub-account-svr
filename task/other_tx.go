@@ -7,8 +7,8 @@ import (
 	"das_sub_account/tables"
 	"errors"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/smt"
 )
 
 func (t *SmtTask) doConfirmOtherTx() error {

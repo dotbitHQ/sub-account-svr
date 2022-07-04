@@ -3,8 +3,9 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -16,6 +17,8 @@ type ReqSubAccountList struct {
 	api_code.ChainTypeAddress
 	chainType common.ChainType
 	address   string
+	Keyword   string          `json:"keyword"`
+	Category  tables.Category `json:"category"`
 }
 
 type RespSubAccountList struct {
@@ -69,7 +72,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 
 	// get sub account list
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	list, err := h.DbDao.GetSubAccountListByParentAccountId(accountId, req.chainType, req.address, req.GetLimit(), req.GetOffset())
+	list, err := h.DbDao.GetSubAccountListByParentAccountId(accountId, req.chainType, req.address, req.Keyword, req.GetLimit(), req.GetOffset(), req.Category)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query sub account list")
 		return fmt.Errorf("GetSubAccountListByParentAccountId err: %s", err.Error())
@@ -80,7 +83,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 	}
 
 	// total
-	count, err := h.DbDao.GetSubAccountListTotalByParentAccountId(accountId, req.chainType, req.address)
+	count, err := h.DbDao.GetSubAccountListTotalByParentAccountId(accountId, req.chainType, req.address, req.Keyword, req.Category)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query sub account total")
 		return fmt.Errorf("GetSubAccountListTotalByParentAccountId err: %s", err.Error())

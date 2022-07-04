@@ -11,11 +11,11 @@ import (
 	"das_sub_account/task"
 	"das_sub_account/txtool"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
-	"github.com/DeAccountSystems/das-lib/dascache"
-	"github.com/DeAccountSystems/das-lib/sign"
-	"github.com/DeAccountSystems/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/dascache"
+	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
@@ -127,6 +127,7 @@ func runServer(ctx *cli.Context) error {
 		DbDao:              dbDao,
 		ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
 		ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+		Mongo:              mongoClient,
 		Ctx:                ctxServer,
 		Wg:                 &wgServer,
 	}

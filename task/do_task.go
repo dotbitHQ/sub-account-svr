@@ -8,11 +8,11 @@ import (
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/sign"
-	"github.com/DeAccountSystems/das-lib/smt"
-	"github.com/DeAccountSystems/das-lib/txbuilder"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
 	"time"
@@ -215,9 +215,9 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 
 	// check root
 	currentRoot, _ := tree.Root()
-	smtRoot, _ := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
-	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(smtRoot))
-	if bytes.Compare(currentRoot, smtRoot) != 0 {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
+	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
 		return fmt.Errorf("smt root diff: %s", parentAccountId)
 	}
 

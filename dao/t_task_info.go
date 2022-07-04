@@ -3,7 +3,7 @@ package dao
 import (
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
 )
 
@@ -170,6 +170,19 @@ func (d *DbDao) UpdateToChainTask(taskId string, blockNumber uint64) error {
 }
 
 func (d *DbDao) CreateTaskByDasActionEnableSubAccount(task *tables.TableTaskInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("ref_outpoint='' AND outpoint=?", task.Outpoint).
+			Delete(&tables.TableTaskInfo{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(task).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *DbDao) CreateTaskByConfigSubAccountCustomScript(task *tables.TableTaskInfo) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("ref_outpoint='' AND outpoint=?", task.Outpoint).
 			Delete(&tables.TableTaskInfo{}).Error; err != nil {

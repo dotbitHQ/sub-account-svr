@@ -4,7 +4,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/http_server/handle"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/parnurzeal/gorequest"
 	"github.com/scorpiotzh/toolib"
 	"testing"
@@ -118,13 +118,13 @@ func TestTransactionStatus(t *testing.T) {
 		ChainTypeAddress: api_code.ChainTypeAddress{
 			Type: "blockchain",
 			KeyInfo: api_code.KeyInfo{
-				CoinType: "60",
-				ChainId:  "5",
-				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				CoinType: api_code.CoinTypeEth,
+				ChainId:  "",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
 		Action:  common.DasActionEnableSubAccount,
-		Account: "0001.bit",
+		Account: "aaatzh0630.bit",
 	}
 
 	var data handle.RespTransactionStatus

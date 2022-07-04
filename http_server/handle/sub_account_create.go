@@ -9,10 +9,10 @@ import (
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
-	"github.com/DeAccountSystems/das-lib/smt"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
@@ -149,9 +149,9 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 
 	// check root
 	currentRoot, _ := tree.Root()
-	smtRoot, _ := witness.ConvertSubAccountCellOutputData(resCheck.SubAccountLiveCell.OutputData)
-	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(smtRoot))
-	if bytes.Compare(currentRoot, smtRoot) != 0 {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(resCheck.SubAccountLiveCell.OutputData)
+	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeSmtDiff, "smt root diff")
 		return nil
 	}
@@ -202,7 +202,10 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 
 	for i, _ := range taskList {
 		var skipGroups []int
-		skipGroups = []int{1}
+		skipGroups = []int{1} // skip sub-account-cell
+		if res.IsCustomScript {
+			skipGroups = []int{0}
+		}
 		log.Info("skipGroups:", res.DasTxBuilderList[i].ServerSignGroup)
 		signList, err := res.DasTxBuilderList[i].GenerateDigestListFromTx(skipGroups)
 		if err != nil {

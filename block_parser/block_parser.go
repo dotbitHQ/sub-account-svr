@@ -7,11 +7,12 @@ import (
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/mylog"
+	"go.mongodb.org/mongo-driver/mongo"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,6 +28,7 @@ type BlockParser struct {
 	DbDao                *dao.DbDao
 	ConcurrencyNum       uint64
 	ConfirmNum           uint64
+	Mongo                *mongo.Client
 	Ctx                  context.Context
 	Wg                   *sync.WaitGroup
 }

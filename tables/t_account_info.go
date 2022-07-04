@@ -1,7 +1,7 @@
 package tables
 
 import (
-	"github.com/DeAccountSystems/das-lib/common"
+	"github.com/dotbitHQ/das-lib/common"
 	"time"
 )
 
@@ -53,3 +53,16 @@ func (t *TableAccountInfo) IsExpired() bool {
 	}
 	return false
 }
+
+// ============= account category ===============
+
+type Category int
+
+const (
+	CategoryDefault      Category = 0
+	CategoryMainAccount  Category = 1
+	CategorySubAccount   Category = 2
+	CategoryOnSale       Category = 3
+	CategoryExpireSoon   Category = 4
+	CategoryToBeRecycled Category = 5
+)

@@ -41,6 +41,7 @@ const (
 	ApiCodeSmtDiff                     ApiCode = 40013
 	ApiCodeSuspendOperation            ApiCode = 40014
 	ApiCodeTaskNotExist                ApiCode = 40015
+	ApiCodeSameCustomScript            ApiCode = 40016
 )
 
 const (

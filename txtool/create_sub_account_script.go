@@ -1,6 +1,7 @@
 package txtool
 
 import (
+	"bytes"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -8,46 +9,40 @@ import (
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
-type ParamBuildCreateSubAccountTx struct {
-	TaskInfo              *tables.TableTaskInfo
-	SmtRecordInfoList     []tables.TableSmtRecordInfo
-	BaseInfo              *BaseInfo
-	Tree                  *smt.SparseMerkleTree
-	AccountOutPoint       *types.OutPoint
-	SubAccountOutpoint    *types.OutPoint
-	NewSubAccountPrice    uint64
-	CommonFee             uint64
-	AccountCellOutput     *types.CellOutput
-	AccountCellData       []byte
-	AccountCellWitness    []byte
-	SubAccountCellOutput  *types.CellOutput
-	SubAccountOutputsData []byte
-	BalanceDasLock        *types.Script
-	BalanceDasType        *types.Script
-}
-
-type ResultBuildCreateSubAccountTx struct {
-	DasTxBuilder          *txbuilder.DasTxBuilder
-	AccountOutPoint       *types.OutPoint
-	SubAccountOutpoint    *types.OutPoint
-	SubAccountOutputsData []byte
-	SubAccountCellOutput  *types.CellOutput
-}
-
-func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccountTx) (*ResultBuildCreateSubAccountTx, error) {
+func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSubAccountTx) (*ResultBuildCreateSubAccountTx, error) {
 	var res ResultBuildCreateSubAccountTx
 	var txParams txbuilder.BuildTransactionParams
 	timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-
-	// get balance cell
-	totalYears := uint64(0)
-	for _, v := range p.SmtRecordInfoList {
-		totalYears += v.RegisterYears
+	customScriptCell, err := s.getCustomScriptLiveCell(p.SubAccountOutputsData)
+	if err != nil {
+		return nil, fmt.Errorf("getCustomScriptLiveCell err: %s", err.Error())
 	}
-	registerCapacity := p.NewSubAccountPrice * totalYears
+
+	// get price
+	//builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	//if err != nil {
+	//	return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+	//}
+	//newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+	//if err != nil {
+	//	return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
+	//}
+	newRate := uint32(2000)
+	resPrice, err := GetCustomScriptMintTotalCapacity(&ParamCustomScriptMintTotalCapacity{
+		Action:                                common.DasActionCreateSubAccount,
+		PriceApi:                              &PriceApiDefault{},
+		MintList:                              p.SmtRecordInfoList,
+		Quote:                                 p.BaseInfo.QuoteCell.Quote(),
+		NewSubAccountCustomPriceDasProfitRate: newRate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomScriptMintTotalCapacity err: %s", err.Error())
+	}
+	registerCapacity := resPrice.DasCapacity + resPrice.OwnerCapacity
 	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
 		taskInfo:     p.TaskInfo,
 		dasLock:      p.BalanceDasLock,
@@ -113,31 +108,17 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 		}
 		subAccountParamList = append(subAccountParamList, subAccountParam)
 	}
-
-	// update smt status
-	//if err := s.DbDao.UpdateSmtStatus(p.TaskInfo.TaskId, tables.SmtStatusWriteComplete); err != nil {
-	//	return nil, fmt.Errorf("UpdateSmtStatus err: %s", err.Error())
-	//}
-
-	// inputs
-	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-		PreviousOutput: p.AccountOutPoint,
-	})
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 		PreviousOutput: p.SubAccountOutpoint,
 	})
-
-	// get balance cell
+	// inputs for balance cell
 	for _, v := range balanceLiveCells {
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: v.OutPoint,
 		})
 	}
 
-	// outputs
-	txParams.Outputs = append(txParams.Outputs, p.AccountCellOutput) // account
-	txParams.OutputsData = append(txParams.OutputsData, p.AccountCellData)
-
+	// outputs for sub-account-cell
 	res.SubAccountCellOutput = &types.CellOutput{
 		Capacity: p.SubAccountCellOutput.Capacity + registerCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
@@ -147,7 +128,8 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountParamList[len(subAccountParamList)-1].CurrentRoot
-	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
+	subDataDetail.DasProfit += resPrice.DasCapacity
+	subDataDetail.OwnerProfit += resPrice.OwnerCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
@@ -158,12 +140,6 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 			txParams.Outputs = append(txParams.Outputs, cell)
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
-		//txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		//	Capacity: change,
-		//	Lock:     p.BalanceDasLock,
-		//	Type:     p.BalanceDasType,
-		//})
-		//txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 
 	// witness
@@ -172,19 +148,29 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+
+	// account-cell-witness cell-deps
 	txParams.Witnesses = append(txParams.Witnesses, p.AccountCellWitness) // account
 
 	smtWitnessList, _ := getSubAccountWitness(subAccountParamList)
 	for _, v := range smtWitnessList {
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness
 	}
-
 	txParams.CellDeps = append(txParams.CellDeps,
+		&types.CellDep{
+			OutPoint: p.AccountOutPoint,
+			DepType:  types.DepTypeCode,
+		},
+		&types.CellDep{
+			OutPoint: customScriptCell.OutPoint,
+			DepType:  types.DepTypeCode,
+		},
 		p.BaseInfo.ContractDas.ToCellDep(),
 		p.BaseInfo.ContractAcc.ToCellDep(),
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
 		p.BaseInfo.HeightCell.ToCellDep(),
 		p.BaseInfo.TimeCell.ToCellDep(),
+		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellDigit.ToCellDep(),
@@ -234,13 +220,10 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 
 	// new tx outpoint
 	res.DasTxBuilder = txBuilder
-	res.AccountOutPoint = &types.OutPoint{
-		TxHash: hash,
-		Index:  0,
-	}
+	res.AccountOutPoint = p.AccountOutPoint
 	res.SubAccountOutpoint = &types.OutPoint{
 		TxHash: hash,
-		Index:  1,
+		Index:  0,
 	}
 	log.Info("BuildCreateSubAccountTx:", p.SubAccountCellOutput.Capacity)
 
@@ -248,6 +231,43 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	if err := s.DbDao.UpdateSmtRecordOutpoint(p.TaskInfo.TaskId, common.OutPointStruct2String(p.SubAccountOutpoint), common.OutPointStruct2String(res.SubAccountOutpoint)); err != nil {
 		return nil, fmt.Errorf("UpdateSmtRecordOutpoint err: %s", err.Error())
 	}
-
 	return &res, nil
+}
+
+func (s *SubAccountTxTool) getCustomScriptLiveCell(data []byte) (*indexer.LiveCell, error) {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
+	var customScript *types.Script
+	switch subDataDetail.CustomScriptArgs[0] {
+	case 1:
+		customScript = &types.Script{
+			CodeHash: types.HexToHash("0x00000000000000000000000000000000000000000000000000545950455f4944"),
+			HashType: types.HashTypeType,
+			Args:     subDataDetail.CustomScriptArgs[1:],
+		}
+	}
+	if customScript == nil {
+		return nil, fmt.Errorf("customScript is nil")
+	}
+	searchKey := indexer.SearchKey{
+		Script:     customScript,
+		ScriptType: indexer.ScriptTypeType,
+	}
+	customScriptCell, err := s.DasCore.Client().GetCells(s.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
+	if err != nil {
+		return nil, fmt.Errorf("GetCells err: %s", err.Error())
+	}
+	if subLen := len(customScriptCell.Objects); subLen != 1 {
+		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
+	}
+	log.Info("getCustomScriptLiveCell:", common.OutPointStruct2String(customScriptCell.Objects[0].OutPoint))
+	return customScriptCell.Objects[0], nil
+}
+
+func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
+	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
+	customScriptArgs := make([]byte, 33)
+	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+		return false
+	}
+	return true
 }

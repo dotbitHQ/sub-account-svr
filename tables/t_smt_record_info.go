@@ -3,9 +3,9 @@ package tables
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DeAccountSystems/das-lib/common"
-	"github.com/DeAccountSystems/das-lib/core"
-	"github.com/DeAccountSystems/das-lib/witness"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/mylog"
 	"strings"
 	"time"
@@ -50,7 +50,7 @@ const (
 	RecordTypeChain   RecordType = 2
 )
 
-func (t *TableSmtRecordInfo) getEditRecords() (records []witness.SubAccountRecord, err error) {
+func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err error) {
 	err = json.Unmarshal([]byte(t.EditRecords), &records)
 	return
 }
