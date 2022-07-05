@@ -124,7 +124,13 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
-	liveCells, total, err := core.GetSatisfiedCapacityLiveCellWithOrder(h.DasCore.Client(), h.DasCache, dasLock, dasType, capacityNeed, capacityForChange, indexer.SearchOrderAsc)
+	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        dasLock,
+		CapacityNeed:      capacityNeed,
+		CapacityForChange: capacityForChange,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
 	if err != nil {
 		return doDasBalanceError(err, apiResp)
 	}

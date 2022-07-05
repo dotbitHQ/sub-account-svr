@@ -29,10 +29,15 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 		defer balanceLock.Unlock()
 		needCapacity += 400 * common.OneCkb
 	}
-
-	liveCells, total, err := core.GetSatisfiedCapacityLiveCellWithOrder(s.DasCore.Client(), s.DasCache, p.dasLock, p.dasType, needCapacity, common.DasLockWithBalanceTypeOccupiedCkb, indexer.SearchOrderAsc)
+	liveCells, total, err := s.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          s.DasCache,
+		LockScript:        p.dasLock,
+		CapacityNeed:      needCapacity,
+		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
 	if err != nil {
-		return 0, nil, fmt.Errorf("GetSatisfiedCapacityLiveCellWithOrder err: %s", err.Error())
+		return 0, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
 	}
 
 	//if p.taskInfo.TaskType == tables.TaskTypeDelegate {
