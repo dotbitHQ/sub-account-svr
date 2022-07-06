@@ -265,7 +265,6 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	if err != nil {
 		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
-	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 	// account witness
 	builderMap, err := witness.AccountIdCellDataBuilderFromTx(txAcc.Transaction, common.DataTypeNew)
@@ -282,6 +281,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		Action:   common.DasActionConfigSubAccountCustomScript,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
+	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 	// cell deps
 	heightCell, err := h.DasCore.GetHeightCell()
