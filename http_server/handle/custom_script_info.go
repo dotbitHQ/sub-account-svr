@@ -58,7 +58,7 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
 	}
-
+	log.Info("doCustomScriptInfo:", customScripCell.OutPoint.TxHash.String(), customScripCell.OutPoint.Index)
 	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, customScripCell.OutPoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
