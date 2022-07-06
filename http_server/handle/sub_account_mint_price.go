@@ -53,21 +53,17 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 	}
 	accLen := common.GetAccountLength(req.SubAccount[:index])
 	parentAccount := req.SubAccount[index:]
-
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
-	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
-	}
 
-	customScripCell, err := h.DasCore.GetCustomScriptLiveCell(subAccCell.OutputData)
+	customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+		return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
 	}
+	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, customScripCell.OutPoint.TxHash)
+	log.Info("doCustomScriptInfo:", customScriptInfo.Outpoint)
+	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("GetTransaction err: %s", err.Error())

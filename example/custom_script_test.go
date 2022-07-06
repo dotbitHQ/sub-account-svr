@@ -25,14 +25,14 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "tzh2022070601.bit",
-		CustomScriptArgs: args,
+		Account:            "tzh2022070601.bit",
+		CustomScriptArgs:   args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
-			1: {5000000, 5000000},
-			2: {4000000, 4000000},
-			3: {3000000, 3000000},
-			4: {2000000, 2000000},
-			5: {1000000, 1000000},
+			//1: {5000000, 5000000},
+			//2: {4000000, 4000000},
+			//3: {3000000, 3000000},
+			//4: {2000000, 2000000},
+			//5: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript
@@ -47,6 +47,15 @@ func TestCustomScript(t *testing.T) {
 	if err := doTransactionSend(handle.ReqTransactionSend{
 		SignInfoList: data.SignInfoList,
 	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCustomScriptInfo(t *testing.T) {
+	url := ApiUrl + "/custom/script/info"
+	req := handle.ReqCustomScriptInfo{Account: "tzh2022070601.bit"}
+	var data handle.RespCustomScriptInfo
+	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -47,19 +47,15 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 	resp.CustomScriptConfig = make(map[uint8]witness.CustomScriptPrice)
 
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+	customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+		return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
 	}
+	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-	customScripCell, err := h.DasCore.GetCustomScriptLiveCell(subAccCell.OutputData)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
-	}
-	log.Info("doCustomScriptInfo:", customScripCell.OutPoint.TxHash.String(), customScripCell.OutPoint.Index)
-	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, customScripCell.OutPoint.TxHash)
+	log.Info("doCustomScriptInfo:", customScriptInfo.Outpoint)
+	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("GetTransaction err: %s", err.Error())
