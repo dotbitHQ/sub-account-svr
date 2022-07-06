@@ -10,10 +10,12 @@ import (
 )
 
 func TestCustomScript(t *testing.T) {
+	privateKey := ""
+
 	args := common.Bytes2Hex(make([]byte, 33))
 	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
-	url := ApiUrl + "/sub/account/custom/script"
+	url := ApiUrl + "/custom/script/set"
 	req := handle.ReqCustomScript{
 		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
@@ -23,15 +25,22 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "aaatzh0630.bit",
+		Account:          "tzh2022070601.bit",
 		CustomScriptArgs: args,
+		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
+			1: {5000000, 5000000},
+			2: {4000000, 4000000},
+			3: {3000000, 3000000},
+			4: {2000000, 2000000},
+			5: {1000000, 1000000},
+		},
 	}
 	var data handle.RespCustomScript
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, ""); err != nil {
+	if err := doSign(data.SignInfoList, privateKey); err != nil {
 		t.Fatal(err)
 	}
 
