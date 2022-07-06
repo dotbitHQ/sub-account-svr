@@ -246,7 +246,6 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		Body:      p.customScriptConfig,
 		MaxLength: 0,
 	})
-	txParams.Witnesses = append(txParams.Witnesses, witConfig)
 
 	// outputs sub-sccount cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
@@ -265,6 +264,8 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	if err != nil {
 		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
+	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+	txParams.Witnesses = append(txParams.Witnesses, witConfig)
 
 	// account witness
 	builderMap, err := witness.AccountIdCellDataBuilderFromTx(txAcc.Transaction, common.DataTypeNew)
@@ -281,7 +282,6 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		Action:   common.DasActionConfigSubAccountCustomScript,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
-	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 	// cell deps
 	heightCell, err := h.DasCore.GetHeightCell()
