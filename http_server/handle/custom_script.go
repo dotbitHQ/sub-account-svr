@@ -246,7 +246,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		Body:      p.customScriptConfig,
 		MaxLength: 0,
 	})
-	txParams.Witnesses = append(txParams.Witnesses, witConfig)
+	txParams.OtherWitnesses = append(txParams.OtherWitnesses, witConfig)
 
 	// outputs sub-sccount cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
