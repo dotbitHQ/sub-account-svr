@@ -60,6 +60,15 @@ func TestCustomScriptInfo(t *testing.T) {
 	}
 }
 
+func TestSubAccountMintPrice(t *testing.T) {
+	url := ApiUrl + "/sub/account/mint/price"
+	req := handle.ReqSubAccountMintPrice{SubAccount: "01.tzh2022070601.bit"}
+	var data handle.RespSubAccountMintPrice
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestConvertSubAccountCellOutputData(t *testing.T) {
 	d := witness.ConvertSubAccountCellOutputData(common.Hex2Bytes("0x9c7d8e41528b34bae45e271e7fa38466c1a4dcc807d30a42093398edc593146d00a3e111000000000000000000000000"))
 	fmt.Println(d.CustomScriptArgs, d.OwnerProfit, d.DasProfit, d.SmtRoot)

@@ -54,6 +54,7 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 	accLen := common.GetAccountLength(req.SubAccount[:index])
 	parentAccount := req.SubAccount[index:]
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
+	log.Info("doSubAccountMintPrice:", accLen, parentAccount, parentAccountId)
 
 	customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
 	if err != nil {
@@ -62,7 +63,7 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 	}
 	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-	log.Info("doCustomScriptInfo:", customScriptInfo.Outpoint)
+	log.Info("doSubAccountMintPrice:", customScriptInfo.Outpoint)
 	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
