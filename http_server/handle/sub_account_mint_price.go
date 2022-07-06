@@ -52,7 +52,7 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 		return nil
 	}
 	accLen := common.GetAccountLength(req.SubAccount[:index])
-	parentAccount := req.SubAccount[index:]
+	parentAccount := req.SubAccount[index+1:]
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
 	log.Info("doSubAccountMintPrice:", accLen, parentAccount, parentAccountId)
 
