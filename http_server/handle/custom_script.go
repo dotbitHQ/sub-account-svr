@@ -21,8 +21,9 @@ import (
 
 type ReqCustomScript struct {
 	core.ChainTypeAddress
-	Account          string `json:"account"`
-	CustomScriptArgs string `json:"custom_script_args"`
+	Account            string                              `json:"account"`
+	CustomScriptArgs   string                              `json:"custom_script_args"`
+	CustomScriptConfig map[uint8]witness.CustomScriptPrice `json:"custom_script_config"`
 }
 
 type RespCustomScript struct {
@@ -126,6 +127,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		customScriptArgs:   customScriptArgs,
 		subAccountLiveCell: subAccountLiveCell,
 		contractSubAcc:     contractSubAcc,
+		customScriptConfig: req.CustomScriptConfig,
 	}
 	txParams, err := h.buildCustomScriptTx(&p)
 	if err != nil {
@@ -209,6 +211,7 @@ type paramCustomScriptTx struct {
 	customScriptArgs   []byte
 	subAccountLiveCell *indexer.LiveCell
 	contractSubAcc     *core.DasContractInfo
+	customScriptConfig map[uint8]witness.CustomScriptPrice
 }
 
 func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.BuildTransactionParams, error) {
@@ -236,6 +239,14 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	})
 	txParams.OutputsData = append(txParams.OutputsData, txAcc.Transaction.OutputsData[accOutPoint.Index])
 
+	// custom script witness
+	witConfig, hashConfig := witness.BuildCustomScriptConfig(witness.CustomScriptConfig{
+		Header:    witness.Script001,
+		Version:   0,
+		Body:      p.customScriptConfig,
+		MaxLength: 0,
+	})
+
 	// outputs sub-sccount cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: p.subAccountLiveCell.Output.Capacity,
@@ -244,6 +255,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	})
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	subDataDetail.CustomScriptArgs = p.customScriptArgs
+	subDataDetail.CustomScriptConfig = hashConfig
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
 
@@ -253,6 +265,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+	txParams.Witnesses = append(txParams.Witnesses, witConfig)
 
 	// account witness
 	builderMap, err := witness.AccountIdCellDataBuilderFromTx(txAcc.Transaction, common.DataTypeNew)
