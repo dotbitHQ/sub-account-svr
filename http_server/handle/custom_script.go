@@ -117,7 +117,13 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return fmt.Errorf("getSubAccountCell err: %s", err.Error())
 	}
 	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
-	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+	_, hashConfig := witness.BuildCustomScriptConfig(witness.CustomScriptConfig{
+		Header:    witness.Script001,
+		Version:   0,
+		Body:      req.CustomScriptConfig,
+		MaxLength: 0,
+	})
+	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 && bytes.Compare(subDataDetail.CustomScriptConfig, hashConfig) == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeSameCustomScript, "same custom script")
 		return nil
 	}
