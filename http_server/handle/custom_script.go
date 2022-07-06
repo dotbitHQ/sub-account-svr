@@ -333,7 +333,7 @@ func (h *HttpHandle) getSubAccountCell(contractSubAcc *core.DasContractInfo, par
 		return nil, fmt.Errorf("GetCells err: %s", err.Error())
 	}
 	if subLen := len(subAccLiveCells.Objects); subLen != 1 {
-		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
+		return nil, fmt.Errorf("sub account cell len: %d", subLen)
 	}
 	return subAccLiveCells.Objects[0], nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
-	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
@@ -18,9 +17,9 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	var res ResultBuildCreateSubAccountTx
 	var txParams txbuilder.BuildTransactionParams
 	timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-	customScriptCell, err := s.getCustomScriptLiveCell(p.SubAccountOutputsData)
+	customScriptCell, err := s.DasCore.GetCustomScriptLiveCell(p.SubAccountOutputsData)
 	if err != nil {
-		return nil, fmt.Errorf("getCustomScriptLiveCell err: %s", err.Error())
+		return nil, fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
 	}
 
 	// get price
@@ -232,35 +231,6 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		return nil, fmt.Errorf("UpdateSmtRecordOutpoint err: %s", err.Error())
 	}
 	return &res, nil
-}
-
-func (s *SubAccountTxTool) getCustomScriptLiveCell(data []byte) (*indexer.LiveCell, error) {
-	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
-	var customScript *types.Script
-	switch subDataDetail.CustomScriptArgs[0] {
-	case 1:
-		customScript = &types.Script{
-			CodeHash: types.HexToHash("0x00000000000000000000000000000000000000000000000000545950455f4944"),
-			HashType: types.HashTypeType,
-			Args:     subDataDetail.CustomScriptArgs[1:],
-		}
-	}
-	if customScript == nil {
-		return nil, fmt.Errorf("customScript is nil")
-	}
-	searchKey := indexer.SearchKey{
-		Script:     customScript,
-		ScriptType: indexer.ScriptTypeType,
-	}
-	customScriptCell, err := s.DasCore.Client().GetCells(s.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
-	if err != nil {
-		return nil, fmt.Errorf("GetCells err: %s", err.Error())
-	}
-	if subLen := len(customScriptCell.Objects); subLen != 1 {
-		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
-	}
-	log.Info("getCustomScriptLiveCell:", common.OutPointStruct2String(customScriptCell.Objects[0].OutPoint))
-	return customScriptCell.Objects[0], nil
 }
 
 func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
