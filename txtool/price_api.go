@@ -1,9 +1,13 @@
 package txtool
 
 import (
+	"context"
+	"das_sub_account/dao"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"strings"
 )
 
@@ -19,7 +23,9 @@ type ParamGetPrice struct {
 }
 
 type ResGetPrice struct {
-	Price uint64
+	New              uint64
+	Renew            uint64
+	ActionTotalPrice uint64
 }
 
 // PriceApiDefault
@@ -27,27 +33,82 @@ type PriceApiDefault struct{}
 
 func (r *PriceApiDefault) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	var res ResGetPrice
+
+	index := strings.Index(p.SubAccount, ".")
+	if index == -1 {
+		return nil, fmt.Errorf("sub-account is invalid")
+	}
+	accLen := common.GetAccountLength(p.SubAccount[:index])
+
+	// default price
+	switch accLen {
+	case 1:
+		res.New, res.Renew = 16000000, 16000000
+	case 2:
+		res.New, res.Renew = 8000000, 8000000
+	case 3:
+		res.New, res.Renew = 4000000, 4000000
+	case 4:
+		res.New, res.Renew = 2000000, 2000000
+	default:
+		res.New, res.Renew = 1000000, 1000000
+	}
+
+	log.Info("PriceApiDefault:", p.Action, p.RegisterYears, res.New, res.Renew)
+
 	switch p.Action {
 	case common.DasActionCreateSubAccount:
-		if index := strings.Index(p.SubAccount, "."); index == -1 {
-			return nil, fmt.Errorf("sub account invalid")
-		} else {
-			accLen := common.GetAccountLength(p.SubAccount[:index])
-			switch accLen {
-			case 1:
-				res.Price = 16000000
-			case 2:
-				res.Price = 8000000
-			case 3:
-				res.Price = 4000000
-			case 4:
-				res.Price = 2000000
-			default:
-				res.Price = 1000000
-			}
-			log.Info("GetPrice:", res.Price, p.RegisterYears)
-			res.Price *= p.RegisterYears
-		}
+		res.ActionTotalPrice = res.New * p.RegisterYears
+	}
+
+	return &res, nil
+}
+
+// PriceApiConfig
+type PriceApiConfig struct {
+	DasCore *core.DasCore
+	DbDao   *dao.DbDao
+}
+
+func (r *PriceApiConfig) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
+	var res ResGetPrice
+
+	index := strings.Index(p.SubAccount, ".")
+	if index == -1 {
+		return nil, fmt.Errorf("sub-account is invalid")
+	}
+	accLen := common.GetAccountLength(p.SubAccount[:index])
+
+	// config price
+	parentAccount := p.SubAccount[index+1:]
+	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
+
+	customScriptInfo, err := r.DbDao.GetCustomScriptInfo(parentAccountId)
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
+	}
+	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
+
+	log.Info("PriceApiConfig:", customScriptInfo.Outpoint)
+	resTx, err := r.DasCore.Client().GetTransaction(context.Background(), outpoint.TxHash)
+	if err != nil {
+		return nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+	}
+
+	customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+	if err != nil {
+		return nil, fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+	}
+	price, err := customScriptConfig.GetPrice(accLen)
+	if err != nil {
+		return nil, fmt.Errorf("price err: %s", err.Error())
+	}
+	res.New, res.Renew = price.New, price.Renew
+
+	log.Info("PriceApiConfig:", p.Action, p.RegisterYears, res.New, res.Renew)
+	switch p.Action {
+	case common.DasActionCreateSubAccount:
+		res.ActionTotalPrice = res.New * p.RegisterYears
 	}
 
 	return &res, nil
@@ -74,7 +135,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 			return nil, fmt.Errorf("GetPrice err: %s", err.Error())
 		}
 
-		priceCkb := (resPrice.Price / p.Quote) * common.OneCkb
+		priceCkb := (resPrice.ActionTotalPrice / p.Quote) * common.OneCkb
 		log.Info("priceCkb:", priceCkb)
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
 		ownerCkb := priceCkb - dasCkb

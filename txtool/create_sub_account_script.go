@@ -32,8 +32,12 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
 	}
 	resPrice, err := GetCustomScriptMintTotalCapacity(&ParamCustomScriptMintTotalCapacity{
-		Action:                                common.DasActionCreateSubAccount,
-		PriceApi:                              &PriceApiDefault{},
+		Action: common.DasActionCreateSubAccount,
+		//PriceApi:                              &PriceApiDefault{},
+		PriceApi: &PriceApiConfig{
+			DasCore: s.DasCore,
+			DbDao:   s.DbDao,
+		},
 		MintList:                              p.SmtRecordInfoList,
 		Quote:                                 p.BaseInfo.QuoteCell.Quote(),
 		NewSubAccountCustomPriceDasProfitRate: newRate,
