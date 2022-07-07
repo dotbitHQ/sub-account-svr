@@ -11,9 +11,12 @@
     * [Transaction Status](#transaction-status)
     * [Task Status](#task-status)
     * [Sub Account Mint Status](#sub-account-mint-status)
+    * [Custom Script Set](#custom-script-set)
+    * [Custom Script Info](#custom-script-info)
+    * [Custom Script Price](#custom-script-price)
 * [INTERNAL API LIST](#internal-api-list)
     * [Internal Create Sub Account](#internal-create-sub-account)
-    * [Internal Mint Sub Account](#internal-mint-sub-account)  
+    * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
     * [Internal Update Smt](#internal-update-smt)
 
@@ -583,6 +586,107 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 }
 ```
 
+### Custom Script Set
+
+#### Request
+
+* path: /v1/custom/script/set
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "chain_id": "1",
+    "key": "0x111..."
+  },
+  "account": "test.bit",
+  "custom_script_args": "",
+  "custom_script_config": {
+    "1": {
+      "new": 5000000,
+      "renew": 5000000
+    },
+    "2": {
+      "new": 1000000,
+      "renew": 1000000
+    }
+  }
+}
+```
+
+#### Response
+
+```json
+{
+  "action": "config_sub_account_custom_script",
+  "sign_key": "",
+  "list": [
+    {
+      "sign_list": [
+        {
+          "sign_type": 3,
+          "sign_msg": "0x123"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Custom Script Info
+
+#### Request
+
+* path: /custom/script/info
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "custom_script_args": "",
+  "custom_script_config": {
+    "1": {
+      "new": 5000000,
+      "renew": 5000000
+    },
+    "2": {
+      "new": 1000000,
+      "renew": 1000000
+    }
+  }
+}
+```
+
+### Custom Script Price
+
+#### Request
+
+* path: /custom/script/price
+
+```json
+{
+  "sub_account": "123.test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "custom_script_price": {
+    "new": 1000000,
+    "renew": 1000000
+  }
+}
+```
+
 ## INTERNAL API LIST
 
 ### Internal Create Sub Account
@@ -629,8 +733,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 }
 ```
 
-
-### Internal Mint Sub Account 
+### Internal Mint Sub Account
 
 #### Request
 

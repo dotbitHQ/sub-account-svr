@@ -11,19 +11,19 @@ import (
 	"strings"
 )
 
-type ReqSubAccountMintPrice struct {
+type ReqCustomScriptPrice struct {
 	SubAccount string `json:"sub_account"`
 }
 
-type RespSubAccountMintPrice struct {
+type RespCustomScriptPrice struct {
 	CustomScriptPrice witness.CustomScriptPrice `json:"custom_script_price"`
 }
 
-func (h *HttpHandle) SubAccountMintPrice(ctx *gin.Context) {
+func (h *HttpHandle) CustomScriptPrice(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountMintPrice"
+		funcName = "CustomScriptPrice"
 		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountMintPrice
+		req      ReqCustomScriptPrice
 		apiResp  api_code.ApiResp
 		err      error
 	)
@@ -36,15 +36,15 @@ func (h *HttpHandle) SubAccountMintPrice(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doSubAccountMintPrice(&req, &apiResp); err != nil {
-		log.Error("doSubAccountMintPrice err:", err.Error(), funcName, clientIp)
+	if err = h.doCustomScriptPrice(&req, &apiResp); err != nil {
+		log.Error("doCustomScriptPrice err:", err.Error(), funcName, clientIp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp *api_code.ApiResp) error {
-	var resp RespSubAccountMintPrice
+func (h *HttpHandle) doCustomScriptPrice(req *ReqCustomScriptPrice, apiResp *api_code.ApiResp) error {
+	var resp RespCustomScriptPrice
 
 	index := strings.Index(req.SubAccount, ".")
 	if index == -1 {
@@ -54,7 +54,7 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 	accLen := common.GetAccountLength(req.SubAccount[:index])
 	parentAccount := req.SubAccount[index+1:]
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
-	log.Info("doSubAccountMintPrice:", accLen, parentAccount, parentAccountId)
+	log.Info("doCustomScriptPrice:", accLen, parentAccount, parentAccountId)
 
 	customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
 	if err != nil {
@@ -63,7 +63,7 @@ func (h *HttpHandle) doSubAccountMintPrice(req *ReqSubAccountMintPrice, apiResp 
 	}
 	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-	log.Info("doSubAccountMintPrice:", customScriptInfo.Outpoint)
+	log.Info("doCustomScriptPrice:", customScriptInfo.Outpoint)
 	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())

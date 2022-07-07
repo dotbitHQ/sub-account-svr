@@ -62,8 +62,8 @@ func TestCustomScriptInfo(t *testing.T) {
 
 func TestSubAccountMintPrice(t *testing.T) {
 	url := ApiUrl + "/sub/account/mint/price"
-	req := handle.ReqSubAccountMintPrice{SubAccount: "01.tzh2022070601.bit"}
-	var data handle.RespSubAccountMintPrice
+	req := handle.ReqCustomScriptPrice{SubAccount: "01.tzh2022070601.bit"}
+	var data handle.RespCustomScriptPrice
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}

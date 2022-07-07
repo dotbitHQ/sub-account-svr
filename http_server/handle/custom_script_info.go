@@ -15,6 +15,7 @@ type ReqCustomScriptInfo struct {
 }
 
 type RespCustomScriptInfo struct {
+	CustomScriptArgs   string                              `json:"custom_script_args"`
 	CustomScriptConfig map[uint8]witness.CustomScriptPrice `json:"custom_script_config"`
 }
 
@@ -67,6 +68,15 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 		return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
 	}
 	resp.CustomScriptConfig = customScriptConfig.Body
+
+	//
+	subAccLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+	}
+	detail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
+	resp.CustomScriptArgs = common.Bytes2Hex(detail.CustomScriptArgs)
 
 	apiResp.ApiRespOK(resp)
 	return nil
