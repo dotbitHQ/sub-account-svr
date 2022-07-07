@@ -95,7 +95,7 @@ func (r *PriceApiConfig) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 		return nil, fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 
-	customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+	_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
 	if err != nil {
 		return nil, fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
 	}

@@ -22,6 +22,23 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		return nil, fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
 	}
 
+	// custom-script-wit
+	customScriptInfo, err := s.DbDao.GetCustomScriptInfo(p.TaskInfo.ParentAccountId)
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
+	}
+	csiOutpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
+	resTx, err := s.DasCore.Client().GetTransaction(s.Ctx, csiOutpoint.TxHash)
+	if err != nil {
+		return nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+	}
+
+	customScriptConfigWit, _, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+	if err != nil {
+		return nil, fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+	}
+	txParams.OtherWitnesses = append(txParams.OtherWitnesses, customScriptConfigWit)
+
 	// get price
 	builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
@@ -159,6 +176,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	for _, v := range smtWitnessList {
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness
 	}
+
 	txParams.CellDeps = append(txParams.CellDeps,
 		&types.CellDep{
 			OutPoint: p.AccountOutPoint,

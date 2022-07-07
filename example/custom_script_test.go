@@ -13,7 +13,7 @@ func TestCustomScript(t *testing.T) {
 	privateKey := ""
 
 	args := common.Bytes2Hex(make([]byte, 33))
-	//args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
+	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
 	url := ApiUrl + "/custom/script/set"
 	req := handle.ReqCustomScript{
@@ -33,6 +33,7 @@ func TestCustomScript(t *testing.T) {
 			3: {3000000, 3000000},
 			4: {2000000, 2000000},
 			5: {1000000, 1000000},
+			6: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript
@@ -61,7 +62,7 @@ func TestCustomScriptInfo(t *testing.T) {
 }
 
 func TestSubAccountMintPrice(t *testing.T) {
-	url := ApiUrl + "/sub/account/mint/price"
+	url := ApiUrl + "/custom/script/price"
 	req := handle.ReqCustomScriptPrice{SubAccount: "01.tzh2022070601.bit"}
 	var data handle.RespCustomScriptPrice
 	if err := doReq(url, req, &data); err != nil {
