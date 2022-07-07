@@ -62,7 +62,7 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 		return fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 
-	customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+	_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
