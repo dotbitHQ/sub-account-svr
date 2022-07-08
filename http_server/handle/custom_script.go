@@ -96,6 +96,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub-account not enabled")
 		return nil
 	}
+
 	// build tx
 	customScriptArgs := make([]byte, 33)
 	if req.CustomScriptArgs != "" {
@@ -126,6 +127,15 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 && bytes.Compare(subDataDetail.CustomScriptConfig, hashConfig) == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeSameCustomScript, "same custom script")
 		return nil
+	}
+	// check custom script
+	subDataDetail.CustomScriptArgs = customScriptArgs
+	subDataDetail.CustomScriptConfig = hashConfig
+	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
+	_, err = h.DasCore.GetCustomScriptLiveCell(subAccountOutputData)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "custom-script-args invalid")
+		return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
 	}
 
 	p := paramCustomScriptTx{
