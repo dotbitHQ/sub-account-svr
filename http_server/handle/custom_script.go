@@ -129,13 +129,16 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return nil
 	}
 	// check custom script
-	subDataDetail.CustomScriptArgs = customScriptArgs
-	subDataDetail.CustomScriptConfig = hashConfig
-	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
-	_, err = h.DasCore.GetCustomScriptLiveCell(subAccountOutputData)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "custom-script-args invalid")
-		return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
+	var defaultCustomScriptArgs = make([]byte, 33)
+	if bytes.Compare(customScriptArgs, defaultCustomScriptArgs) != 0 {
+		subDataDetail.CustomScriptArgs = customScriptArgs
+		subDataDetail.CustomScriptConfig = hashConfig
+		subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
+		_, err = h.DasCore.GetCustomScriptLiveCell(subAccountOutputData)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "custom-script-args invalid")
+			return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
+		}
 	}
 
 	p := paramCustomScriptTx{
