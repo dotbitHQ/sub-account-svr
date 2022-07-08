@@ -95,7 +95,12 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		return nil
 	}
 
-	// todo check account price
+	// check account price
+	if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
+		return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
 
 	// das lock
 	var balanceDasLock, balanceDasType *types.Script

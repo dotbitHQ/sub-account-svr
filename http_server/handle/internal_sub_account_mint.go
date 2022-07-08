@@ -73,6 +73,13 @@ func (h *HttpHandle) doInternalSubAccountMint(req *ReqSubAccountCreate, apiResp 
 		return nil
 	}
 
+	// check account price
+	if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
+		return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
 	// check sub-account custom script
 	defaultCustomScriptArgs := make([]byte, 33)
 	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
