@@ -28,12 +28,12 @@ func TestCustomScript(t *testing.T) {
 		Account:          "tzh2022070601.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
-			1: {5000000, 5000000},
-			2: {4000000, 4000000},
-			3: {3000000, 3000000},
-			4: {2000000, 2000000},
-			5: {1000000, 1000000},
-			6: {1000000, 1000000},
+			//1: {5000000, 5000000},
+			//2: {4000000, 4000000},
+			//3: {3000000, 3000000},
+			//4: {2000000, 2000000},
+			5: {1, 1},
+			//6: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript

@@ -123,8 +123,8 @@ func TestTransactionStatus(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Action:  common.DasActionEnableSubAccount,
-		Account: "aaatzh0630.bit",
+		Action:  common.DasActionConfigSubAccountCustomScript,
+		Account: "tzh2022070601.bit",
 	}
 
 	var data handle.RespTransactionStatus

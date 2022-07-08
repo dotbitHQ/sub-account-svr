@@ -1,11 +1,15 @@
 package handle
 
 import (
+	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
+	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/molecule"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -237,4 +241,57 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		}
 	}
 	return isOk, &resp, nil
+}
+
+func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
+	defaultCustomScriptArgs := make([]byte, 33)
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+	}
+	subDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	if len(subDetail.CustomScriptArgs) == 0 || bytes.Compare(subDetail.CustomScriptArgs, defaultCustomScriptArgs) == 0 {
+		return nil
+	}
+
+	builderConfigCellSub, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+	}
+	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
+	}
+	quoteCell, err := h.DasCore.GetQuoteCell()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetQuoteCell err: %s", err.Error())
+	}
+	quote := quoteCell.Quote()
+
+	priceApi := txtool.PriceApiConfig{
+		DasCore: h.DasCore,
+		DbDao:   h.DbDao,
+	}
+	for _, v := range req.SubAccountList {
+		resPrice, err := priceApi.GetPrice(&txtool.ParamGetPrice{
+			Action:        common.DasActionCreateSubAccount,
+			SubAccount:    v.Account,
+			RegisterYears: v.RegisterYears,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("GetPrice err: %s", err.Error())
+		}
+		priceCkb := (resPrice.ActionTotalPrice / quote) * common.OneCkb
+		dasCkb := (priceCkb / common.PercentRateBase) * uint64(newRate)
+		if dasCkb < common.OneCkb {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+			return nil
+		}
+	}
+	return nil
 }

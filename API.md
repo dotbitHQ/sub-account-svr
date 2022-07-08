@@ -15,7 +15,6 @@
     * [Custom Script Info](#custom-script-info)
     * [Custom Script Price](#custom-script-price)
 * [INTERNAL API LIST](#internal-api-list)
-    * [Internal Create Sub Account](#internal-create-sub-account)
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
     * [Internal Update Smt](#internal-update-smt)
@@ -688,50 +687,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 ```
 
 ## INTERNAL API LIST
-
-### Internal Create Sub Account
-
-#### Request
-
-* path: /v1/internal/sub/account/create
-
-```json
-{
-  "type": "blockchain",
-  "key_info": {
-    "coin_type": "60",
-    "chain_id": "1",
-    "key": "0x111"
-  },
-  "account": "",
-  "sub_account_list": [
-    {
-      "account": "",
-      "register_years": 1,
-      "type": "blockchain",
-      "key_info": {
-        "coin_type": "60",
-        "chain_id": "1",
-        "key": "0x111..."
-      }
-    }
-  ]
-}
-```
-
-#### Response
-
-```json
-{
-  "errno": 0,
-  "errmsg": "",
-  "data": {
-    "task_ids": [
-      ""
-    ]
-  }
-}
-```
 
 ### Internal Mint Sub Account
 

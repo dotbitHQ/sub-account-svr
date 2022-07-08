@@ -95,6 +95,8 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		return nil
 	}
 
+	// todo check account price
+
 	// das lock
 	var balanceDasLock, balanceDasType *types.Script
 	//if acc.OwnerChainType == req.chainType && strings.EqualFold(acc.Owner, req.address) {
