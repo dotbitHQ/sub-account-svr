@@ -14,6 +14,7 @@
     * [Custom Script Set](#custom-script-set)
     * [Custom Script Info](#custom-script-info)
     * [Custom Script Price](#custom-script-price)
+    * [Owner Profit](#owner-profit)
 * [INTERNAL API LIST](#internal-api-list)
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
@@ -683,6 +684,32 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     "new": 1000000,
     "renew": 1000000
   }
+}
+```
+
+### Owner Profit
+
+#### Request
+
+* path: /owner/profit
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "chain_id": "1",
+    "key": "0x111..."
+  },
+  "account": "tzh2022070601.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "owner_profit": "256.8"
 }
 ```
 
