@@ -13,7 +13,7 @@ func TestCustomScript(t *testing.T) {
 	privateKey := ""
 
 	args := common.Bytes2Hex(make([]byte, 33))
-	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
+	//args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
 	url := ApiUrl + "/custom/script/set"
 	req := handle.ReqCustomScript{
@@ -32,7 +32,7 @@ func TestCustomScript(t *testing.T) {
 			//2: {4000000, 4000000},
 			//3: {3000000, 3000000},
 			//4: {2000000, 2000000},
-			5: {1, 1},
+			5: {100000, 100000},
 			//6: {1000000, 1000000},
 		},
 	}
@@ -73,4 +73,20 @@ func TestSubAccountMintPrice(t *testing.T) {
 func TestConvertSubAccountCellOutputData(t *testing.T) {
 	d := witness.ConvertSubAccountCellOutputData(common.Hex2Bytes("0x9c7d8e41528b34bae45e271e7fa38466c1a4dcc807d30a42093398edc593146d00a3e111000000000000000000000000"))
 	fmt.Println(d.CustomScriptArgs, d.OwnerProfit, d.DasProfit, d.SmtRoot)
+}
+
+func TestOwnerProfit(t *testing.T) {
+	url := ApiUrl + "/owner/profit"
+	req := handle.ReqOwnerProfit{ChainTypeAddress: core.ChainTypeAddress{
+		Type: "blockchain",
+		KeyInfo: core.KeyInfo{
+			CoinType: common.CoinTypeEth,
+			ChainId:  "",
+			Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+		},
+	}, Account: "tzh2022070601.bit"}
+	var data handle.RespOwnerProfit
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
 }
