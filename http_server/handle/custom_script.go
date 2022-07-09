@@ -84,7 +84,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
 	} else if acc.Status != tables.AccountStatusNormal {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account on sale or auction")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return nil
 	} else if acc.IsExpired() {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account is expired")

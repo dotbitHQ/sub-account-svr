@@ -328,7 +328,7 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return "", nil, nil
 	} else if subAcc.Status != tables.AccountStatusNormal {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account on sale or auction")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return "", nil, nil
 	} else if subAcc.IsExpired() {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")

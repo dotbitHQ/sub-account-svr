@@ -203,6 +203,8 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 
 #### Response
 
+* status：0-normal, 1-on sale, 2-on auction, 3-cross opensea
+
 ```json
 {
   "errno": 0,
