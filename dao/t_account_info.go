@@ -66,7 +66,11 @@ func (d *DbDao) GetSubAccountListTotalByParentAccountId(parentAccountId string, 
 		db = db.Where("expired_at>=? AND expired_at<=?", expiredAt, expiredAt30Days)
 	case tables.CategoryToBeRecycled:
 		expiredAt := time.Now().Unix()
-		db = db.Where("expired_at<=?", expiredAt)
+		recycledAt := time.Now().Add(-time.Hour * 24 * 90).Unix()
+		if config.Cfg.Server.Net != common.DasNetTypeMainNet {
+			recycledAt = time.Now().Add(-time.Hour * 24 * 3).Unix()
+		}
+		db = db.Where("expired_at<=? AND expired_at>=?", expiredAt, recycledAt)
 	}
 	if keyword != "" {
 		db = db.Where("account LIKE ?", "%"+keyword+"%")
