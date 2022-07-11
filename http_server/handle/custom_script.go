@@ -112,7 +112,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
-	subAccountLiveCell, err := h.getSubAccountCell(contractSubAcc, acc.AccountId)
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("getSubAccountCell err: %s", err.Error())
@@ -338,21 +338,4 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	)
 
 	return &txParams, nil
-}
-
-func (h *HttpHandle) getSubAccountCell(contractSubAcc *core.DasContractInfo, parentAccountId string) (*indexer.LiveCell, error) {
-	searchKey := indexer.SearchKey{
-		Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
-		ScriptType: indexer.ScriptTypeType,
-		ArgsLen:    0,
-		Filter:     nil,
-	}
-	subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
-	if err != nil {
-		return nil, fmt.Errorf("GetCells err: %s", err.Error())
-	}
-	if subLen := len(subAccLiveCells.Objects); subLen != 1 {
-		return nil, fmt.Errorf("sub account cell len: %d", subLen)
-	}
-	return subAccLiveCells.Objects[0], nil
 }

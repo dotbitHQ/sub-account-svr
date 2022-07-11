@@ -13,7 +13,7 @@ func TestCustomScript(t *testing.T) {
 	privateKey := ""
 
 	args := common.Bytes2Hex(make([]byte, 33))
-	//args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
+	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
 	url := ApiUrl + "/custom/script/set"
 	req := handle.ReqCustomScript{
@@ -32,7 +32,7 @@ func TestCustomScript(t *testing.T) {
 			//2: {4000000, 4000000},
 			//3: {3000000, 3000000},
 			//4: {2000000, 2000000},
-			5: {100000, 100000},
+			5: {20000, 20000},
 			//6: {1000000, 1000000},
 		},
 	}
@@ -89,4 +89,11 @@ func TestOwnerProfit(t *testing.T) {
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestPrice(t *testing.T) {
+	// 0.02 $
+	fmt.Println((60000 / 10770) * common.OneCkb)
+	//fmt.Println(20000*common.OneCkb/3720)
+	fmt.Println((26600000000 / 10000) * 2000)
 }
