@@ -86,7 +86,7 @@ func TestAccountList(t *testing.T) {
 func TestAccountDetail(t *testing.T) {
 	url := ApiUrl + "/account/detail"
 	req := handle.ReqAccountDetail{
-		Account: "0001.bit",
+		Account: "tzh2022070601.bit",
 	}
 
 	var data handle.RespAccountDetail
