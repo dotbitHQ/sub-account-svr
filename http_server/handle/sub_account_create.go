@@ -95,12 +95,23 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		return nil
 	}
 
-	// check account price
-	if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
-		return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	// check custom-script
+	defaultCustomScriptArgs := make([]byte, 33)
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+	}
+	subDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	if len(subDetail.CustomScriptArgs) > 0 && bytes.Compare(subDetail.CustomScriptArgs, defaultCustomScriptArgs) != 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeCustomScriptSet, "custom-script set")
 		return nil
 	}
+	//if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
+	//	return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
+	//} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	//	return nil
+	//}
 
 	// das lock
 	var balanceDasLock, balanceDasType *types.Script

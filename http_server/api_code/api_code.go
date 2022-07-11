@@ -43,6 +43,7 @@ const (
 	ApiCodeTaskNotExist                    ApiCode = 40015
 	ApiCodeSameCustomScript                ApiCode = 40016
 	ApiCodeNotExistCustomScriptConfigPrice ApiCode = 40017
+	ApiCodeCustomScriptSet                 ApiCode = 40018
 )
 
 const (
