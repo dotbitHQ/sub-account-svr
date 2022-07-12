@@ -126,6 +126,11 @@ func (h *HttpHandle) doSubAccountCheckAccount(account string, apiResp *api_code.
 			apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub account uninitialized")
 			return nil, nil
 		}
+	case common.DasActionEnableSubAccount:
+		if acc.EnableSubAccount == tables.AccountEnableStatusOn {
+			apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOn, "sub account already initialized")
+			return nil, nil
+		}
 	}
 	return &acc, nil
 }

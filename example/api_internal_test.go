@@ -167,14 +167,14 @@ func TestInternalSubAccountMint(t *testing.T) {
 			KeyInfo: api_code.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
-				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account: "aaatzh063001.bit",
+		Account: "tzh2022070601.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "tzh02.aaatzh063001.bit",
-				RegisterYears: 3,
+				Account:       "tzh10.tzh2022070601.bit",
+				RegisterYears: 1,
 				ChainTypeAddress: api_code.ChainTypeAddress{
 					Type: "blockchain",
 					KeyInfo: api_code.KeyInfo{
@@ -185,7 +185,7 @@ func TestInternalSubAccountMint(t *testing.T) {
 				},
 			},
 			{
-				Account:       "tzh03.aaatzh063001.bit",
+				Account:       "tzh11.tzh2022070601.bit",
 				RegisterYears: 2,
 				ChainTypeAddress: api_code.ChainTypeAddress{
 					Type: "blockchain",

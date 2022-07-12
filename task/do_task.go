@@ -75,6 +75,10 @@ func (t *SmtTask) doTask(action common.DasAction) error {
 			return fmt.Errorf("DoCheckBeforeBuildTx err: %s", err.Error())
 		}
 
+		if tId, customScriptOk := t.TxTool.DoCheckCustomScriptHash(action, resCheck.SubAccountLiveCell, taskList); !customScriptOk {
+			return fmt.Errorf("DoCheckCustomScriptHash err: %s", tId)
+		}
+
 		// get account
 		parentAccount, err := t.DbDao.GetAccountInfoByAccountId(parentAccountId)
 		if err != nil {
