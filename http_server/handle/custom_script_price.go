@@ -56,30 +56,42 @@ func (h *HttpHandle) doCustomScriptPrice(req *ReqCustomScriptPrice, apiResp *api
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
 	log.Info("doCustomScriptPrice:", accLen, parentAccount, parentAccountId)
 
-	customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
-		return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
-	}
-	outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
-
-	log.Info("doCustomScriptPrice:", customScriptInfo.Outpoint)
-	resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
+	// custom-script
+	subAccLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetTransaction err: %s", err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
+	detail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
+	if detail.HasCustomScriptArgs() {
+		customScriptInfo, err := h.DbDao.GetCustomScriptInfo(parentAccountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
+		}
+		outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-	_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
-	}
-	if accLen > customScriptConfig.MaxLength {
-		accLen = customScriptConfig.MaxLength
-	}
-	if item, ok := customScriptConfig.Body[accLen]; ok {
-		resp.CustomScriptPrice = item
+		log.Info("doCustomScriptPrice:", customScriptInfo.Outpoint)
+		resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("GetTransaction err: %s", err.Error())
+		}
+
+		_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+		}
+		if accLen > customScriptConfig.MaxLength {
+			accLen = customScriptConfig.MaxLength
+		}
+		if item, ok := customScriptConfig.Body[accLen]; ok {
+			resp.CustomScriptPrice = item
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeNotExistCustomScriptConfigPrice, "not exist price")
+			return nil
+		}
 	} else {
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistCustomScriptConfigPrice, "not exist price")
 		return nil
