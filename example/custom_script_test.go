@@ -33,7 +33,7 @@ func TestCustomScript(t *testing.T) {
 			//3: {3000000, 3000000},
 			//4: {2000000, 2000000},
 			5: {20000, 20000},
-			//6: {1000000, 1000000},
+			6: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript

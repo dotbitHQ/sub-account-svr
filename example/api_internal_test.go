@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ApiUrlInternal = "http://127.0.0.1:8126/v1"
+	ApiUrlInternal = "http://47.243.90.165:8126/v1"
 )
 
 func TestInternalSubAccountCreate(t *testing.T) {
