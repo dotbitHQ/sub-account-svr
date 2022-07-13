@@ -1,11 +1,15 @@
 package example
 
 import (
+	"context"
 	"das_sub_account/http_server/handle"
+	"encoding/binary"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"testing"
 )
 
@@ -54,7 +58,7 @@ func TestCustomScript(t *testing.T) {
 
 func TestCustomScriptInfo(t *testing.T) {
 	url := ApiUrl + "/custom/script/info"
-	req := handle.ReqCustomScriptInfo{Account: "tzh2022070601.bit"}
+	req := handle.ReqCustomScriptInfo{Account: "tttesla.bit"}
 	var data handle.RespCustomScriptInfo
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -96,4 +100,58 @@ func TestPrice(t *testing.T) {
 	fmt.Println((60000 / 10770) * common.OneCkb)
 	//fmt.Println(20000*common.OneCkb/3720)
 	fmt.Println((26600000000 / 10000) * 2000)
+}
+
+func TestCustomScriptPrice(t *testing.T) {
+	dc, err := getNewDasCoreTestnet2()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := dc.Client().GetTransaction(context.Background(), types.HexToHash("0x3b117c4ffe4430cd1a295eff6e8e8bb602be0ee02d633a17f43ec15d93ceff21"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rate := uint64(0)
+	for _, v := range tx.Transaction.CellDeps {
+		cellDepsTx, err := dc.Client().GetTransaction(context.Background(), v.OutPoint.TxHash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refOutputsData := cellDepsTx.Transaction.OutputsData[v.OutPoint.Index]
+		refOutputs := cellDepsTx.Transaction.Outputs[v.OutPoint.Index]
+		if refOutputs.Type != nil && common.Bytes2Hex(refOutputs.Type.Args) == common.ArgsQuoteCell {
+			fmt.Println(cellDepsTx.Transaction.Hash.String())
+			rate = binary.BigEndian.Uint64(refOutputsData[2:])
+			fmt.Println(rate)
+			break
+		}
+	}
+
+	subAccBuilder, err := dc.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profi, _ := molecule.Bytes2GoU64(subAccBuilder.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+
+	_, conf, err := witness.ConvertCustomScriptConfigByTx(tx.Transaction)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(conf.Body)
+
+	subDetail := witness.ConvertSubAccountCellOutputData(tx.Transaction.OutputsData[0])
+	fmt.Println(subDetail.OwnerProfit)
+	subAccountMap, err := witness.SubAccountBuilderMapFromTx(tx.Transaction)
+	for _, v := range subAccountMap {
+		fmt.Println(v.Account)
+		price, _ := conf.GetPriceBySubAccount(v.Account)
+		fmt.Println(price)
+		registerYears := uint64(1)
+		priceCkb := (registerYears * price.New / rate) * common.OneCkb
+		dasCkb := (priceCkb / common.PercentRateBase) * uint64(profi)
+		ownerCkb := priceCkb - dasCkb
+		fmt.Println(v.Account, ownerCkb)
+	}
+
 }
