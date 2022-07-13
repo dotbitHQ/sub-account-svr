@@ -87,6 +87,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	}
 
 	// update smt,get root and proof
+	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountParamList []*witness.SubAccountParam
 	for i, v := range p.SmtRecordInfoList {
 		// update smt,get root and proof
@@ -126,6 +127,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 				subAccountParam.CurrentRoot = root
 			}
 		}
+		common.GetAccountCharType(accountCharTypeMap, newSubAccount.AccountCharSet)
 		subAccountParamList = append(subAccountParamList, subAccountParam)
 	}
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
@@ -194,10 +196,20 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
-		p.BaseInfo.ConfigCellDigit.ToCellDep(),
-		p.BaseInfo.ConfigCellEmoji.ToCellDep(),
-		p.BaseInfo.ConfigCellEn.ToCellDep(),
+		//p.BaseInfo.ConfigCellDigit.ToCellDep(),
+		//p.BaseInfo.ConfigCellEmoji.ToCellDep(),
+		//p.BaseInfo.ConfigCellEn.ToCellDep(),
 	)
+	for k, _ := range accountCharTypeMap {
+		switch k {
+		case common.AccountCharTypeEmoji:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEmoji.ToCellDep())
+		case common.AccountCharTypeNumber:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellDigit.ToCellDep())
+		case common.AccountCharTypeEn:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEn.ToCellDep())
+		}
+	}
 
 	// build tx
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(s.TxBuilderBase, nil)

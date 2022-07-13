@@ -35,9 +35,9 @@ func TestCustomScript(t *testing.T) {
 			//1: {5000000, 5000000},
 			//2: {4000000, 4000000},
 			//3: {3000000, 3000000},
-			//4: {2000000, 2000000},
-			5: {20000, 20000},
-			6: {1000000, 1000000},
+			4: {2000000, 2000000},
+			6: {20000, 20000},
+			5: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript
@@ -58,7 +58,7 @@ func TestCustomScript(t *testing.T) {
 
 func TestCustomScriptInfo(t *testing.T) {
 	url := ApiUrl + "/custom/script/info"
-	req := handle.ReqCustomScriptInfo{Account: "tttesla.bit"}
+	req := handle.ReqCustomScriptInfo{Account: "tzh2022070601.bit"}
 	var data handle.RespCustomScriptInfo
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -114,6 +114,7 @@ func TestCustomScriptPrice(t *testing.T) {
 
 	rate := uint64(0)
 	for _, v := range tx.Transaction.CellDeps {
+		fmt.Println(v.DepType, v.OutPoint.TxHash.String())
 		cellDepsTx, err := dc.Client().GetTransaction(context.Background(), v.OutPoint.TxHash)
 		if err != nil {
 			t.Fatal(err)
