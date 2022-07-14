@@ -136,7 +136,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 		}
 
 		priceCkb := (resPrice.ActionTotalPrice / p.Quote) * common.OneCkb
-		log.Info("priceCkb:", priceCkb)
+		log.Info("priceCkb:", priceCkb, p.Quote)
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
 		ownerCkb := priceCkb - dasCkb
 		if dasCkb < v.RegisterYears*common.OneCkb {
