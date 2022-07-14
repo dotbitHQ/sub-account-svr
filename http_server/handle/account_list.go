@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 
 type ReqAccountList struct {
 	Pagination
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 }
@@ -51,7 +52,7 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	resp.List = make([]AccountData, 0)
 
 	// check params
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil

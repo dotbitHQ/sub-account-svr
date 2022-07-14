@@ -95,7 +95,7 @@ func (h *HttpHandle) doSubAccountCheckParams(req *ReqSubAccountCreate, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("more than max register num %d", config.Cfg.Das.MaxCreateCount))
 		return nil
 	}
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
@@ -193,7 +193,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 					tmp.Message = fmt.Sprintf("invalid character")
 					isOk = false
 				} else {
-					addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net)
+					addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 					if e != nil {
 						tmp.Status = CheckStatusFail
 						tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())

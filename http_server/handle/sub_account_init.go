@@ -21,7 +21,7 @@ import (
 )
 
 type ReqSubAccountInit struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Account   string `json:"account"`
@@ -60,7 +60,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	resp.List = make([]SignInfo, 0)
 
 	// check params
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil

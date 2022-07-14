@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 )
 
 type ReqTransactionStatus struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Action    common.DasAction `json:"action"`
@@ -63,7 +64,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	var resp RespTransactionStatus
 
 	// check params
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil

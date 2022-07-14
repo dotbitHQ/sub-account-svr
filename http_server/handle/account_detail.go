@@ -25,15 +25,15 @@ type RespAccountDetail struct {
 }
 
 type AccountData struct {
-	Account              string                    `json:"account"`
-	Owner                api_code.ChainTypeAddress `json:"owner"`
-	Manager              api_code.ChainTypeAddress `json:"manager"`
-	RegisteredAt         int64                     `json:"registered_at"`
-	ExpiredAt            int64                     `json:"expired_at"`
-	Status               tables.AccountStatus      `json:"status"`
-	EnableSubAccount     tables.EnableSubAccount   `json:"enable_sub_account"`
-	RenewSubAccountPrice uint64                    `json:"renew_sub_account_price"`
-	Nonce                uint64                    `json:"nonce"`
+	Account              string                  `json:"account"`
+	Owner                core.ChainTypeAddress   `json:"owner"`
+	Manager              core.ChainTypeAddress   `json:"manager"`
+	RegisteredAt         int64                   `json:"registered_at"`
+	ExpiredAt            int64                   `json:"expired_at"`
+	Status               tables.AccountStatus    `json:"status"`
+	EnableSubAccount     tables.EnableSubAccount `json:"enable_sub_account"`
+	RenewSubAccountPrice uint64                  `json:"renew_sub_account_price"`
+	Nonce                uint64                  `json:"nonce"`
 }
 
 type RecordData struct {
@@ -120,7 +120,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 }
 
 func (h *HttpHandle) accountInfoToAccountData(acc tables.TableAccountInfo) AccountData {
-	var owner, manager api_code.ChainTypeAddress
+	var owner, manager core.ChainTypeAddress
 
 	ownerHex, _ := h.DasCore.Daf().HexToNormal(core.DasAddressHex{
 		DasAlgorithmId: acc.OwnerChainType.ToDasAlgorithmId(true),

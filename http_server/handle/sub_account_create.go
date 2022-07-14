@@ -22,7 +22,7 @@ import (
 )
 
 type ReqSubAccountCreate struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType      common.ChainType
 	address        string
 	Account        string             `json:"account"`
@@ -32,7 +32,7 @@ type ReqSubAccountCreate struct {
 type CreateSubAccount struct {
 	Account       string `json:"account"`
 	RegisterYears uint64 `json:"register_years"`
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 }
