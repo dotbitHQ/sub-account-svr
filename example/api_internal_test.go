@@ -1,9 +1,9 @@
 package example
 
 import (
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/http_server/handle"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/core"
 	"testing"
 )
 
@@ -14,9 +14,9 @@ const (
 func TestInternalSubAccountCreate(t *testing.T) {
 	url := ApiUrlInternal + "/internal/sub/account/create"
 	req := handle.ReqSubAccountCreate{
-		ChainTypeAddress: api_code.ChainTypeAddress{
+		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
-			KeyInfo: api_code.KeyInfo{
+			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
 				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -27,9 +27,9 @@ func TestInternalSubAccountCreate(t *testing.T) {
 			{
 				Account:       "100001.aaaazzxxx.bit",
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -39,9 +39,9 @@ func TestInternalSubAccountCreate(t *testing.T) {
 			{
 				Account:       "100002.aaaazzxxx.bit",
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -60,9 +60,9 @@ func TestInternalSubAccountCreate(t *testing.T) {
 func TestInternalSubAccountCreate2(t *testing.T) {
 	url := ApiUrlInternal + "/internal/sub/account/create"
 	req := handle.ReqSubAccountCreate{
-		ChainTypeAddress: api_code.ChainTypeAddress{
+		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
-			KeyInfo: api_code.KeyInfo{
+			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
 				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -73,9 +73,9 @@ func TestInternalSubAccountCreate2(t *testing.T) {
 			{
 				Account:       "100001.aaaazzxxx.bit",
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -85,9 +85,9 @@ func TestInternalSubAccountCreate2(t *testing.T) {
 			{
 				Account:       "100002.aaaazzxxx.bit",
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -102,9 +102,9 @@ func TestInternalSubAccountCreate2(t *testing.T) {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
 			Account:       fmt.Sprintf("3000%d.aaaazzxxx.bit", i),
 			RegisterYears: 1,
-			ChainTypeAddress: api_code.ChainTypeAddress{
+			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
-				KeyInfo: api_code.KeyInfo{
+				KeyInfo: core.KeyInfo{
 					CoinType: "60",
 					ChainId:  "5",
 					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -123,9 +123,9 @@ func TestTestInternalSubAccountCreate3(t *testing.T) {
 	doCreate := func(account string) {
 		url := ApiUrlInternal + "/internal/sub/account/create"
 		req := handle.ReqSubAccountCreate{
-			ChainTypeAddress: api_code.ChainTypeAddress{
+			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
-				KeyInfo: api_code.KeyInfo{
+				KeyInfo: core.KeyInfo{
 					CoinType: "60",
 					ChainId:  "5",
 					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -139,9 +139,9 @@ func TestTestInternalSubAccountCreate3(t *testing.T) {
 			req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
 				Account:       fmt.Sprintf("4001%d.%s", i, account),
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
@@ -162,9 +162,9 @@ func TestTestInternalSubAccountCreate3(t *testing.T) {
 func TestInternalSubAccountMint(t *testing.T) {
 	url := ApiUrlInternal + "/internal/sub/account/mint"
 	req := handle.ReqSubAccountCreate{
-		ChainTypeAddress: api_code.ChainTypeAddress{
+		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
-			KeyInfo: api_code.KeyInfo{
+			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
@@ -175,9 +175,9 @@ func TestInternalSubAccountMint(t *testing.T) {
 			{
 				Account:       "tzh10.tzh2022070601.bit",
 				RegisterYears: 1,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
@@ -187,9 +187,9 @@ func TestInternalSubAccountMint(t *testing.T) {
 			{
 				Account:       "tzh11.tzh2022070601.bit",
 				RegisterYears: 2,
-				ChainTypeAddress: api_code.ChainTypeAddress{
+				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
-					KeyInfo: api_code.KeyInfo{
+					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",

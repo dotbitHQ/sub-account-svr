@@ -29,14 +29,14 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "tzh2022070601.bit",
+		Account:          "tzh20220714.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
 			//1: {5000000, 5000000},
 			//2: {4000000, 4000000},
 			//3: {3000000, 3000000},
-			4: {2000000, 2000000},
-			6: {20000, 20000},
+			//4: {2000000, 2000000},
+			//6: {20000, 20000},
 			5: {1000000, 1000000},
 		},
 	}

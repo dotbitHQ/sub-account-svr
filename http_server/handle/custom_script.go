@@ -174,6 +174,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		SignList: signList,
 	})
 
+	log.Info("doCustomScript:", toolib.JsonString(resp))
 	apiResp.ApiRespOK(resp)
 	return nil
 }
