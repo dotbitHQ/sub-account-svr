@@ -68,26 +68,30 @@ func (h *HttpHandle) doCustomScriptPrice(req *ReqCustomScriptPrice, apiResp *api
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 			return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
-		}
-		outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
+		} else if customScriptInfo.Id > 0 {
+			outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-		log.Info("doCustomScriptPrice:", customScriptInfo.Outpoint)
-		resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("GetTransaction err: %s", err.Error())
-		}
+			log.Info("doCustomScriptPrice:", customScriptInfo.Outpoint)
+			resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+				return fmt.Errorf("GetTransaction err: %s", err.Error())
+			}
 
-		_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
-		}
-		if accLen > customScriptConfig.MaxLength {
-			accLen = customScriptConfig.MaxLength
-		}
-		if item, ok := customScriptConfig.Body[accLen]; ok {
-			resp.CustomScriptPrice = item
+			_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+				return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+			}
+			if accLen > customScriptConfig.MaxLength {
+				accLen = customScriptConfig.MaxLength
+			}
+			if item, ok := customScriptConfig.Body[accLen]; ok {
+				resp.CustomScriptPrice = item
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeNotExistCustomScriptConfigPrice, "not exist price")
+				return nil
+			}
 		} else {
 			apiResp.ApiRespErr(api_code.ApiCodeNotExistCustomScriptConfigPrice, "not exist price")
 			return nil

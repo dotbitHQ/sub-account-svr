@@ -62,22 +62,23 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 			return fmt.Errorf("GetCustomScriptInfo err: %s", err.Error())
-		}
-		outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
+		} else if customScriptInfo.Id > 0 {
+			outpoint := common.String2OutPointStruct(customScriptInfo.Outpoint)
 
-		log.Info("doCustomScriptInfo:", customScriptInfo.Outpoint)
-		resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("GetTransaction err: %s", err.Error())
-		}
+			log.Info("doCustomScriptInfo:", customScriptInfo.Outpoint)
+			resTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+				return fmt.Errorf("GetTransaction err: %s", err.Error())
+			}
 
-		_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+			_, customScriptConfig, err := witness.ConvertCustomScriptConfigByTx(resTx.Transaction)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+				return fmt.Errorf("ConvertCustomScriptConfigByTx err: %s", err.Error())
+			}
+			resp.CustomScriptConfig = customScriptConfig.Body
 		}
-		resp.CustomScriptConfig = customScriptConfig.Body
 	}
 	apiResp.ApiRespOK(resp)
 	return nil
