@@ -33,6 +33,7 @@ const (
 	AccountStatusNormal    AccountStatus = 0
 	AccountStatusOnSale    AccountStatus = 1
 	AccountStatusOnAuction AccountStatus = 2
+	AccountStatusOnCross   AccountStatus = 3
 	TableNameAccountInfo                 = "t_account_info"
 )
 
@@ -59,10 +60,11 @@ func (t *TableAccountInfo) IsExpired() bool {
 type Category int
 
 const (
-	CategoryDefault      Category = 0
-	CategoryMainAccount  Category = 1
-	CategorySubAccount   Category = 2
-	CategoryOnSale       Category = 3
-	CategoryExpireSoon   Category = 4
-	CategoryToBeRecycled Category = 5
+	CategoryDefault          Category = 0
+	CategoryMainAccount      Category = 1
+	CategorySubAccount       Category = 2
+	CategoryOnSale           Category = 3
+	CategoryExpireSoon       Category = 4
+	CategoryToBeRecycled     Category = 5
+	CategoryEnableSubAccount Category = 6
 )

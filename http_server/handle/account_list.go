@@ -3,6 +3,7 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -16,6 +17,7 @@ type ReqAccountList struct {
 	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
+	Category  tables.Category `json:"category"`
 }
 
 type RespAccountList struct {
@@ -60,7 +62,7 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
 	// account list
-	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset())
+	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset(), req.Category)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
 		return fmt.Errorf("GetAccountList err: %s", err.Error())
@@ -71,7 +73,7 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 
 	// total
-	count, err := h.DbDao.GetAccountListTotal(req.chainType, req.address)
+	count, err := h.DbDao.GetAccountListTotal(req.chainType, req.address, req.Category)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account total")
 		return fmt.Errorf("GetAccountListTotal err: %s", err.Error())

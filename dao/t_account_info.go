@@ -90,16 +90,75 @@ func (d *DbDao) GetSubAccountListTotalByParentAccountId(parentAccountId string, 
 	//return
 }
 
-func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int) (list []tables.TableAccountInfo, err error) {
-	err = d.parserDb.Where(" owner_chain_type=? AND owner=? ", chainType, address).
-		Or(" manager_chain_type=? AND manager=? ", chainType, address).
-		Order("account").Limit(limit).Offset(offset).Find(&list).Error
+func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int, category tables.Category) (list []tables.TableAccountInfo, err error) {
+	//err = d.parserDb.Where(" owner_chain_type=? AND owner=? ", chainType, address).
+	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).
+	//	Order("account").Limit(limit).Offset(offset).Find(&list).Error
+	//return
+
+	db := d.parserDb.Where("((owner_chain_type=? AND owner=?)OR(manager_chain_type=? AND manager=?))", chainType, address, chainType, address)
+	db = db.Where("status!=?", tables.AccountStatusOnCross)
+
+	switch category {
+	//case tables.CategoryDefault:
+	case tables.CategoryMainAccount:
+		db = db.Where("parent_account_id=''")
+	case tables.CategorySubAccount:
+		db = db.Where("parent_account_id!=''")
+	//case tables.CategoryOnSale:
+	//	db = db.Where("status=?", tables.AccountStatusOnSale)
+	//case tables.CategoryExpireSoon:
+	//	expiredAt := time.Now().Unix()
+	//	expiredAt30Days := time.Now().Add(time.Hour * 24 * 30).Unix()
+	//	db = db.Where("expired_at>=? AND expired_at<=?", expiredAt, expiredAt30Days)
+	//case tables.CategoryToBeRecycled:
+	//	expiredAt := time.Now().Unix()
+	//	recycledAt := time.Now().Add(-time.Hour * 24 * 90).Unix()
+	//	if config.Cfg.Server.Net != common.DasNetTypeMainNet {
+	//		recycledAt = time.Now().Add(-time.Hour * 24 * 3).Unix()
+	//	}
+	//	db = db.Where("expired_at<=? AND expired_at>=?", expiredAt, recycledAt)
+	case tables.CategoryEnableSubAccount:
+		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
+	}
+
+	err = db.Order("account").Limit(limit).Offset(offset).Find(&list).Error
+
 	return
 }
 
-func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string) (count int64, err error) {
-	err = d.parserDb.Model(tables.TableAccountInfo{}).Where(" owner_chain_type=? AND owner=? ", chainType, address).
-		Or(" manager_chain_type=? AND manager=? ", chainType, address).Count(&count).Error
+func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, category tables.Category) (count int64, err error) {
+	//err = d.parserDb.Model(tables.TableAccountInfo{}).Where(" owner_chain_type=? AND owner=? ", chainType, address).
+	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).Count(&count).Error
+	//return
+	db := d.parserDb.Model(tables.TableAccountInfo{}).Where("((owner_chain_type=? AND owner=?)OR(manager_chain_type=? AND manager=?))", chainType, address, chainType, address)
+	db = db.Where("status!=?", tables.AccountStatusOnCross)
+
+	switch category {
+	//case tables.CategoryDefault:
+	case tables.CategoryMainAccount:
+		db = db.Where("parent_account_id=''")
+	case tables.CategorySubAccount:
+		db = db.Where("parent_account_id!=''")
+	//case tables.CategoryOnSale:
+	//	db = db.Where("status=?", tables.AccountStatusOnSale)
+	//case tables.CategoryExpireSoon:
+	//	expiredAt := time.Now().Unix()
+	//	expiredAt30Days := time.Now().Add(time.Hour * 24 * 30).Unix()
+	//	db = db.Where("expired_at>=? AND expired_at<=?", expiredAt, expiredAt30Days)
+	//case tables.CategoryToBeRecycled:
+	//	expiredAt := time.Now().Unix()
+	//	recycledAt := time.Now().Add(-time.Hour * 24 * 90).Unix()
+	//	if config.Cfg.Server.Net != common.DasNetTypeMainNet {
+	//		recycledAt = time.Now().Add(-time.Hour * 24 * 3).Unix()
+	//	}
+	//	db = db.Where("expired_at<=? AND expired_at>=?", expiredAt, recycledAt)
+	case tables.CategoryEnableSubAccount:
+		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
+	}
+
+	err = db.Count(&count).Error
+
 	return
 }
 
