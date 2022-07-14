@@ -293,7 +293,7 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		}
 		priceCkb := (resPrice.ActionTotalPrice / quote) * common.OneCkb
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(newRate)
-		if dasCkb < common.OneCkb {
+		if dasCkb < v.RegisterYears*common.OneCkb {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
 			return nil
 		}
