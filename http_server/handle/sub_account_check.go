@@ -265,6 +265,7 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
 	}
+	newSubAccountPrice, _ := molecule.Bytes2GoU64(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -293,7 +294,7 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		}
 		priceCkb := (resPrice.ActionTotalPrice / quote) * common.OneCkb
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(newRate)
-		if dasCkb < v.RegisterYears*common.OneCkb {
+		if dasCkb < v.RegisterYears*newSubAccountPrice {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
 			return nil
 		}

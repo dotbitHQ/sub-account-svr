@@ -58,6 +58,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 		MintList:                              p.SmtRecordInfoList,
 		Quote:                                 p.BaseInfo.QuoteCell.Quote(),
 		NewSubAccountCustomPriceDasProfitRate: newRate,
+		MinPriceCkb:                           p.NewSubAccountPrice,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("GetCustomScriptMintTotalCapacity err: %s", err.Error())

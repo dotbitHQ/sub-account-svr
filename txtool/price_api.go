@@ -139,7 +139,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 		log.Info("priceCkb:", priceCkb, p.Quote)
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(p.NewSubAccountCustomPriceDasProfitRate)
 		ownerCkb := priceCkb - dasCkb
-		if dasCkb < v.RegisterYears*common.OneCkb {
+		if dasCkb < v.RegisterYears*p.MinPriceCkb {
 			return nil, fmt.Errorf("price is invalid: %s[%d<%d]", v.Account, dasCkb, common.OneCkb)
 		}
 
@@ -157,6 +157,7 @@ type ParamCustomScriptMintTotalCapacity struct {
 	MintList                              []tables.TableSmtRecordInfo
 	Quote                                 uint64
 	NewSubAccountCustomPriceDasProfitRate uint32
+	MinPriceCkb                           uint64
 }
 type ResCustomScriptMintTotalCapacity struct {
 	DasCapacity   uint64
