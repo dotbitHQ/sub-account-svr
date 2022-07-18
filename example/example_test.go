@@ -9,6 +9,8 @@ import (
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/scorpiotzh/toolib"
+	"io"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -175,6 +177,48 @@ func TestAccountLen(t *testing.T) {
 	for _, v := range strList {
 		fmt.Println(v)
 	}
+}
+
+func TestAccountLen2(t *testing.T) {
+	db, err := toolib.NewGormDB("", "", "", "das_database", 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list []tables.TableAccountInfo
+	err = db.Where("parent_account_id=''").Order("registered_at").Find(&list).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	txtPath := "./register.csv"
+	for _, v := range list {
+		timeAt := (v.ExpiredAt - v.RegisteredAt) / uint64(common.OneYearSec)
+		length := common.GetAccountLength(v.Account)
+		lengthStr := "4位"
+		if length > 4 {
+			lengthStr = "5位及以上"
+		}
+		tm := time.Unix(int64(v.RegisteredAt), 0)
+		registeredAt := tm.Format("2006-01-02")
+		msg := fmt.Sprintf("%d,%s,%s,%s,%d,\n", v.Id, v.Account, lengthStr, registeredAt, timeAt)
+		if err := writeToFile(txtPath, msg); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func writeToFile(fileName, msg string) error {
+	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return fmt.Errorf("os.OpenFile err: %s", err.Error())
+	} else {
+		defer f.Close()
+		n, _ := f.Seek(0, io.SeekEnd)
+		_, err = f.WriteAt([]byte(msg), n)
+		if err != nil {
+			return fmt.Errorf("f.WriteAt err: %s", err.Error())
+		}
+	}
+	return nil
 }
 
 func TestAccountIndex(t *testing.T) {
