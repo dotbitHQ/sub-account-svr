@@ -31,12 +31,15 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/sub/account/mint/status", api_code.DoMonitorLog("mint_status"), cacheHandleShort, h.H.SubAccountMintStatus)
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
-		v1.POST("/sub/account/custom/script", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)
 		if config.Cfg.Server.RunMode == "normal" {
 			v1.POST("/sub/account/create", api_code.DoMonitorLog("account_create"), h.H.SubAccountCreate) // create_sub_account
 			v1.POST("/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEdit)       // edit_sub_account
 		}
+		v1.POST("/owner/profit", api_code.DoMonitorLog("owner_profit"), h.H.OwnerProfit)
+		v1.POST("/custom/script/set", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)
+		v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
+		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSend) //
 
 		// recycle_expired_account_by_keeper, del smt info
@@ -49,7 +52,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/check", h.H.SmtCheck)
 		internalV1.POST("/internal/smt/update", h.H.SmtUpdate)
 
-		internalV1.POST("/internal/sub/account/create", h.H.InternalSubAccountCreate)
+		//internalV1.POST("/internal/sub/account/create", h.H.InternalSubAccountCreate)
 		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMint)
 	}
 }

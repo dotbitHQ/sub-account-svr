@@ -22,7 +22,7 @@ import (
 )
 
 type ReqSubAccountCreate struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType      common.ChainType
 	address        string
 	Account        string             `json:"account"`
@@ -32,7 +32,7 @@ type ReqSubAccountCreate struct {
 type CreateSubAccount struct {
 	Account       string `json:"account"`
 	RegisterYears uint64 `json:"register_years"`
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 }
@@ -94,6 +94,23 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeCreateListCheckFail, "create list check failed")
 		return nil
 	}
+
+	// check custom-script
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+	}
+	subDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	if subDetail.HasCustomScriptArgs() {
+		apiResp.ApiRespErr(api_code.ApiCodeCustomScriptSet, "custom-script set")
+		return nil
+	}
+	//if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
+	//	return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
+	//} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	//	return nil
+	//}
 
 	// das lock
 	var balanceDasLock, balanceDasType *types.Script

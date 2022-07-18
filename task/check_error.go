@@ -1,7 +1,9 @@
 package task
 
 import (
+	"das_sub_account/config"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"time"
 )
 
@@ -14,6 +16,9 @@ func (t *SmtTask) doCheckError() error {
 	for _, v := range list {
 		// timestamp > 3min
 		timestamp := time.Now().Add(-time.Minute*3).UnixNano() / 1e6
+		if config.Cfg.Server.Net != common.DasNetTypeMainNet {
+			timestamp = time.Now().Add(-time.Minute).UnixNano() / 1e6
+		}
 		if v.Timestamp < timestamp {
 			needRollbackIds = append(needRollbackIds, v.Id)
 		}

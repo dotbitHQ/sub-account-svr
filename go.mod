@@ -3,7 +3,7 @@ module das_sub_account
 go 1.15
 
 require (
-	github.com/dotbitHQ/das-lib v0.0.0-20220704040219-0126894ad8d0
+	github.com/dotbitHQ/das-lib v0.0.0-20220718022750-cfcd2c5b88b7
 	github.com/elazarl/goproxy v0.0.0-20220115173737-adb46da277ac // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.7.2
@@ -12,6 +12,7 @@ require (
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.3
+	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.mongodb.org/mongo-driver v1.9.1
 	gorm.io/gorm v1.22.1

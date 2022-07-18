@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 type ReqSubAccountList struct {
 	Pagination
 	Account string `json:"account"`
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Keyword   string          `json:"keyword"`
@@ -56,7 +57,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 
 	// check params
 	if req.ChainTypeAddress.KeyInfo.Key != "" {
-		addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return nil

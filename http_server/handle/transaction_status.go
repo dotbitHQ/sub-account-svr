@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 )
 
 type ReqTransactionStatus struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Action    common.DasAction `json:"action"`
@@ -63,7 +64,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	var resp RespTransactionStatus
 
 	// check params
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
@@ -93,7 +94,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query task")
 			return fmt.Errorf("GetTaskInfoByParentAccountIdWithAction: %s", err.Error())
 		} else if task.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
 			return nil
 		} else {
 			switch task.TxStatus {
@@ -102,7 +103,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			case tables.TxStatusPending:
 				resp.Status = TxStatusPending
 			default:
-				apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+				apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
 				return nil
 			}
 		}
@@ -112,7 +113,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
 			return fmt.Errorf("GetLatestSmtRecordByAccountIdAction: %s", err.Error())
 		} else if record.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
 			return nil
 		} else if record.TaskId == "" {
 			resp.Status = TxStatusUnSend
@@ -128,13 +129,13 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				case tables.TxStatusPending:
 					resp.Status = TxStatusPending
 				default:
-					apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+					apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
 					return nil
 				}
 			}
 		}
 	default:
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exits action[%s]", req.Action))
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist action[%s]", req.Action))
 		return nil
 	}
 

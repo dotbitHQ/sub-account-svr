@@ -25,23 +25,25 @@ const (
 	ApiCodeSameLock                     ApiCode = 30023
 	ApiCodeAccountStatusOnSaleOrAuction ApiCode = 30031
 
-	ApiCodeEnableSubAccountIsOn        ApiCode = 40000
-	ApiCodeNotExistEditKey             ApiCode = 40001
-	ApiCodeNotExistConfirmAction       ApiCode = 40002
-	ApiCodeSignError                   ApiCode = 40003
-	ApiCodeNotExistSignType            ApiCode = 40004
-	ApiCodeNotSubAccount               ApiCode = 40005
-	ApiCodeEnableSubAccountIsOff       ApiCode = 40006
-	ApiCodeCreateListCheckFail         ApiCode = 40007
-	ApiCodeTaskInProgress              ApiCode = 40008
-	ApiCodeDistributedLockPreemption   ApiCode = 40009
-	ApiCodeRecordDoing                 ApiCode = 40010
-	ApiCodeUnableInit                  ApiCode = 40011
-	ApiCodeNotHaveManagementPermission ApiCode = 40012
-	ApiCodeSmtDiff                     ApiCode = 40013
-	ApiCodeSuspendOperation            ApiCode = 40014
-	ApiCodeTaskNotExist                ApiCode = 40015
-	ApiCodeSameCustomScript            ApiCode = 40016
+	ApiCodeEnableSubAccountIsOn            ApiCode = 40000
+	ApiCodeNotExistEditKey                 ApiCode = 40001
+	ApiCodeNotExistConfirmAction           ApiCode = 40002
+	ApiCodeSignError                       ApiCode = 40003
+	ApiCodeNotExistSignType                ApiCode = 40004
+	ApiCodeNotSubAccount                   ApiCode = 40005
+	ApiCodeEnableSubAccountIsOff           ApiCode = 40006
+	ApiCodeCreateListCheckFail             ApiCode = 40007
+	ApiCodeTaskInProgress                  ApiCode = 40008
+	ApiCodeDistributedLockPreemption       ApiCode = 40009
+	ApiCodeRecordDoing                     ApiCode = 40010
+	ApiCodeUnableInit                      ApiCode = 40011
+	ApiCodeNotHaveManagementPermission     ApiCode = 40012
+	ApiCodeSmtDiff                         ApiCode = 40013
+	ApiCodeSuspendOperation                ApiCode = 40014
+	ApiCodeTaskNotExist                    ApiCode = 40015
+	ApiCodeSameCustomScript                ApiCode = 40016
+	ApiCodeNotExistCustomScriptConfigPrice ApiCode = 40017
+	ApiCodeCustomScriptSet                 ApiCode = 40018
 )
 
 const (

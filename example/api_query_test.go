@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/handle"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/parnurzeal/gorequest"
 	"github.com/scorpiotzh/toolib"
 	"testing"
@@ -65,9 +66,9 @@ func TestAccountList(t *testing.T) {
 	url := ApiUrl + "/account/list"
 	req := handle.ReqAccountList{
 		Pagination: handle.Pagination{Page: 1, Size: 5},
-		ChainTypeAddress: api_code.ChainTypeAddress{
+		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
-			KeyInfo: api_code.KeyInfo{
+			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
@@ -86,7 +87,7 @@ func TestAccountList(t *testing.T) {
 func TestAccountDetail(t *testing.T) {
 	url := ApiUrl + "/account/detail"
 	req := handle.ReqAccountDetail{
-		Account: "0001.bit",
+		Account: "tzh2022070601.bit",
 	}
 
 	var data handle.RespAccountDetail
@@ -115,16 +116,16 @@ func TestSubAccountList(t *testing.T) {
 func TestTransactionStatus(t *testing.T) {
 	url := ApiUrl + "/transaction/status"
 	req := handle.ReqTransactionStatus{
-		ChainTypeAddress: api_code.ChainTypeAddress{
+		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
-			KeyInfo: api_code.KeyInfo{
-				CoinType: api_code.CoinTypeEth,
+			KeyInfo: core.KeyInfo{
+				CoinType: common.CoinTypeEth,
 				ChainId:  "",
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Action:  common.DasActionEnableSubAccount,
-		Account: "aaatzh0630.bit",
+		Action:  common.DasActionConfigSubAccountCustomScript,
+		Account: "tzh2022070601.bit",
 	}
 
 	var data handle.RespTransactionStatus

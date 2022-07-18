@@ -26,7 +26,7 @@ import (
 )
 
 type ReqSubAccountEdit struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Account   string   `json:"account"`
@@ -35,9 +35,9 @@ type ReqSubAccountEdit struct {
 }
 
 type EditInfo struct {
-	Owner   api_code.ChainTypeAddress `json:"owner"`
-	Manager api_code.ChainTypeAddress `json:"manager"`
-	Records []EditRecord              `json:"records"`
+	Owner   core.ChainTypeAddress `json:"owner"`
+	Manager core.ChainTypeAddress `json:"manager"`
+	Records []EditRecord          `json:"records"`
 	//
 	OwnerChainType   common.ChainType `json:"owner_chain_type"`
 	OwnerAddress     string           `json:"owner_address"`
@@ -171,7 +171,7 @@ func (h *HttpHandle) doSubAccountEdit(req *ReqSubAccountEdit, apiResp *api_code.
 
 func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_code.ApiResp) {
 	// check params
-	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return
@@ -181,14 +181,14 @@ func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 	// check edit value
 	switch r.EditKey {
 	case common.EditKeyOwner:
-		addrHex, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
 		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = addrHex.ChainType, addrHex.AddressHex
 	case common.EditKeyManager:
-		addrHex, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net)
+		addrHex, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
@@ -328,7 +328,7 @@ func (e *EditSubAccountCache) CheckEditValue(db *dao.DbDao, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return "", nil, nil
 	} else if subAcc.Status != tables.AccountStatusNormal {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account on sale or auction")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return "", nil, nil
 	} else if subAcc.IsExpired() {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")

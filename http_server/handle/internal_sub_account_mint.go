@@ -1,12 +1,14 @@
 package handle
 
 import (
+	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -71,10 +73,27 @@ func (h *HttpHandle) doInternalSubAccountMint(req *ReqSubAccountCreate, apiResp 
 		return nil
 	}
 
-	// create
-	if acc.ManagerChainType != config.Cfg.Server.ManagerChainType || !strings.EqualFold(acc.Manager, config.Cfg.Server.ManagerAddress) {
-		apiResp.ApiRespErr(api_code.ApiCodeNotHaveManagementPermission, "not have management permission")
+	// check account price
+	if err := h.doSubAccountCheckCustomScript(acc.AccountId, req, apiResp); err != nil {
+		return fmt.Errorf("doSubAccountCheckCustomScript err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
+	}
+
+	// check sub-account custom script
+	defaultCustomScriptArgs := make([]byte, 33)
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return nil
+	}
+	subDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	if len(subDetail.CustomScriptArgs) == 0 || bytes.Compare(subDetail.CustomScriptArgs, defaultCustomScriptArgs) == 0 {
+		// create
+		if acc.ManagerChainType != config.Cfg.Server.ManagerChainType || !strings.EqualFold(acc.Manager, config.Cfg.Server.ManagerAddress) {
+			apiResp.ApiRespErr(api_code.ApiCodeNotHaveManagementPermission, "not have management permission")
+			return nil
+		}
 	}
 
 	// do distribution

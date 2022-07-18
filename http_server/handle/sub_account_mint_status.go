@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"fmt"
@@ -83,6 +84,9 @@ func (h *HttpHandle) doSubAccountMintStatus(req *ReqSubAccountMintStatus, apiRes
 		resp.Status = TaskStatusOk
 	case tables.TxStatusRejected:
 		resp.Status = TaskStatusFail
+		if task.TaskType == tables.TaskTypeDelegate && task.Retry < config.Cfg.Das.MaxRetry {
+			resp.Status = TaskStatusPending
+		}
 	}
 
 	switch task.SmtStatus {

@@ -47,6 +47,7 @@ type TableTaskInfo struct {
 	SmtStatus       SmtStatus `json:"smt_status" gorm:"column:smt_status;index:k_smt_tx;type:smallint(6) NOT NULL DEFAULT '0' COMMENT 'smt status'"`
 	TxStatus        TxStatus  `json:"tx_status" gorm:"column:tx_status;index:k_smt_tx;type:smallint(6) NOT NULL DEFAULT '0' COMMENT 'tx status'"`
 	Retry           int       `json:"retry" gorm:"column:retry;type:smallint(6) NOT NULL DEFAULT '0' COMMENT ''"`
+	CustomScripHash string    `json:"custom_scrip_hash" gorm:"column:custom_scrip_hash; type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	CreatedAt       time.Time `json:"created_at" gorm:"column:created_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT ''"`
 	UpdatedAt       time.Time `json:"updated_at" gorm:"column:updated_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''"`
 }

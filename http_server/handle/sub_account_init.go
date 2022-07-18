@@ -21,7 +21,7 @@ import (
 )
 
 type ReqSubAccountInit struct {
-	api_code.ChainTypeAddress
+	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
 	Account   string `json:"account"`
@@ -60,7 +60,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	resp.List = make([]SignInfo, 0)
 
 	// check params
-	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net)
+	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 		return nil
@@ -124,7 +124,13 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
-	liveCells, total, err := core.GetSatisfiedCapacityLiveCellWithOrder(h.DasCore.Client(), h.DasCache, dasLock, dasType, capacityNeed, capacityForChange, indexer.SearchOrderAsc)
+	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        dasLock,
+		CapacityNeed:      capacityNeed,
+		CapacityForChange: capacityForChange,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
 	if err != nil {
 		return doDasBalanceError(err, apiResp)
 	}

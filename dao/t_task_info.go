@@ -68,6 +68,33 @@ func (d *DbDao) UpdateSmtRecordToRollbackComplete(taskId string, list []tables.T
 	})
 }
 
+func (d *DbDao) UpdateTaskCompleteWithDiffCustomScriptHash(taskId string, list []tables.TableSmtRecordInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.TableTaskInfo{}).
+			Where("task_id=? AND smt_status=?", taskId, tables.SmtStatusNeedToWrite).
+			Updates(map[string]interface{}{
+				"smt_status": tables.SmtStatusRollbackComplete,
+			}).Error; err != nil {
+			return err
+		}
+		for i, _ := range list {
+			if err := tx.Where("account_id=? AND nonce=? AND record_type=? AND task_id!=?",
+				list[i].AccountId, list[i].Nonce, tables.RecordTypeClosed, taskId).
+				Delete(&tables.TableSmtRecordInfo{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Model(tables.TableSmtRecordInfo{}).
+			Where("task_id=?", taskId).
+			Updates(map[string]interface{}{
+				"record_type": tables.RecordTypeClosed,
+			}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (d *DbDao) UpdateSmtRecordToNeedToWrite(taskId string, retry int) error {
 	return d.db.Model(tables.TableTaskInfo{}).
 		Where("task_id=? AND smt_status=?", taskId, tables.SmtStatusNeedToRollback).

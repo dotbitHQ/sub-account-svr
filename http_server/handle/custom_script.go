@@ -21,8 +21,9 @@ import (
 
 type ReqCustomScript struct {
 	core.ChainTypeAddress
-	Account          string `json:"account"`
-	CustomScriptArgs string `json:"custom_script_args"`
+	Account            string                              `json:"account"`
+	CustomScriptArgs   string                              `json:"custom_script_args"`
+	CustomScriptConfig map[uint8]witness.CustomScriptPrice `json:"custom_script_config"`
 }
 
 type RespCustomScript struct {
@@ -83,7 +84,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
 	} else if acc.Status != tables.AccountStatusNormal {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account on sale or auction")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return nil
 	} else if acc.IsExpired() {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account is expired")
@@ -95,6 +96,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub-account not enabled")
 		return nil
 	}
+
 	// build tx
 	customScriptArgs := make([]byte, 33)
 	if req.CustomScriptArgs != "" {
@@ -110,15 +112,33 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
-	subAccountLiveCell, err := h.getSubAccountCell(contractSubAcc, acc.AccountId)
+	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("getSubAccountCell err: %s", err.Error())
 	}
 	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
-	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+	_, hashConfig := witness.BuildCustomScriptConfig(witness.CustomScriptConfig{
+		Header:    witness.Script001,
+		Version:   0,
+		Body:      req.CustomScriptConfig,
+		MaxLength: 0,
+	})
+	if bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 && bytes.Compare(subDataDetail.CustomScriptConfig, hashConfig) == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeSameCustomScript, "same custom script")
 		return nil
+	}
+	// check custom script
+	var defaultCustomScriptArgs = make([]byte, 33)
+	if bytes.Compare(customScriptArgs, defaultCustomScriptArgs) != 0 {
+		subDataDetail.CustomScriptArgs = customScriptArgs
+		subDataDetail.CustomScriptConfig = hashConfig
+		subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
+		_, err = h.DasCore.GetCustomScriptLiveCell(subAccountOutputData)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "custom-script-args invalid")
+			return fmt.Errorf("GetCustomScriptLiveCell err: %s", err.Error())
+		}
 	}
 
 	p := paramCustomScriptTx{
@@ -126,6 +146,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		customScriptArgs:   customScriptArgs,
 		subAccountLiveCell: subAccountLiveCell,
 		contractSubAcc:     contractSubAcc,
+		customScriptConfig: req.CustomScriptConfig,
 	}
 	txParams, err := h.buildCustomScriptTx(&p)
 	if err != nil {
@@ -153,6 +174,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		SignList: signList,
 	})
 
+	log.Info("doCustomScript:", toolib.JsonString(resp))
 	apiResp.ApiRespOK(resp)
 	return nil
 }
@@ -209,6 +231,7 @@ type paramCustomScriptTx struct {
 	customScriptArgs   []byte
 	subAccountLiveCell *indexer.LiveCell
 	contractSubAcc     *core.DasContractInfo
+	customScriptConfig map[uint8]witness.CustomScriptPrice
 }
 
 func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.BuildTransactionParams, error) {
@@ -236,6 +259,15 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	})
 	txParams.OutputsData = append(txParams.OutputsData, txAcc.Transaction.OutputsData[accOutPoint.Index])
 
+	// custom script witness
+	witConfig, hashConfig := witness.BuildCustomScriptConfig(witness.CustomScriptConfig{
+		Header:    witness.Script001,
+		Version:   0,
+		Body:      p.customScriptConfig,
+		MaxLength: 0,
+	})
+	txParams.OtherWitnesses = append(txParams.OtherWitnesses, witConfig)
+
 	// outputs sub-sccount cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: p.subAccountLiveCell.Output.Capacity,
@@ -244,6 +276,7 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	})
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	subDataDetail.CustomScriptArgs = p.customScriptArgs
+	subDataDetail.CustomScriptConfig = hashConfig
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
 
@@ -306,21 +339,4 @@ func (h *HttpHandle) buildCustomScriptTx(p *paramCustomScriptTx) (*txbuilder.Bui
 	)
 
 	return &txParams, nil
-}
-
-func (h *HttpHandle) getSubAccountCell(contractSubAcc *core.DasContractInfo, parentAccountId string) (*indexer.LiveCell, error) {
-	searchKey := indexer.SearchKey{
-		Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
-		ScriptType: indexer.ScriptTypeType,
-		ArgsLen:    0,
-		Filter:     nil,
-	}
-	subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
-	if err != nil {
-		return nil, fmt.Errorf("GetCells err: %s", err.Error())
-	}
-	if subLen := len(subAccLiveCells.Objects); subLen != 1 {
-		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
-	}
-	return subAccLiveCells.Objects[0], nil
 }

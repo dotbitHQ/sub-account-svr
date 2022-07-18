@@ -122,7 +122,7 @@ func TestFromDid(t *testing.T) {
 }
 
 func TestAccountLen(t *testing.T) {
-	db, err := toolib.NewGormDB("", "", "", "das_parser", 100, 200)
+	db, err := toolib.NewGormDB("", "", "", "das_database", 100, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
