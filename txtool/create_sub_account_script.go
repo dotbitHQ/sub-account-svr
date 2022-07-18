@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
@@ -39,15 +40,15 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 	txParams.OtherWitnesses = append(txParams.OtherWitnesses, customScriptConfigWit)
 
 	// get price
-	//builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
-	//if err != nil {
-	//	return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
-	//}
-	//newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
-	//if err != nil {
-	//	return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
-	//}
-	newRate := uint32(2000)
+	builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+	}
+	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+	if err != nil {
+		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
+	}
+	//newRate := uint32(2000)
 	resPrice, err := GetCustomScriptMintTotalCapacity(&ParamCustomScriptMintTotalCapacity{
 		Action: common.DasActionCreateSubAccount,
 		//PriceApi:                              &PriceApiDefault{},
