@@ -98,8 +98,9 @@ func TestOwnerProfit(t *testing.T) {
 func TestPrice(t *testing.T) {
 	// 0.02 $
 	fmt.Println((60000 / 10770) * common.OneCkb)
-	//fmt.Println(20000*common.OneCkb/3720)
+	fmt.Println(100000 * common.OneCkb / 3720)
 	fmt.Println((26600000000 / 10000) * 2000)
+	fmt.Println(common.OneCkb)
 }
 
 func TestCustomScriptPrice(t *testing.T) {

@@ -103,10 +103,10 @@ func TestSubAccountCreate(t *testing.T) {
 			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
-				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account: "1234567883.bit",
+		Account: "tzh20220718.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
 				Account:       "00011.0001.bit",
@@ -136,16 +136,16 @@ func TestSubAccountCreate(t *testing.T) {
 	}
 
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 98; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("0002%d.1234567883.bit", i),
+			Account:       fmt.Sprintf("test01-%d.tzh20220718.bit", i),
 			RegisterYears: 1,
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
 				KeyInfo: core.KeyInfo{
 					CoinType: "60",
 					ChainId:  "5",
-					Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 				},
 			},
 		})
@@ -157,7 +157,7 @@ func TestSubAccountCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, ""); err != nil {
+	if err := doSign(data.SignInfoList, "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"); err != nil {
 		t.Fatal(err)
 	}
 

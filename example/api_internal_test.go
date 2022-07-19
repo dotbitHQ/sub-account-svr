@@ -68,7 +68,7 @@ func TestInternalSubAccountCreate2(t *testing.T) {
 				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
 			},
 		},
-		Account: "aaaazzxxx.bit",
+		Account: "tzh20220718.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
 				Account:       "100001.aaaazzxxx.bit",
@@ -98,7 +98,7 @@ func TestInternalSubAccountCreate2(t *testing.T) {
 	}
 
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 98; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
 			Account:       fmt.Sprintf("3000%d.aaaazzxxx.bit", i),
 			RegisterYears: 1,
@@ -197,6 +197,41 @@ func TestInternalSubAccountMint(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	var data handle.RespInternalSubAccountMint
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMulInternalSubAccountMint(t *testing.T) {
+	url := ApiUrlInternal + "/internal/sub/account/mint"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+			},
+		},
+		Account:        "tzh20220718.bit",
+		SubAccountList: nil,
+	}
+	for i := 0; i < 98; i++ {
+		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+			Account:       fmt.Sprintf("test02-%d.tzh20220718.bit", i),
+			RegisterYears: 1,
+			ChainTypeAddress: core.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: core.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+				},
+			},
+		})
 	}
 
 	var data handle.RespInternalSubAccountMint
