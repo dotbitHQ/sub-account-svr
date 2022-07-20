@@ -77,9 +77,15 @@ type BaseInfo struct {
 	ConfigCellRecordNamespace *core.DasConfigCellInfo
 	ConfigCellAcc             *core.DasConfigCellInfo
 	ConfigCellBuilder         *witness.ConfigCellDataBuilder
-	ConfigCellEn              *core.DasConfigCellInfo
-	ConfigCellDigit           *core.DasConfigCellInfo
 	ConfigCellEmoji           *core.DasConfigCellInfo
+	ConfigCellDigit           *core.DasConfigCellInfo
+	ConfigCellEn              *core.DasConfigCellInfo
+	ConfigCellJp              *core.DasConfigCellInfo
+	ConfigCellKo              *core.DasConfigCellInfo
+	ConfigCellVi              *core.DasConfigCellInfo
+	ConfigCellRu              *core.DasConfigCellInfo
+	ConfigCellTh              *core.DasConfigCellInfo
+	ConfigCellTr              *core.DasConfigCellInfo
 }
 
 func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
@@ -143,7 +149,7 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	}
 
 	// char
-	bi.ConfigCellEn, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetEn)
+	bi.ConfigCellEmoji, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetEmoji)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
@@ -151,7 +157,31 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
-	bi.ConfigCellEmoji, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetEmoji)
+	bi.ConfigCellEn, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetEn)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellJp, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetJp)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellKo, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetKo)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellVi, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetVi)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellRu, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetRu)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellTh, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTh)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellTr, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTr)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}

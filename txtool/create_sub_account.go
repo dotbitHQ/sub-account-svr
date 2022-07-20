@@ -189,18 +189,27 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 		p.BaseInfo.TimeCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
-		//p.BaseInfo.ConfigCellDigit.ToCellDep(),
-		//p.BaseInfo.ConfigCellEmoji.ToCellDep(),
-		//p.BaseInfo.ConfigCellEn.ToCellDep(),
 	)
 	for k, _ := range accountCharTypeMap {
 		switch k {
 		case common.AccountCharTypeEmoji:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEmoji.ToCellDep())
-		case common.AccountCharTypeNumber:
+		case common.AccountCharTypeDigit:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellDigit.ToCellDep())
 		case common.AccountCharTypeEn:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEn.ToCellDep())
+		case common.AccountCharTypeJp:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellJp.ToCellDep())
+		case common.AccountCharTypeKo:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellKo.ToCellDep())
+		case common.AccountCharTypeVi:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellVi.ToCellDep())
+		case common.AccountCharTypeRu:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellRu.ToCellDep())
+		case common.AccountCharTypeTh:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTh.ToCellDep())
+		case common.AccountCharTypeTr:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTr.ToCellDep())
 		}
 	}
 
