@@ -221,7 +221,7 @@ func TestMulInternalSubAccountMint(t *testing.T) {
 	}
 	for i := 0; i < 98; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test02-%d.tzh20220718.bit", i),
+			Account:       fmt.Sprintf("test03-%d.tzh20220718.bit", i),
 			RegisterYears: 1,
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
