@@ -325,28 +325,20 @@ func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet,
 			if _, ok := common.CharSetTypeEnMap[v.Char]; !ok {
 				return false
 			}
-		case common.AccountCharTypeJp:
-			if _, ok := common.CharSetTypeJpMap[v.Char]; !ok {
-				return false
-			}
-		case common.AccountCharTypeKo:
-			if _, ok := common.CharSetTypeKoMap[v.Char]; !ok {
-				return false
-			}
-		case common.AccountCharTypeVi:
-			if _, ok := common.CharSetTypeViMap[v.Char]; !ok {
+		case common.AccountCharTypeJa:
+			if _, ok := common.CharSetTypeJaMap[v.Char]; !ok {
 				return false
 			}
 		case common.AccountCharTypeRu:
 			if _, ok := common.CharSetTypeRuMap[v.Char]; !ok {
 				return false
 			}
-		case common.AccountCharTypeTh:
-			if _, ok := common.CharSetTypeThMap[v.Char]; !ok {
-				return false
-			}
 		case common.AccountCharTypeTr:
 			if _, ok := common.CharSetTypeTrMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeVi:
+			if _, ok := common.CharSetTypeViMap[v.Char]; !ok {
 				return false
 			}
 		default:

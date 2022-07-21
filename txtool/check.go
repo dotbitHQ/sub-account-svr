@@ -80,12 +80,10 @@ type BaseInfo struct {
 	ConfigCellEmoji           *core.DasConfigCellInfo
 	ConfigCellDigit           *core.DasConfigCellInfo
 	ConfigCellEn              *core.DasConfigCellInfo
-	ConfigCellJp              *core.DasConfigCellInfo
-	ConfigCellKo              *core.DasConfigCellInfo
-	ConfigCellVi              *core.DasConfigCellInfo
+	ConfigCellJa              *core.DasConfigCellInfo
 	ConfigCellRu              *core.DasConfigCellInfo
-	ConfigCellTh              *core.DasConfigCellInfo
 	ConfigCellTr              *core.DasConfigCellInfo
+	ConfigCellVi              *core.DasConfigCellInfo
 }
 
 func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
@@ -161,15 +159,7 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
-	bi.ConfigCellJp, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetJp)
-	if err != nil {
-		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
-	}
-	bi.ConfigCellKo, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetKo)
-	if err != nil {
-		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
-	}
-	bi.ConfigCellVi, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetVi)
+	bi.ConfigCellJa, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetJa)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
@@ -177,11 +167,11 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
-	bi.ConfigCellTh, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTh)
+	bi.ConfigCellTr, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTr)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
-	bi.ConfigCellTr, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTr)
+	bi.ConfigCellVi, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetVi)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}

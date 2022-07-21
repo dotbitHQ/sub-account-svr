@@ -207,18 +207,14 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellDigit.ToCellDep())
 		case common.AccountCharTypeEn:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEn.ToCellDep())
-		case common.AccountCharTypeJp:
-			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellJp.ToCellDep())
-		case common.AccountCharTypeKo:
-			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellKo.ToCellDep())
-		case common.AccountCharTypeVi:
-			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellVi.ToCellDep())
+		case common.AccountCharTypeJa:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellJa.ToCellDep())
 		case common.AccountCharTypeRu:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellRu.ToCellDep())
-		case common.AccountCharTypeTh:
-			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTh.ToCellDep())
 		case common.AccountCharTypeTr:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTr.ToCellDep())
+		case common.AccountCharTypeVi:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellVi.ToCellDep())
 		}
 	}
 

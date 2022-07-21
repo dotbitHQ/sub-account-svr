@@ -3,7 +3,7 @@ module das_sub_account
 go 1.15
 
 require (
-	github.com/dotbitHQ/das-lib v0.0.0-20220720095839-546471e86518
+	github.com/dotbitHQ/das-lib v0.0.0-20220721044948-ecf42e8dc0c5
 	github.com/elazarl/goproxy v0.0.0-20220115173737-adb46da277ac // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.7.2
