@@ -187,6 +187,10 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 					tmp.Status = CheckStatusFail
 					tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
 					isOk = false
+				} else if len(v.AccountCharStr) > 0 && !h.checkAccountCharSet(v.AccountCharStr, v.Account) {
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("invalid charset")
+					isOk = false
 				} else if _, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
 					// check char set
 					tmp.Status = CheckStatusFail
@@ -300,4 +304,67 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		}
 	}
 	return nil
+}
+
+func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet, account string) bool {
+	var accountCharStr string
+	for _, v := range accountCharSet {
+		if v.Char == "" {
+			return false
+		}
+		switch v.CharSetName {
+		case common.AccountCharTypeEmoji:
+			if _, ok := common.CharSetTypeEmojiMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeDigit:
+			if _, ok := common.CharSetTypeDigitMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeEn:
+			if _, ok := common.CharSetTypeEnMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeJp:
+			if _, ok := common.CharSetTypeJpMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeKo:
+			if _, ok := common.CharSetTypeKoMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeVi:
+			if _, ok := common.CharSetTypeViMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeRu:
+			if _, ok := common.CharSetTypeRuMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeTh:
+			if _, ok := common.CharSetTypeThMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeTr:
+			if _, ok := common.CharSetTypeTrMap[v.Char]; !ok {
+				return false
+			}
+		default:
+			return false
+		}
+		accountCharStr += v.Char
+	}
+	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
+	common.GetAccountCharTypeExclude(accountCharTypeMap, accountCharSet)
+	if len(accountCharTypeMap) > 1 {
+		return false
+	}
+	if !strings.HasSuffix(accountCharStr, common.DasAccountSuffix) {
+		accountCharStr += common.DasAccountSuffix
+	}
+	if !strings.EqualFold(accountCharStr, account) {
+		return false
+	}
+
+	return true
 }

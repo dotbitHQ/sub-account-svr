@@ -30,8 +30,9 @@ type ReqSubAccountCreate struct {
 }
 
 type CreateSubAccount struct {
-	Account       string `json:"account"`
-	RegisterYears uint64 `json:"register_years"`
+	Account        string                  `json:"account"`
+	AccountCharStr []common.AccountCharSet `json:"account_char_str"`
+	RegisterYears  uint64                  `json:"register_years"`
 	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
