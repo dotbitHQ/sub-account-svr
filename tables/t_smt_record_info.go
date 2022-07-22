@@ -22,6 +22,7 @@ type TableSmtRecordInfo struct {
 	Action          string     `json:"action" gorm:"column:action;index:k_action;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	ParentAccountId string     `json:"parent_account_id" gorm:"column:parent_account_id;index:k_parent_account_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'smt tree'"`
 	Account         string     `json:"account" gorm:"column:account;index:k_account;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	Content         string     `json:"content" gorm:"column:content;type:text NOT NULL COMMENT 'account char set'"`
 	RegisterYears   uint64     `json:"register_years" gorm:"column:register_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RegisterArgs    string     `json:"register_args" gorm:"column:register_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditKey         string     `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
@@ -65,9 +66,17 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 
 	switch t.Action {
 	case common.DasActionCreateSubAccount:
-		accountCharSet, err := common.AccountToAccountChars(t.Account[:strings.Index(t.Account, ".")])
-		if err != nil {
-			return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
+		var accountCharSet []common.AccountCharSet
+		if t.Content != "" {
+			if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
+				return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
+			}
+		} else {
+			var err error
+			accountCharSet, err = common.AccountToAccountChars(t.Account[:strings.Index(t.Account, ".")])
+			if err != nil {
+				return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
+			}
 		}
 		currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
 		currentSubAccount.AccountId = t.AccountId
