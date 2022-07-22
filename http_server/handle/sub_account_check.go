@@ -322,7 +322,7 @@ func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet,
 				return false
 			}
 		case common.AccountCharTypeEn:
-			if _, ok := common.CharSetTypeEnMap[v.Char]; !ok {
+			if _, ok := common.CharSetTypeEnMap[v.Char]; v.Char != "." && !ok {
 				return false
 			}
 		case common.AccountCharTypeJa:
