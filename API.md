@@ -62,7 +62,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 #### Request
 
 * path: /v1/account/list
-  * category: 1-main account 2-sub account 6-enable sub account
+    * category: 1-main account 2-sub account 6-enable sub account
 
 ```json
 {
@@ -304,6 +304,40 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "."
+        },
+        {
+          "char_set_name": 2,
+          "char": "b"
+        },
+        {
+          "char_set_name": 2,
+          "char": "i"
+        },
+        {
+          "char_set_name": 2,
+          "char": "t"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {
@@ -361,6 +395,40 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "."
+        },
+        {
+          "char_set_name": 2,
+          "char": "b"
+        },
+        {
+          "char_set_name": 2,
+          "char": "i"
+        },
+        {
+          "char_set_name": 2,
+          "char": "t"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {
@@ -737,6 +805,40 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "."
+        },
+        {
+          "char_set_name": 2,
+          "char": "b"
+        },
+        {
+          "char_set_name": 2,
+          "char": "i"
+        },
+        {
+          "char_set_name": 2,
+          "char": "t"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {
