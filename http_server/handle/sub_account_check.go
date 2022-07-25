@@ -191,16 +191,21 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 					tmp.Status = CheckStatusFail
 					tmp.Message = fmt.Sprintf("invalid charset")
 					isOk = false
-				} else if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-					// check char set
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("invalid character")
-					isOk = false
-				} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("invalid character")
-					isOk = false
-				} else {
+				}
+				if len(v.AccountCharStr) == 0 {
+					if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
+						// check char set
+						tmp.Status = CheckStatusFail
+						tmp.Message = fmt.Sprintf("invalid character")
+						isOk = false
+					} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
+						tmp.Status = CheckStatusFail
+						tmp.Message = fmt.Sprintf("invalid character")
+						isOk = false
+					}
+				}
+
+				if isOk {
 					addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 					if e != nil {
 						tmp.Status = CheckStatusFail
