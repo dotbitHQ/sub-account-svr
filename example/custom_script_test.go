@@ -29,7 +29,7 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "tzh20220718.bit",
+		Account:          "ぁぁ123ぁぁ.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
 			5: {10000, 10000},
@@ -53,7 +53,7 @@ func TestCustomScript(t *testing.T) {
 
 func TestCustomScriptInfo(t *testing.T) {
 	url := ApiUrl + "/custom/script/info"
-	req := handle.ReqCustomScriptInfo{Account: "tzh20220718.bit"}
+	req := handle.ReqCustomScriptInfo{Account: "ぁぁ123ぁぁ.bit"}
 	var data handle.RespCustomScriptInfo
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)

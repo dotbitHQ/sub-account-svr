@@ -191,8 +191,12 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 					tmp.Status = CheckStatusFail
 					tmp.Message = fmt.Sprintf("invalid charset")
 					isOk = false
-				} else if _, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
+				} else if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
 					// check char set
+					tmp.Status = CheckStatusFail
+					tmp.Message = fmt.Sprintf("invalid character")
+					isOk = false
+				} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
 					tmp.Status = CheckStatusFail
 					tmp.Message = fmt.Sprintf("invalid character")
 					isOk = false
@@ -346,14 +350,11 @@ func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet,
 		}
 		accountCharStr += v.Char
 	}
-	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
-	common.GetAccountCharTypeExclude(accountCharTypeMap, accountCharSet)
-	if len(accountCharTypeMap) > 1 {
-		return false
-	}
 	if !strings.EqualFold(accountCharStr, account) {
 		return false
 	}
-
+	if isDiff := common.CheckAccountCharTypeDiff(accountCharSet); isDiff {
+		return false
+	}
 	return true
 }
