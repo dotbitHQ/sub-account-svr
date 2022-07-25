@@ -70,6 +70,16 @@ func doSendTransactionError(err error, apiResp *api_code.ApiResp) error {
 	return fmt.Errorf("SendTransaction err: %s", err.Error())
 }
 
+func doApiError(err error, apiResp *api_code.ApiResp) {
+	if strings.Contains(err.Error(), "PoolRejectedDuplicatedTransaction") ||
+		strings.Contains(err.Error(), "Dead(OutPoint(") ||
+		strings.Contains(err.Error(), "Unknown(OutPoint(") ||
+		(strings.Contains(err.Error(), "getInputCell") && strings.Contains(err.Error(), "not live")) {
+
+		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, err.Error())
+	}
+}
+
 func doDasBalanceError(err error, apiResp *api_code.ApiResp) error {
 	if err == core.ErrRejectedOutPoint {
 		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, err.Error())

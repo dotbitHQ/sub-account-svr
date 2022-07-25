@@ -49,6 +49,7 @@ func (h *HttpHandle) CustomScript(ctx *gin.Context) {
 
 	if err = h.doCustomScript(&req, &apiResp); err != nil {
 		log.Error("doCustomScript err:", err.Error(), funcName, clientIp)
+		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)

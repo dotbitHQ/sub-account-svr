@@ -62,6 +62,7 @@ func (h *HttpHandle) SubAccountCreate(ctx *gin.Context) {
 
 	if err = h.doSubAccountCreate(&req, &apiResp); err != nil {
 		log.Error("doSubAccountCreate err:", err.Error(), funcName, clientIp)
+		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
