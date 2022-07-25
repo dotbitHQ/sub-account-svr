@@ -7,6 +7,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/mylog"
+	"github.com/scorpiotzh/toolib"
 	"strings"
 	"time"
 )
@@ -78,6 +79,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 				return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
 			}
 		}
+		log.Info("GetCurrentSubAccount:", toolib.JsonString(accountCharSet))
 		currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
 		currentSubAccount.AccountId = t.AccountId
 		currentSubAccount.AccountCharSet = accountCharSet
