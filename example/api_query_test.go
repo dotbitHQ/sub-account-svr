@@ -24,10 +24,11 @@ func doReq(url string, req, data interface{}) error {
 	if errs != nil {
 		return fmt.Errorf("%v , %s", errs, string(body))
 	}
+	fmt.Println("=========== doReq:", toolib.JsonString(data))
 	if resp.ErrNo != api_code.ApiCodeSuccess {
 		return fmt.Errorf("%d - %s", resp.ErrNo, resp.ErrMsg)
 	}
-	fmt.Println("=========== doReq:", toolib.JsonString(data))
+
 	return nil
 }
 

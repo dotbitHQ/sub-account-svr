@@ -173,7 +173,7 @@ func TestInternalSubAccountMint(t *testing.T) {
 		Account: "ぁぁ123ぁぁ.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "ぁtest1.ぁぁ123ぁぁ.bit",
+				Account:       "ぁ0003.ぁぁ123ぁぁ.bit",
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
@@ -185,7 +185,7 @@ func TestInternalSubAccountMint(t *testing.T) {
 				},
 			},
 			{
-				Account:       "ぁtest2.ぁぁ123ぁぁ.bit",
+				Account:       "a0004.ぁぁ123ぁぁ.bit",
 				RegisterYears: 2,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
