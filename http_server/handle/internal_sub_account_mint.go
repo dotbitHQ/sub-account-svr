@@ -133,10 +133,14 @@ func getRecordList(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentA
 		if err != nil {
 			return nil, fmt.Errorf("HexToArgs err: %s", err.Error())
 		}
-		content, err := json.Marshal(v.AccountCharStr)
-		if err != nil {
-			return nil, fmt.Errorf("json Marshal err: %s", err.Error())
+		var content []byte
+		if len(v.AccountCharStr) > 0 {
+			content, err = json.Marshal(v.AccountCharStr)
+			if err != nil {
+				return nil, fmt.Errorf("json Marshal err: %s", err.Error())
+			}
 		}
+
 		tmpRecord := tables.TableSmtRecordInfo{
 			Id:              0,
 			AccountId:       subAccountId,
