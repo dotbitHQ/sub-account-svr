@@ -79,7 +79,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 				return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
 			}
 		}
-		log.Info("GetCurrentSubAccount:", toolib.JsonString(accountCharSet))
+		log.Info("GetCurrentSubAccount:", toolib.JsonString(accountCharSet), len(t.Content), t.Content)
 		currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
 		currentSubAccount.AccountId = t.AccountId
 		currentSubAccount.AccountCharSet = accountCharSet
