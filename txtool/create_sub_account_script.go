@@ -129,7 +129,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 				subAccountParam.CurrentRoot = root
 			}
 		}
-		accountCharTypeMap = common.GetAccountCharType(newSubAccount.AccountCharSet)
+		common.GetAccountCharType(accountCharTypeMap, newSubAccount.AccountCharSet)
 		subAccountParamList = append(subAccountParamList, subAccountParam)
 	}
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{

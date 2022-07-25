@@ -112,7 +112,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 				subAccountParam.CurrentRoot = root
 			}
 		}
-		accountCharTypeMap = common.GetAccountCharType(newSubAccount.AccountCharSet)
+		common.GetAccountCharType(accountCharTypeMap, newSubAccount.AccountCharSet)
 		subAccountParamList = append(subAccountParamList, subAccountParam)
 	}
 
