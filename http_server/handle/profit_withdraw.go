@@ -234,6 +234,34 @@ func (h *HttpHandle) buildProfitWithdrawTx(p *paramProfitWithdrawTx) (*txbuilder
 		}
 	}
 
+	// witness
+	actionWitness, err := witness.GenActionDataWitnessV2(common.DasActionCollectSubAccountProfit, nil, "")
+	if err != nil {
+		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
+	}
+	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+
+	// account
+	accountOutPoint := common.String2OutPointStruct(p.acc.Outpoint)
+	txAcc, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutPoint.TxHash)
+	if err != nil {
+		return nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+	}
+	mapAcc, err := witness.AccountIdCellDataBuilderFromTx(txAcc.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	if item, ok := mapAcc[p.acc.AccountId]; !ok {
+		return nil, fmt.Errorf("not exist acc builder: %s", p.acc.AccountId)
+	} else {
+		accWitness, _, _ := item.GenWitness(&witness.AccountCellParam{
+			OldIndex: 0,
+			NewIndex: 0,
+			Action:   common.DasActionCollectSubAccountProfit,
+		})
+		txParams.Witnesses = append(txParams.Witnesses, accWitness)
+	}
+
 	// cell deps
 	heightCell, err := h.DasCore.GetHeightCell()
 	if err != nil {
@@ -256,7 +284,6 @@ func (h *HttpHandle) buildProfitWithdrawTx(p *paramProfitWithdrawTx) (*txbuilder
 		return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
 
-	accountOutPoint := common.String2OutPointStruct(p.acc.Outpoint)
 	txParams.CellDeps = append(txParams.CellDeps,
 		&types.CellDep{
 			OutPoint: accountOutPoint,
