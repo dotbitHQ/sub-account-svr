@@ -82,3 +82,35 @@ func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionH
 	}
 	return
 }
+
+func (b *BlockParser) DasActionCollectSubAccountProfit(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
+	if isCV, err := isCurrentVersionTx(req.Tx, common.DASContractNameSubAccountCellType); err != nil {
+		resp.Err = fmt.Errorf("isCurrentVersion err: %s", err.Error())
+		return
+	} else if !isCV {
+		log.Warn("not current version enable sub account tx")
+		return
+	}
+	log.Info("DasActionCollectSubAccountProfit:", req.BlockNumber, req.TxHash)
+
+	task := tables.TableTaskInfo{
+		Id:              0,
+		TaskId:          "",
+		TaskType:        tables.TaskTypeChain,
+		ParentAccountId: common.Bytes2Hex(req.Tx.Outputs[0].Type.Args),
+		Action:          common.DasActionCollectSubAccountProfit,
+		RefOutpoint:     "",
+		BlockNumber:     req.BlockNumber,
+		Outpoint:        common.OutPoint2String(req.TxHash, 0),
+		Timestamp:       req.BlockTimestamp,
+		SmtStatus:       tables.SmtStatusWriteComplete,
+		TxStatus:        tables.TxStatusCommitted,
+	}
+	task.InitTaskId()
+
+	if err := b.DbDao.CreateTaskByProfitWithdraw(&task); err != nil {
+		resp.Err = fmt.Errorf("CreateTaskByProfitWithdraw err: %s", err.Error())
+		return
+	}
+	return
+}

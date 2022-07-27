@@ -222,6 +222,19 @@ func (d *DbDao) CreateTaskByConfigSubAccountCustomScript(task *tables.TableTaskI
 	})
 }
 
+func (d *DbDao) CreateTaskByProfitWithdraw(task *tables.TableTaskInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("ref_outpoint='' AND outpoint=?", task.Outpoint).
+			Delete(&tables.TableTaskInfo{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(task).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (d *DbDao) CreateTask(task *tables.TableTaskInfo) error {
 	return d.db.Create(&task).Error
 }
