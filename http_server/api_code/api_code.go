@@ -24,6 +24,7 @@ const (
 	ApiCodeRecordsTotalLengthExceeded   ApiCode = 30021
 	ApiCodeSameLock                     ApiCode = 30023
 	ApiCodeAccountStatusOnSaleOrAuction ApiCode = 30031
+	ApiCodeOnCross                      ApiCode = 30035
 
 	ApiCodeEnableSubAccountIsOn            ApiCode = 40000
 	ApiCodeNotExistEditKey                 ApiCode = 40001
