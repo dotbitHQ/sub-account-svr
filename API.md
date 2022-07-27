@@ -15,6 +15,7 @@
     * [Custom Script Info](#custom-script-info)
     * [Custom Script Price](#custom-script-price)
     * [Owner Profit](#owner-profit)
+    * [Profit Withdraw](#profit-withdraw)
 * [INTERNAL API LIST](#internal-api-list)
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
@@ -367,6 +368,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 
 * path: /v1/sub/account/create
 * account_char_str： the charset of sub-account name
+
 ```json
 {
   "type": "blockchain",
@@ -750,6 +752,33 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 ```json
 {
   "owner_profit": "256.8"
+}
+```
+
+### Profit Withdraw
+
+#### Request
+
+* path: /profit/withdraw
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "chain_id": "1",
+    "key": "0x111..."
+  },
+  "account": "tzh2022070601.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "hash": "0x00...",
+  "action": "collect_sub_account_profit"
 }
 ```
 
