@@ -294,9 +294,12 @@ func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, par
 		if err != nil {
 			return nil, nil, fmt.Errorf("HexToArgs err: %s", err.Error())
 		}
-		content, err := json.Marshal(v.AccountCharStr)
-		if err != nil {
-			return nil, nil, fmt.Errorf("json Marshal err: %s", err.Error())
+		var content []byte
+		if len(v.AccountCharStr) > 0 {
+			content, err = json.Marshal(v.AccountCharStr)
+			if err != nil {
+				return nil, nil, fmt.Errorf("json Marshal err: %s", err.Error())
+			}
 		}
 		tmpRecord := tables.TableSmtRecordInfo{
 			Id:              0,
