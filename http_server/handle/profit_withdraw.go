@@ -136,8 +136,7 @@ func (h *HttpHandle) doProfitWithdraw(req *ReqProfitWithdraw, apiResp *api_code.
 	//
 	hash, err := txBuilder.SendTransaction()
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "SendTransaction err: "+err.Error())
-		return fmt.Errorf("SendTransaction err: %s", err.Error())
+		return doSendTransactionError(err, apiResp)
 	}
 	resp.Hash = hash.String()
 	resp.Action = common.DasActionCollectSubAccountProfit
