@@ -68,3 +68,14 @@ const (
 	CategoryToBeRecycled     Category = 5
 	CategoryEnableSubAccount Category = 6
 )
+
+type OrderType int
+
+const (
+	OrderTypeAccountAsc     OrderType = 0
+	OrderTypeAccountDesc    OrderType = 1
+	OrderTypeRegisterAtAsc  OrderType = 2
+	OrderTypeRegisterAtDesc OrderType = 3
+	OrderTypeExpiredAtAsc   OrderType = 4
+	OrderTypeExpiredAtDesc  OrderType = 5
+)
