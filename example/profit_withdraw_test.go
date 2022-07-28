@@ -21,7 +21,7 @@ func TestOwnerProfit(t *testing.T) {
 			ChainId:  "",
 			Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 		},
-	}, Account: "0000000tzh20220727.bit"}
+	}, Account: "00acc2022042902.bit"}
 	var data handle.RespOwnerProfit
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -30,7 +30,8 @@ func TestOwnerProfit(t *testing.T) {
 
 func TestProfitWithdraw(t *testing.T) {
 	var req handle.ReqProfitWithdraw
-	req.Account = "0000000tzh20220727.bit"
+	req.IsWithdrawDotBit = false
+	req.Account = "00acc2022042902.bit"
 	req.ChainTypeAddress = core.ChainTypeAddress{
 		Type: "blockchain",
 		KeyInfo: core.KeyInfo{

@@ -117,7 +117,7 @@ func (h *HttpHandle) doProfitWithdraw(req *ReqProfitWithdraw, apiResp *api_code.
 	// build tx
 	txParams, err := h.buildProfitWithdrawTx(&paramProfitWithdrawTx{
 		acc:                &acc,
-		subAccountLiveCell: nil,
+		subAccountLiveCell: subAccountLiveCell,
 		isWithdrawDotBit:   req.IsWithdrawDotBit,
 	})
 	if err != nil {
