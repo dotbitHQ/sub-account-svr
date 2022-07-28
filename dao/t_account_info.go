@@ -12,7 +12,7 @@ func (d *DbDao) GetAccountInfoByAccountId(accountId string) (acc tables.TableAcc
 	return
 }
 
-func (d *DbDao) GetSubAccountListByParentAccountId(parentAccountId string, chainType common.ChainType, address, keyword string, limit, offset int, category tables.Category) (list []tables.TableAccountInfo, err error) {
+func (d *DbDao) GetSubAccountListByParentAccountId(parentAccountId string, chainType common.ChainType, address, keyword string, limit, offset int, category tables.Category, orderType tables.OrderType) (list []tables.TableAccountInfo, err error) {
 	db := d.parserDb.Where("parent_account_id=?", parentAccountId)
 	if address != "" {
 		db = db.Where("((owner_chain_type=? AND `owner`=?) OR (manager_chain_type=? AND manager=?))", chainType, address, chainType, address)
@@ -37,7 +37,24 @@ func (d *DbDao) GetSubAccountListByParentAccountId(parentAccountId string, chain
 	if keyword != "" {
 		db = db.Where("account LIKE ?", "%"+keyword+"%")
 	}
-	err = db.Order("account").Limit(limit).Offset(offset).Find(&list).Error
+
+	switch orderType {
+	case tables.OrderTypeAccountAsc:
+		db = db.Order("account")
+	case tables.OrderTypeAccountDesc:
+		db = db.Order("account desc")
+	case tables.OrderTypeRegisterAtAsc:
+		db = db.Order("registered_at")
+	case tables.OrderTypeRegisterAtDesc:
+		db = db.Order("registered_at desc")
+	case tables.OrderTypeExpiredAtAsc:
+		db = db.Order("expired_at")
+	case tables.OrderTypeExpiredAtDesc:
+		db = db.Order("expired_at desc")
+	default:
+		db = db.Order("account")
+	}
+	err = db.Limit(limit).Offset(offset).Find(&list).Error
 
 	//if address != "" {
 	//	err = d.parserDb.Where("parent_account_id=? AND ((owner_chain_type=? AND `owner`=?) OR (manager_chain_type=? AND manager=?))",

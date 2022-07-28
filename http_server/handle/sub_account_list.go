@@ -18,8 +18,9 @@ type ReqSubAccountList struct {
 	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
-	Keyword   string          `json:"keyword"`
-	Category  tables.Category `json:"category"`
+	Keyword   string           `json:"keyword"`
+	Category  tables.Category  `json:"category"`
+	OrderType tables.OrderType `json:"order_type"`
 }
 
 type RespSubAccountList struct {
@@ -73,7 +74,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 
 	// get sub account list
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	list, err := h.DbDao.GetSubAccountListByParentAccountId(accountId, req.chainType, req.address, req.Keyword, req.GetLimit(), req.GetOffset(), req.Category)
+	list, err := h.DbDao.GetSubAccountListByParentAccountId(accountId, req.chainType, req.address, req.Keyword, req.GetLimit(), req.GetOffset(), req.Category, req.OrderType)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query sub account list")
 		return fmt.Errorf("GetSubAccountListByParentAccountId err: %s", err.Error())
