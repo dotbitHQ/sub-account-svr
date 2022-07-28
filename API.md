@@ -184,6 +184,13 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     * type: not necessary
     * CategoryExpireSoon=4
     * CategoryToBeRecycled=5
+    * order_type:
+        * OrderTypeAccountAsc OrderType = 0
+        * OrderTypeAccountDesc OrderType = 1
+        * OrderTypeRegisterAtAsc OrderType = 2
+        * OrderTypeRegisterAtDesc OrderType = 3
+        * OrderTypeExpiredAtAsc OrderType = 4
+        * OrderTypeExpiredAtDesc OrderType = 5
 
 ```json
 {
@@ -197,7 +204,8 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     "key": "0x111..."
   },
   "keyword": "",
-  "category": 0
+  "category": 0,
+  "order_type": 0
 }
 ```
 
