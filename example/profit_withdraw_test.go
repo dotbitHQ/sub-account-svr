@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/scorpiotzh/toolib"
 	"testing"
 )
 
@@ -30,7 +31,7 @@ func TestOwnerProfit(t *testing.T) {
 
 func TestProfitWithdraw(t *testing.T) {
 	var req handle.ReqProfitWithdraw
-	req.IsWithdrawDotBit = false
+	req.IsWithdrawDotBit = true
 	req.Account = "00acc2022042902.bit"
 	req.ChainTypeAddress = core.ChainTypeAddress{
 		Type: "blockchain",
@@ -46,4 +47,27 @@ func TestProfitWithdraw(t *testing.T) {
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestTransactionStatus(t *testing.T) {
+	url := ApiUrl + "/transaction/status"
+	req := handle.ReqTransactionStatus{
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: common.CoinTypeEth,
+				ChainId:  "",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+			},
+		},
+		Action:  common.DasActionCollectSubAccountProfit,
+		Account: "00acc2022042902.bit",
+	}
+
+	var data handle.RespTransactionStatus
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(toolib.JsonString(data))
 }
