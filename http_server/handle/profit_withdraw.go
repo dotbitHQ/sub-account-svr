@@ -86,9 +86,6 @@ func (h *HttpHandle) doProfitWithdraw(req *ReqProfitWithdraw, apiResp *api_code.
 	} else if acc.EnableSubAccount != tables.AccountEnableStatusOn {
 		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub-account not enabled")
 		return nil
-	} else if acc.Status == tables.AccountStatusOnCross {
-		apiResp.ApiRespErr(api_code.ApiCodeOnCross, "account on cross")
-		return nil
 	}
 
 	// check sub-account-cell
