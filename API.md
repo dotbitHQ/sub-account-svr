@@ -543,7 +543,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "errno": 0,
   "errmsg": "",
   "data": {
-    "hash": ""
+    "hash_list": [""]
   }
 }
 ```
