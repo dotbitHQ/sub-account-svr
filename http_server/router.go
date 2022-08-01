@@ -37,6 +37,7 @@ func (h *HttpServer) initRouter() {
 			v1.POST("/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEdit)       // edit_sub_account
 		}
 		v1.POST("/owner/profit", api_code.DoMonitorLog("owner_profit"), h.H.OwnerProfit)
+		v1.POST("/profit/withdraw", api_code.DoMonitorLog("profit_withdraw"), h.H.ProfitWithdraw)
 		v1.POST("/custom/script/set", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)
 		v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
 		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)

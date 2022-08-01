@@ -160,54 +160,72 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("sub account invalid: %s", v.Account)
 			isOk = false
-		} else {
-			suffix := strings.TrimLeft(v.Account[index:], ".")
-			if suffix != req.Account {
+			resp.Result = append(resp.Result, tmp)
+			continue
+		}
+		//
+		suffix := strings.TrimLeft(v.Account[index:], ".")
+		if suffix != req.Account {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
+			isOk = false
+			resp.Result = append(resp.Result, tmp)
+			continue
+		}
+		//
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+		accLen := common.GetAccountLength(v.Account[:index])
+		if uint32(accLen) > maxLength {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
+			isOk = false
+		} else if indexAcc, ok := subAccountMap[accountId]; ok {
+			resp.Result[indexAcc].Status = CheckStatusFail
+			resp.Result[indexAcc].Message = fmt.Sprintf("same account")
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("same account")
+			isOk = false
+		} else if v.RegisterYears <= 0 {
+			tmp.Status = CheckStatusFail
+			tmp.Message = "register years less than 1"
+			isOk = false
+		} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
+			isOk = false
+		} else if len(v.AccountCharStr) > 0 && !h.checkAccountCharSet(v.AccountCharStr, v.Account[:strings.Index(v.Account, ".")]) {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("invalid charset")
+			isOk = false
+		}
+		if len(v.AccountCharStr) == 0 {
+			if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
+				// check char set
 				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
+				tmp.Message = fmt.Sprintf("invalid character")
 				isOk = false
-			} else {
-				accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-				accLen := common.GetAccountLength(v.Account[:index])
-				if uint32(accLen) > maxLength {
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
-					isOk = false
-				} else if index, ok := subAccountMap[accountId]; ok {
-					resp.Result[index].Status = CheckStatusFail
-					resp.Result[index].Message = fmt.Sprintf("same account")
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("same account")
-					isOk = false
-				} else if v.RegisterYears <= 0 {
-					tmp.Status = CheckStatusFail
-					tmp.Message = "register years less than 1"
-					isOk = false
-				} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
-					isOk = false
-				} else if _, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-					// check char set
-					tmp.Status = CheckStatusFail
-					tmp.Message = fmt.Sprintf("invalid character")
-					isOk = false
-				} else {
-					addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
-					if e != nil {
-						tmp.Status = CheckStatusFail
-						tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
-						isOk = false
-					} else {
-						accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-						accountIds = append(accountIds, accId)
-					}
-					req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
-				}
-				subAccountMap[accountId] = i
+			} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
+				tmp.Status = CheckStatusFail
+				tmp.Message = fmt.Sprintf("invalid character")
+				isOk = false
 			}
 		}
-
+		if tmp.Status != CheckStatusOk {
+			resp.Result = append(resp.Result, tmp)
+			continue
+		}
+		//
+		addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		if e != nil {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
+			isOk = false
+		} else {
+			accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+			accountIds = append(accountIds, accId)
+			req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
+			subAccountMap[accountId] = i
+		}
 		resp.Result = append(resp.Result, tmp)
 	}
 
@@ -300,4 +318,53 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		}
 	}
 	return nil
+}
+
+func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet, account string) bool {
+	var accountCharStr string
+	for _, v := range accountCharSet {
+		if v.Char == "" {
+			return false
+		}
+		switch v.CharSetName {
+		case common.AccountCharTypeEmoji:
+			if _, ok := common.CharSetTypeEmojiMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeDigit:
+			if _, ok := common.CharSetTypeDigitMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeEn:
+			if _, ok := common.CharSetTypeEnMap[v.Char]; v.Char != "." && !ok {
+				return false
+			}
+		case common.AccountCharTypeJa:
+			if _, ok := common.CharSetTypeJaMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeRu:
+			if _, ok := common.CharSetTypeRuMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeTr:
+			if _, ok := common.CharSetTypeTrMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeVi:
+			if _, ok := common.CharSetTypeViMap[v.Char]; !ok {
+				return false
+			}
+		default:
+			return false
+		}
+		accountCharStr += v.Char
+	}
+	if !strings.EqualFold(accountCharStr, account) {
+		return false
+	}
+	if isDiff := common.CheckAccountCharTypeDiff(accountCharSet); isDiff {
+		return false
+	}
+	return true
 }

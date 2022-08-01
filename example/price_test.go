@@ -88,3 +88,11 @@ func TestGetCustomScriptMintTotalCapacity(t *testing.T) {
 	}
 	fmt.Println(res.OwnerCapacity, res.DasCapacity, res.OwnerCapacity+res.DasCapacity)
 }
+
+func TestPrice2(t *testing.T) {
+	usd := uint64(105000)
+	priceCkb := (usd / 3780) * common.OneCkb
+	fmt.Println(priceCkb)
+	dasCkb := (priceCkb / common.PercentRateBase) * uint64(300)
+	fmt.Println(priceCkb, dasCkb)
+}

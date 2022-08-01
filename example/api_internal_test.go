@@ -3,6 +3,7 @@ package example
 import (
 	"das_sub_account/http_server/handle"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"testing"
 )
@@ -170,10 +171,10 @@ func TestInternalSubAccountMint(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account: "tzh2022070601.bit",
+		Account: "00acc2022042902.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "tzh10.tzh2022070601.bit",
+				Account:       "test010.00acc2022042902.bit",
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
@@ -185,14 +186,70 @@ func TestInternalSubAccountMint(t *testing.T) {
 				},
 			},
 			{
-				Account:       "tzh11.tzh2022070601.bit",
-				RegisterYears: 2,
+				Account:       "test011.00acc2022042902.bit",
+				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
 					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
 						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+			},
+		},
+	}
+
+	var data handle.RespInternalSubAccountMint
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInternalSubAccountMint2(t *testing.T) {
+	url := ApiUrlInternal + "/internal/sub/account/mint"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+			},
+		},
+		Account: "ぁぁ123ぁぁ.bit",
+		SubAccountList: []handle.CreateSubAccount{
+			{
+				Account:       "ぁ0004.ぁぁ123ぁぁ.bit",
+				RegisterYears: 1,
+				ChainTypeAddress: core.ChainTypeAddress{
+					Type: "blockchain",
+					KeyInfo: core.KeyInfo{
+						CoinType: "60",
+						ChainId:  "5",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					},
+				},
+				AccountCharStr: []common.AccountCharSet{
+					{
+						CharSetName: common.AccountCharTypeJa,
+						Char:        "ぁ",
+					},
+					{
+						CharSetName: common.AccountCharTypeDigit,
+						Char:        "0",
+					},
+					{
+						CharSetName: common.AccountCharTypeDigit,
+						Char:        "0",
+					},
+					{
+						CharSetName: common.AccountCharTypeDigit,
+						Char:        "0",
+					},
+					{
+						CharSetName: common.AccountCharTypeDigit,
+						Char:        "4",
 					},
 				},
 			},

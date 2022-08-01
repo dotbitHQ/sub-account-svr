@@ -38,6 +38,11 @@ func TestGetLiveCell(t *testing.T) {
 }
 
 func TestAccount(t *testing.T) {
+	_, err := getNewDasCoreTestnet2()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	account := "0😊😊0😊0😊0😊1😊.0001.bit"
 	fmt.Println(account[strings.Index(account, "."):])
 	accountCharSet, err := common.AccountToAccountChars(account[:strings.Index(account, ".")])

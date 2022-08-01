@@ -15,6 +15,7 @@
     * [Custom Script Info](#custom-script-info)
     * [Custom Script Price](#custom-script-price)
     * [Owner Profit](#owner-profit)
+    * [Profit Withdraw](#profit-withdraw)
 * [INTERNAL API LIST](#internal-api-list)
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
@@ -62,7 +63,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 #### Request
 
 * path: /v1/account/list
-  * category: 1-main account 2-sub account 6-enable sub account
+    * category: 1-main account 2-sub account 6-enable sub account
 
 ```json
 {
@@ -183,6 +184,13 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     * type: not necessary
     * CategoryExpireSoon=4
     * CategoryToBeRecycled=5
+    * order_type:
+        * OrderTypeAccountAsc OrderType = 0
+        * OrderTypeAccountDesc OrderType = 1
+        * OrderTypeRegisterAtAsc OrderType = 2
+        * OrderTypeRegisterAtDesc OrderType = 3
+        * OrderTypeExpiredAtAsc OrderType = 4
+        * OrderTypeExpiredAtDesc OrderType = 5
 
 ```json
 {
@@ -196,7 +204,8 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
     "key": "0x111..."
   },
   "keyword": "",
-  "category": 0
+  "category": 0,
+  "order_type": 0
 }
 ```
 
@@ -304,6 +313,24 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {
@@ -348,6 +375,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 #### Request
 
 * path: /v1/sub/account/create
+* account_char_str： the charset of sub-account name
 
 ```json
 {
@@ -361,6 +389,24 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {
@@ -497,7 +543,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "errno": 0,
   "errmsg": "",
   "data": {
-    "hash": ""
+    "hash_list": [""]
   }
 }
 ```
@@ -717,6 +763,33 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 }
 ```
 
+### Profit Withdraw
+
+#### Request
+
+* path: /profit/withdraw
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "chain_id": "1",
+    "key": "0x111..."
+  },
+  "account": "tzh2022070601.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "hash": "0x00...",
+  "action": "collect_sub_account_profit"
+}
+```
+
 ## INTERNAL API LIST
 
 ### Internal Mint Sub Account
@@ -737,6 +810,24 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        }
+      ],
       "register_years": 1,
       "type": "blockchain",
       "key_info": {

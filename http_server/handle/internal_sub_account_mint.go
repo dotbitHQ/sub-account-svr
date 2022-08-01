@@ -5,6 +5,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -132,6 +133,13 @@ func getRecordList(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentA
 		if err != nil {
 			return nil, fmt.Errorf("HexToArgs err: %s", err.Error())
 		}
+		var content []byte
+		if len(v.AccountCharStr) > 0 {
+			content, err = json.Marshal(v.AccountCharStr)
+			if err != nil {
+				return nil, fmt.Errorf("json Marshal err: %s", err.Error())
+			}
+		}
 
 		tmpRecord := tables.TableSmtRecordInfo{
 			Id:              0,
@@ -142,6 +150,7 @@ func getRecordList(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentA
 			Action:          common.DasActionCreateSubAccount,
 			ParentAccountId: parentAccountId,
 			Account:         v.Account,
+			Content:         string(content),
 			RegisterYears:   v.RegisterYears,
 			RegisterArgs:    common.Bytes2Hex(registerArgs),
 			EditKey:         "",

@@ -20,6 +20,7 @@ type ReqOwnerProfit struct {
 
 type RespOwnerProfit struct {
 	OwnerProfit string `json:"owner_profit"`
+	BitProfit   string `json:"bit_profit"`
 }
 
 func (h *HttpHandle) OwnerProfit(ctx *gin.Context) {
@@ -88,6 +89,10 @@ func (h *HttpHandle) doOwnerProfit(req *ReqOwnerProfit, apiResp *api_code.ApiRes
 	}
 	decOwnerProfit = decOwnerProfit.DivRound(decimal.NewFromInt(int64(common.OneCkb)), 8)
 	resp.OwnerProfit = decOwnerProfit.String()
+
+	decDasProfit, _ := decimal.NewFromString(fmt.Sprintf("%d", detail.DasProfit))
+	decDasProfit = decDasProfit.DivRound(decimal.NewFromInt(int64(common.OneCkb)), 8)
+	resp.BitProfit = decDasProfit.String()
 
 	apiResp.ApiRespOK(resp)
 	return nil

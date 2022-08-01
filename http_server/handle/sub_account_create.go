@@ -8,6 +8,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -30,8 +31,9 @@ type ReqSubAccountCreate struct {
 }
 
 type CreateSubAccount struct {
-	Account       string `json:"account"`
-	RegisterYears uint64 `json:"register_years"`
+	Account        string                  `json:"account"`
+	AccountCharStr []common.AccountCharSet `json:"account_char_str"`
+	RegisterYears  uint64                  `json:"register_years"`
 	core.ChainTypeAddress
 	chainType common.ChainType
 	address   string
@@ -60,6 +62,7 @@ func (h *HttpHandle) SubAccountCreate(ctx *gin.Context) {
 
 	if err = h.doSubAccountCreate(&req, &apiResp); err != nil {
 		log.Error("doSubAccountCreate err:", err.Error(), funcName, clientIp)
+		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
@@ -291,7 +294,13 @@ func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, par
 		if err != nil {
 			return nil, nil, fmt.Errorf("HexToArgs err: %s", err.Error())
 		}
-
+		var content []byte
+		if len(v.AccountCharStr) > 0 {
+			content, err = json.Marshal(v.AccountCharStr)
+			if err != nil {
+				return nil, nil, fmt.Errorf("json Marshal err: %s", err.Error())
+			}
+		}
 		tmpRecord := tables.TableSmtRecordInfo{
 			Id:              0,
 			AccountId:       subAccountId,
@@ -309,6 +318,7 @@ func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, par
 			RenewYears:      0,
 			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
+			Content:         string(content),
 		}
 		taskMap[taskId] = append(taskMap[taskId], tmpRecord)
 	}

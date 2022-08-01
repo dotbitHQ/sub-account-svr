@@ -4,7 +4,6 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/http_server/handle"
 	"fmt"
-	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/parnurzeal/gorequest"
 	"github.com/scorpiotzh/toolib"
@@ -24,10 +23,11 @@ func doReq(url string, req, data interface{}) error {
 	if errs != nil {
 		return fmt.Errorf("%v , %s", errs, string(body))
 	}
+	fmt.Println("=========== doReq:", toolib.JsonString(data))
 	if resp.ErrNo != api_code.ApiCodeSuccess {
 		return fmt.Errorf("%d - %s", resp.ErrNo, resp.ErrMsg)
 	}
-	fmt.Println("=========== doReq:", toolib.JsonString(data))
+
 	return nil
 }
 
@@ -106,29 +106,6 @@ func TestSubAccountList(t *testing.T) {
 	}
 
 	var data handle.RespSubAccountList
-
-	if err := doReq(url, req, &data); err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(toolib.JsonString(data))
-}
-
-func TestTransactionStatus(t *testing.T) {
-	url := ApiUrl + "/transaction/status"
-	req := handle.ReqTransactionStatus{
-		ChainTypeAddress: core.ChainTypeAddress{
-			Type: "blockchain",
-			KeyInfo: core.KeyInfo{
-				CoinType: common.CoinTypeEth,
-				ChainId:  "",
-				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
-			},
-		},
-		Action:  common.DasActionConfigSubAccountCustomScript,
-		Account: "tzh2022070601.bit",
-	}
-
-	var data handle.RespTransactionStatus
 
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
