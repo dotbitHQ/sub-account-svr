@@ -125,6 +125,8 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 	log.Info("GetCustomScriptMintTotalCapacity:", p.NewSubAccountCustomPriceDasProfitRate, p.Quote)
 
 	var res ResCustomScriptMintTotalCapacity
+	totalCKB := uint64(0)
+	minDasCKb := uint64(0)
 	for _, v := range p.MintList {
 		resPrice, err := p.PriceApi.GetPrice(&ParamGetPrice{
 			Action:        p.Action,
@@ -137,20 +139,16 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 
 		priceCkb := (resPrice.ActionTotalPrice / p.Quote) * common.OneCkb
 		log.Info("priceCkb:", priceCkb, p.Quote)
-		dasCkb := (priceCkb * uint64(p.NewSubAccountCustomPriceDasProfitRate)) / common.PercentRateBase
-		ownerCkb := priceCkb - dasCkb
-		if priceCkb < v.RegisterYears*p.MinPriceCkb {
-			return nil, fmt.Errorf("price is invalid: %s[%d<%d]", v.Account, priceCkb, v.RegisterYears*p.MinPriceCkb)
-		}
-		if dasCkb < v.RegisterYears*p.MinPriceCkb {
-			dasCkb = v.RegisterYears * p.MinPriceCkb
-			ownerCkb = priceCkb - dasCkb
-		}
-
-		log.Info("price:", v.Account, v.RegisterYears, dasCkb, ownerCkb, dasCkb+ownerCkb)
-		res.DasCapacity += dasCkb
-		res.OwnerCapacity += ownerCkb
+		totalCKB += priceCkb
+		minDasCKb += v.RegisterYears * p.MinPriceCkb
 	}
+	res.DasCapacity = (totalCKB * uint64(p.NewSubAccountCustomPriceDasProfitRate)) / common.PercentRateBase
+	res.OwnerCapacity = totalCKB - res.DasCapacity
+	if res.DasCapacity < minDasCKb {
+		res.DasCapacity = minDasCKb
+		res.OwnerCapacity = totalCKB - res.DasCapacity
+	}
+	log.Info("price:", res.DasCapacity, res.OwnerCapacity)
 
 	return &res, nil
 }
