@@ -84,6 +84,8 @@ type BaseInfo struct {
 	ConfigCellRu              *core.DasConfigCellInfo
 	ConfigCellTr              *core.DasConfigCellInfo
 	ConfigCellVi              *core.DasConfigCellInfo
+	ConfigCellTh              *core.DasConfigCellInfo
+	ConfigCellKo              *core.DasConfigCellInfo
 }
 
 func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
@@ -172,6 +174,14 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
 	bi.ConfigCellVi, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetVi)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellKo, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetKo)
+	if err != nil {
+		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+	}
+	bi.ConfigCellTh, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsCharSetTh)
 	if err != nil {
 		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}

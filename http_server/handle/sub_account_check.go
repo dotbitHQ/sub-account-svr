@@ -355,6 +355,14 @@ func (h *HttpHandle) checkAccountCharSet(accountCharSet []common.AccountCharSet,
 			if _, ok := common.CharSetTypeViMap[v.Char]; !ok {
 				return false
 			}
+		case common.AccountCharTypeTh:
+			if _, ok := common.CharSetTypeThMap[v.Char]; !ok {
+				return false
+			}
+		case common.AccountCharTypeKo:
+			if _, ok := common.CharSetTypeKoMap[v.Char]; !ok {
+				return false
+			}
 		default:
 			return false
 		}

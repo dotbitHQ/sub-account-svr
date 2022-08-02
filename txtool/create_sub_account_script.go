@@ -215,6 +215,10 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTr.ToCellDep())
 		case common.AccountCharTypeVi:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellVi.ToCellDep())
+		case common.AccountCharTypeTh:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellTh.ToCellDep())
+		case common.AccountCharTypeKo:
+			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellKo.ToCellDep())
 		}
 	}
 
