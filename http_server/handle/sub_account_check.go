@@ -300,6 +300,8 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		DasCore: h.DasCore,
 		DbDao:   h.DbDao,
 	}
+	totalCKB := uint64(0)
+	minDasCKb := uint64(0)
 	for _, v := range req.SubAccountList {
 		resPrice, err := priceApi.GetPrice(&txtool.ParamGetPrice{
 			Action:        common.DasActionCreateSubAccount,
@@ -311,11 +313,12 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 			return fmt.Errorf("GetPrice err: %s", err.Error())
 		}
 		priceCkb := (resPrice.ActionTotalPrice / quote) * common.OneCkb
-		//dasCkb := (priceCkb / common.PercentRateBase) * uint64(newRate)
-		if priceCkb < v.RegisterYears*newSubAccountPrice {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
-			return nil
-		}
+		totalCKB += priceCkb
+		minDasCKb += v.RegisterYears * newSubAccountPrice
+	}
+	if totalCKB < minDasCKb {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+		return nil
 	}
 	return nil
 }
