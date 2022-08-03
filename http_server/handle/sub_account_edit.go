@@ -215,8 +215,10 @@ func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 				}
 			} else if v.Type == "address" {
 				if ok, _ := regexp.MatchString("^(0|[1-9][0-9]*)$", v.Key); !ok {
-					apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
-					return
+					if _, ok2 := mapRecordKey[record]; !ok2 {
+						apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
+						return
+					}
 				}
 			} else if _, ok := mapRecordKey[record]; !ok {
 				apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
