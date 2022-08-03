@@ -174,7 +174,20 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		}
 		//
 		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
-		accLen := common.GetAccountLength(v.Account[:index])
+
+		if len(v.AccountCharStr) == 0 {
+			accountCharStr, err := common.AccountToAccountChars(v.Account)
+			if err != nil {
+				tmp.Status = CheckStatusFail
+				tmp.Message = fmt.Sprintf("AccountToAccountChars err: %s", suffix)
+				isOk = false
+				resp.Result = append(resp.Result, tmp)
+				continue
+			}
+			v.AccountCharStr = accountCharStr
+		}
+
+		accLen := len(v.AccountCharStr)
 		if uint32(accLen) > maxLength {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
@@ -304,9 +317,10 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 	minDasCKb := uint64(0)
 	for _, v := range req.SubAccountList {
 		resPrice, err := priceApi.GetPrice(&txtool.ParamGetPrice{
-			Action:        common.DasActionCreateSubAccount,
-			SubAccount:    v.Account,
-			RegisterYears: v.RegisterYears,
+			Action:         common.DasActionCreateSubAccount,
+			SubAccount:     v.Account,
+			RegisterYears:  v.RegisterYears,
+			AccountCharStr: v.AccountCharStr,
 		})
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())

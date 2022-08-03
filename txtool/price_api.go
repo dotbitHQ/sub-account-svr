@@ -4,6 +4,7 @@ import (
 	"context"
 	"das_sub_account/dao"
 	"das_sub_account/tables"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -17,9 +18,10 @@ type PriceApi interface {
 }
 
 type ParamGetPrice struct {
-	Action        common.DasAction
-	SubAccount    string
-	RegisterYears uint64
+	Action         common.DasAction
+	SubAccount     string
+	RegisterYears  uint64
+	AccountCharStr []common.AccountCharSet
 }
 
 type ResGetPrice struct {
@@ -77,7 +79,9 @@ func (r *PriceApiConfig) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	if index == -1 {
 		return nil, fmt.Errorf("sub-account is invalid")
 	}
-	accLen := common.GetAccountLength(p.SubAccount[:index])
+
+	//accLen := common.GetAccountLength(p.SubAccount[:index])
+	accLen := uint8(len(p.AccountCharStr))
 
 	// config price
 	parentAccount := p.SubAccount[index+1:]
@@ -128,10 +132,18 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 	totalCKB := uint64(0)
 	minDasCKb := uint64(0)
 	for _, v := range p.MintList {
+		var accountCharSet []common.AccountCharSet
+		if v.Content != "" {
+			if err := json.Unmarshal([]byte(v.Content), &accountCharSet); err != nil {
+				return nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
+			}
+		}
+
 		resPrice, err := p.PriceApi.GetPrice(&ParamGetPrice{
-			Action:        p.Action,
-			SubAccount:    v.Account,
-			RegisterYears: v.RegisterYears,
+			Action:         p.Action,
+			SubAccount:     v.Account,
+			RegisterYears:  v.RegisterYears,
+			AccountCharStr: accountCharSet,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("GetPrice err: %s", err.Error())

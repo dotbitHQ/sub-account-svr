@@ -51,7 +51,13 @@ func (h *HttpHandle) doCustomScriptPrice(req *ReqCustomScriptPrice, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sub-account is invalid")
 		return nil
 	}
-	accLen := common.GetAccountLength(req.SubAccount[:index])
+	accountCharStr, err := common.AccountToAccountChars(req.SubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "AccountToAccountChars err")
+		return nil
+	}
+	accLen := uint8(len(accountCharStr))
+
 	parentAccount := req.SubAccount[index+1:]
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(parentAccount))
 	log.Info("doCustomScriptPrice:", accLen, parentAccount, parentAccountId)
