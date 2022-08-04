@@ -207,9 +207,9 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
 			isOk = false
-		} else if len(v.AccountCharStr) > 0 && !h.checkAccountCharSet(v.AccountCharStr, v.Account[:strings.Index(v.Account, ".")]) {
+		} else if !h.checkAccountCharSet(v.AccountCharStr, v.Account[:strings.Index(v.Account, ".")]) {
 			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("invalid charset")
+			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false
 		}
 		//if len(v.AccountCharStr) == 0 {

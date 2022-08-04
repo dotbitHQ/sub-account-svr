@@ -58,6 +58,9 @@ func (d *DbDao) GetSmtRecordListByTaskIds(taskIds []string, recordType tables.Re
 }
 
 func (d *DbDao) GetSelfSmtRecordListByAccountIds(accountIds []string) (list []tables.TableSmtRecordInfo, err error) {
+	if len(accountIds) == 0 {
+		return
+	}
 	err = d.db.Where("account_id IN(?) AND record_type=?",
 		accountIds, tables.RecordTypeDefault).Find(&list).Error
 	return

@@ -180,6 +180,9 @@ func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, 
 }
 
 func (d *DbDao) GetAccountListByAccountIds(accountIds []string) (list []tables.TableAccountInfo, err error) {
+	if len(accountIds) == 0 {
+		return
+	}
 	err = d.parserDb.Where("account_id IN(?)", accountIds).Find(&list).Error
 	return
 }
