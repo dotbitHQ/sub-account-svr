@@ -169,7 +169,7 @@ func TestSubAccountCreate(t *testing.T) {
 }
 
 func TestSubAccountCreate2(t *testing.T) {
-	privateKey := "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
+	privateKey := ""
 	url := ApiUrl + "/sub/account/create"
 	req := handle.ReqSubAccountCreate{
 		ChainTypeAddress: core.ChainTypeAddress{
