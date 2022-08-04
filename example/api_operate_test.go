@@ -62,7 +62,7 @@ func TestSubAccountCheck(t *testing.T) {
 		Account: "0001.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "00009.0001.bit",
+				Account:       "bให้😊บaริก😊02.0001.bit",
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
@@ -169,6 +169,7 @@ func TestSubAccountCreate(t *testing.T) {
 }
 
 func TestSubAccountCreate2(t *testing.T) {
+	privateKey := "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
 	url := ApiUrl + "/sub/account/create"
 	req := handle.ReqSubAccountCreate{
 		ChainTypeAddress: core.ChainTypeAddress{
@@ -176,25 +177,25 @@ func TestSubAccountCreate2(t *testing.T) {
 			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
-				Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account: "aaaazzxxx.bit",
+		Account: "tzh20220804.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:       "00003.aaaazzxxx.bit",
+				Account:       "tesat01😊.tzh20220804.bit",
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
 					KeyInfo: core.KeyInfo{
 						CoinType: "60",
 						ChainId:  "5",
-						Key:      "0x15a33588908cf8edb27d1abe3852bf287abd3891",
+						Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 					},
 				},
 			},
 			{
-				Account:       "00004.aaaazzxxx.bit",
+				Account:       "ให้😊บaริก😊02.tzh20220804.bit",
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
@@ -213,7 +214,7 @@ func TestSubAccountCreate2(t *testing.T) {
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
-	if err := doSign(data.SignInfoList, ""); err != nil {
+	if err := doSign(data.SignInfoList, privateKey); err != nil {
 		t.Fatal(err)
 	}
 

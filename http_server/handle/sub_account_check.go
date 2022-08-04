@@ -149,22 +149,22 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 	maxLength, _ := configCellBuilder.MaxLength()
 	// check list
 	var accountIds []string
-	for i, v := range req.SubAccountList {
+	for i, _ := range req.SubAccountList {
 		tmp := CheckSubAccount{
 			CreateSubAccount: req.SubAccountList[i],
 			Status:           0,
 			Message:          "",
 		}
-		index := strings.Index(v.Account, ".")
+		index := strings.Index(req.SubAccountList[i].Account, ".")
 		if index == -1 {
 			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("sub account invalid: %s", v.Account)
+			tmp.Message = fmt.Sprintf("sub account invalid: %s", req.SubAccountList[i].Account)
 			isOk = false
 			resp.Result = append(resp.Result, tmp)
 			continue
 		}
 		//
-		suffix := strings.TrimLeft(v.Account[index:], ".")
+		suffix := strings.TrimLeft(req.SubAccountList[i].Account[index:], ".")
 		if suffix != req.Account {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
@@ -173,10 +173,10 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			continue
 		}
 		//
-		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
 
-		if len(v.AccountCharStr) == 0 {
-			accountCharStr, err := h.DasCore.GetAccountCharSetList(v.Account)
+		if len(req.SubAccountList[i].AccountCharStr) == 0 {
+			accountCharStr, err := h.DasCore.GetAccountCharSetList(req.SubAccountList[i].Account)
 			//accountCharStr, err := common.AccountToAccountChars(v.Account)
 			if err != nil {
 				tmp.Status = CheckStatusFail
@@ -188,7 +188,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			req.SubAccountList[i].AccountCharStr = accountCharStr
 		}
 
-		accLen := len(v.AccountCharStr)
+		accLen := len(req.SubAccountList[i].AccountCharStr)
 		if uint32(accLen) > maxLength {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
@@ -199,16 +199,16 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("same account")
 			isOk = false
-		} else if v.RegisterYears <= 0 {
+		} else if req.SubAccountList[i].RegisterYears <= 0 {
 			tmp.Status = CheckStatusFail
 			tmp.Message = "register years less than 1"
 			isOk = false
-		} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
+		} else if req.SubAccountList[i].RegisterYears > config.Cfg.Das.MaxRegisterYears {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
 			isOk = false
-		} else if !h.checkAccountCharSet(v.AccountCharStr, v.Account[:strings.Index(v.Account, ".")]) {
-			log.Info("checkAccountCharSet:", v.Account, v.AccountCharStr)
+		} else if !h.checkAccountCharSet(req.SubAccountList[i].AccountCharStr, req.SubAccountList[i].Account[:strings.Index(req.SubAccountList[i].Account, ".")]) {
+			log.Info("checkAccountCharSet:", req.SubAccountList[i].Account, req.SubAccountList[i].AccountCharStr)
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false
@@ -230,13 +230,13 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			continue
 		}
 		//
-		addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		addrHex, e := req.SubAccountList[i].FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if e != nil {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
 			isOk = false
 		} else {
-			accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+			accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
 			accountIds = append(accountIds, accId)
 			req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
 			subAccountMap[accountId] = i
