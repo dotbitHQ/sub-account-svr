@@ -185,7 +185,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 				resp.Result = append(resp.Result, tmp)
 				continue
 			}
-			v.AccountCharStr = accountCharStr
+			req.SubAccountList[i].AccountCharStr = accountCharStr
 		}
 
 		accLen := len(v.AccountCharStr)

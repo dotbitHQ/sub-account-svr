@@ -147,7 +147,7 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeSuspendOperation, "suspend operation")
 		return nil
 	}
-	taskList, taskMap, err := getTaskAndTaskMap(h.DasCore.Daf(), req, parentAccountId, tables.TaskTypeNormal)
+	taskList, taskMap, err := getTaskAndTaskMap(h.DasCore, req, parentAccountId, tables.TaskTypeNormal)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("getTaskAndTaskMap err: %s", err.Error())
@@ -255,7 +255,7 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 	return nil
 }
 
-func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentAccountId string, taskType tables.TaskType) ([]tables.TableTaskInfo, map[string][]tables.TableSmtRecordInfo, error) {
+func getTaskAndTaskMap(dc *core.DasCore, req *ReqSubAccountCreate, parentAccountId string, taskType tables.TaskType) ([]tables.TableTaskInfo, map[string][]tables.TableSmtRecordInfo, error) {
 	var taskList []tables.TableTaskInfo
 	var taskMap = make(map[string][]tables.TableSmtRecordInfo)
 	taskId, count := "", 0
@@ -290,7 +290,7 @@ func getTaskAndTaskMap(daf *core.DasAddressFormat, req *ReqSubAccountCreate, par
 			IsMulti:        false,
 			ChainType:      v.chainType,
 		}
-		registerArgs, err := daf.HexToArgs(ownerHex, ownerHex)
+		registerArgs, err := dc.Daf().HexToArgs(ownerHex, ownerHex)
 		if err != nil {
 			return nil, nil, fmt.Errorf("HexToArgs err: %s", err.Error())
 		}
