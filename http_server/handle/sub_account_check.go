@@ -176,7 +176,8 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
 
 		if len(v.AccountCharStr) == 0 {
-			accountCharStr, err := common.AccountToAccountChars(v.Account)
+			accountCharStr, err := h.DasCore.GetAccountCharSetList(v.Account)
+			//accountCharStr, err := common.AccountToAccountChars(v.Account)
 			if err != nil {
 				tmp.Status = CheckStatusFail
 				tmp.Message = fmt.Sprintf("AccountToAccountChars err: %s", suffix)
@@ -211,18 +212,18 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("invalid charset")
 			isOk = false
 		}
-		if len(v.AccountCharStr) == 0 {
-			if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-				// check char set
-				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("invalid character")
-				isOk = false
-			} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
-				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("invalid character")
-				isOk = false
-			}
-		}
+		//if len(v.AccountCharStr) == 0 {
+		//	if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
+		//		// check char set
+		//		tmp.Status = CheckStatusFail
+		//		tmp.Message = fmt.Sprintf("invalid character")
+		//		isOk = false
+		//	} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
+		//		tmp.Status = CheckStatusFail
+		//		tmp.Message = fmt.Sprintf("invalid character")
+		//		isOk = false
+		//	}
+		//}
 		if tmp.Status != CheckStatusOk {
 			resp.Result = append(resp.Result, tmp)
 			continue

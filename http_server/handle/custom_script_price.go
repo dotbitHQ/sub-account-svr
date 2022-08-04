@@ -51,7 +51,8 @@ func (h *HttpHandle) doCustomScriptPrice(req *ReqCustomScriptPrice, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sub-account is invalid")
 		return nil
 	}
-	accountCharStr, err := common.AccountToAccountChars(req.SubAccount)
+	accountCharStr, err := h.DasCore.GetAccountCharSetList(req.SubAccount)
+	//accountCharStr, err := common.AccountToAccountChars(req.SubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "AccountToAccountChars err")
 		return nil
