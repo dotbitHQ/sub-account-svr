@@ -146,7 +146,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		if req.SubAccountList[i].KeyInfo.Key != "" {
 			continue
 		}
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
 		mintForAccountIds = append(mintForAccountIds, accId)
 	}
 	mintForAccountList, err := h.DbDao.GetAccountListByAccountIds(mintForAccountIds)
@@ -162,7 +162,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		if req.SubAccountList[i].KeyInfo.Key != "" {
 			continue
 		}
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
 		if acc, ok := mapMinForAccount[accId]; ok {
 			coinType := common.CoinTypeEth
 			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
