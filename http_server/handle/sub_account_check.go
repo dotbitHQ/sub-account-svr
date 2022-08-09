@@ -174,7 +174,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = keyOwner
 		} else {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("account [%s] does not exist", req.SubAccountList[i].Account))
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
 			return false, nil, nil
 		}
 	}

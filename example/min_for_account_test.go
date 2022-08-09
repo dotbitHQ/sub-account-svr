@@ -20,15 +20,15 @@ func TestMintForAccountCheck(t *testing.T) {
 		Account: "tzh20220809.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:          "test01.tzh20220809.bit",
-				MintForAccount:   "tzh20220809.bit",
+				Account:          "test02.tzh20220809.bit",
+				MintForAccount:   "test01.tzh20220809.bit",
 				AccountCharStr:   nil,
 				RegisterYears:    1,
 				ChainTypeAddress: core.ChainTypeAddress{},
 			},
 			{
-				Account:          "มิ์01ญิ.tzh20220809.bit",
-				MintForAccount:   "001.account2022011906.bit",
+				Account:          "มิ์02ญิ.tzh20220809.bit",
+				MintForAccount:   "",
 				AccountCharStr:   nil,
 				RegisterYears:    1,
 				ChainTypeAddress: core.ChainTypeAddress{},
@@ -57,15 +57,15 @@ func TestMintForAccount(t *testing.T) {
 		Account: "tzh20220809.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
-				Account:          "test01.tzh20220809.bit",
-				MintForAccount:   "tzh20220809.bit",
+				Account:          "test02.tzh20220809.bit",
+				MintForAccount:   "test01.tzh20220809.bit",
 				AccountCharStr:   nil,
 				RegisterYears:    1,
 				ChainTypeAddress: core.ChainTypeAddress{},
 			},
 			{
-				Account:          "มิ์01ญิ.tzh20220809.bit",
-				MintForAccount:   "001.account2022011906.bit",
+				Account:          "มิ์02ญิ.tzh20220809.bit",
+				MintForAccount:   "",
 				AccountCharStr:   nil,
 				RegisterYears:    1,
 				ChainTypeAddress: core.ChainTypeAddress{},
