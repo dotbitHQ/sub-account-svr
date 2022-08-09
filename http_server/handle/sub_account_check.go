@@ -165,12 +165,14 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
 		if acc, ok := mapMinForAccount[accId]; ok {
 			coinType := common.CoinTypeEth
+			keyOwner := acc.Owner
 			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
 				coinType = common.CoinTypeTrx
+				keyOwner, _ = common.TronHexToBase58(acc.Owner)
 			}
 			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
-			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = acc.Owner
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = keyOwner
 		} else {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("account [%s] does not exist", req.SubAccountList[i].Account))
 			return false, nil, nil
