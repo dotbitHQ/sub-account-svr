@@ -171,6 +171,9 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = acc.Owner
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("account [%s] does not exist", req.SubAccountList[i].Account))
+			return false, nil, nil
 		}
 	}
 	//
