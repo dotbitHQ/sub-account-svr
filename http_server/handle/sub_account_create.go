@@ -32,6 +32,7 @@ type ReqSubAccountCreate struct {
 
 type CreateSubAccount struct {
 	Account        string                  `json:"account"`
+	MintForAccount string                  `json:"mint_for_account"`
 	AccountCharStr []common.AccountCharSet `json:"account_char_str"`
 	RegisterYears  uint64                  `json:"register_years"`
 	core.ChainTypeAddress

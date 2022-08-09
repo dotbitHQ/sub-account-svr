@@ -140,6 +140,40 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 	var resp RespSubAccountCheck
 	resp.Result = make([]CheckSubAccount, 0)
 
+	// check mint for account
+	var mintForAccountIds []string
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
+		mintForAccountIds = append(mintForAccountIds, accId)
+	}
+	mintForAccountList, err := h.DbDao.GetAccountListByAccountIds(mintForAccountIds)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
+		return false, nil, fmt.Errorf("GetAccountListByAccountIds: %s", err.Error())
+	}
+	var mapMinForAccount = make(map[string]tables.TableAccountInfo)
+	for i, v := range mintForAccountList {
+		mapMinForAccount[v.AccountId] = mintForAccountList[i]
+	}
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
+		if acc, ok := mapMinForAccount[accId]; ok {
+			coinType := common.CoinTypeEth
+			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
+				coinType = common.CoinTypeTrx
+			}
+			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = acc.Owner
+		}
+	}
+	//
 	var subAccountMap = make(map[string]int)
 	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
 	if err != nil {
@@ -213,18 +247,6 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false
 		}
-		//if len(v.AccountCharStr) == 0 {
-		//	if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-		//		// check char set
-		//		tmp.Status = CheckStatusFail
-		//		tmp.Message = fmt.Sprintf("invalid character")
-		//		isOk = false
-		//	} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
-		//		tmp.Status = CheckStatusFail
-		//		tmp.Message = fmt.Sprintf("invalid character")
-		//		isOk = false
-		//	}
-		//}
 		if tmp.Status != CheckStatusOk {
 			resp.Result = append(resp.Result, tmp)
 			continue
