@@ -68,17 +68,21 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 	switch t.Action {
 	case common.DasActionCreateSubAccount:
 		var accountCharSet []common.AccountCharSet
-		if t.Content != "" {
-			if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
-				return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
-			}
-		} else {
-			var err error
-			accountCharSet, err = common.AccountToAccountChars(t.Account[:strings.Index(t.Account, ".")])
-			if err != nil {
-				return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
-			}
+		if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
+			return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
 		}
+
+		//if t.Content != "" {
+		//	if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
+		//		return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
+		//	}
+		//} else {
+		//	var err error
+		//	accountCharSet, err = common.AccountToAccountChars(t.Account[:strings.Index(t.Account, ".")])
+		//	if err != nil {
+		//		return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
+		//	}
+		//}
 		log.Info("GetCurrentSubAccount:", toolib.JsonString(accountCharSet), len(t.Content), t.Content)
 		currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
 		currentSubAccount.AccountId = t.AccountId

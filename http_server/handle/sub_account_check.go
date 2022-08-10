@@ -140,6 +140,45 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 	var resp RespSubAccountCheck
 	resp.Result = make([]CheckSubAccount, 0)
 
+	// check mint for account
+	var mintForAccountIds []string
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
+		mintForAccountIds = append(mintForAccountIds, accId)
+	}
+	mintForAccountList, err := h.DbDao.GetAccountListByAccountIds(mintForAccountIds)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
+		return false, nil, fmt.Errorf("GetAccountListByAccountIds: %s", err.Error())
+	}
+	var mapMinForAccount = make(map[string]tables.TableAccountInfo)
+	for i, v := range mintForAccountList {
+		mapMinForAccount[v.AccountId] = mintForAccountList[i]
+	}
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
+		if acc, ok := mapMinForAccount[accId]; ok {
+			coinType := common.CoinTypeEth
+			keyOwner := acc.Owner
+			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
+				coinType = common.CoinTypeTrx
+				keyOwner, _ = common.TronHexToBase58(acc.Owner)
+			}
+			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = keyOwner
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
+			return false, nil, nil
+		}
+	}
+	//
 	var subAccountMap = make(map[string]int)
 	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
 	if err != nil {
@@ -149,22 +188,22 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 	maxLength, _ := configCellBuilder.MaxLength()
 	// check list
 	var accountIds []string
-	for i, v := range req.SubAccountList {
+	for i, _ := range req.SubAccountList {
 		tmp := CheckSubAccount{
 			CreateSubAccount: req.SubAccountList[i],
 			Status:           0,
 			Message:          "",
 		}
-		index := strings.Index(v.Account, ".")
+		index := strings.Index(req.SubAccountList[i].Account, ".")
 		if index == -1 {
 			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("sub account invalid: %s", v.Account)
+			tmp.Message = fmt.Sprintf("sub account invalid: %s", req.SubAccountList[i].Account)
 			isOk = false
 			resp.Result = append(resp.Result, tmp)
 			continue
 		}
 		//
-		suffix := strings.TrimLeft(v.Account[index:], ".")
+		suffix := strings.TrimLeft(req.SubAccountList[i].Account[index:], ".")
 		if suffix != req.Account {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account suffix diff: %s", suffix)
@@ -173,10 +212,11 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			continue
 		}
 		//
-		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
 
-		if len(v.AccountCharStr) == 0 {
-			accountCharStr, err := common.AccountToAccountChars(v.Account)
+		if len(req.SubAccountList[i].AccountCharStr) == 0 {
+			accountCharStr, err := h.DasCore.GetAccountCharSetList(req.SubAccountList[i].Account)
+			//accountCharStr, err := common.AccountToAccountChars(v.Account)
 			if err != nil {
 				tmp.Status = CheckStatusFail
 				tmp.Message = fmt.Sprintf("AccountToAccountChars err: %s", suffix)
@@ -184,10 +224,10 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 				resp.Result = append(resp.Result, tmp)
 				continue
 			}
-			v.AccountCharStr = accountCharStr
+			req.SubAccountList[i].AccountCharStr = accountCharStr
 		}
 
-		accLen := len(v.AccountCharStr)
+		accLen := len(req.SubAccountList[i].AccountCharStr)
 		if uint32(accLen) > maxLength {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
@@ -198,43 +238,32 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("same account")
 			isOk = false
-		} else if v.RegisterYears <= 0 {
+		} else if req.SubAccountList[i].RegisterYears <= 0 {
 			tmp.Status = CheckStatusFail
 			tmp.Message = "register years less than 1"
 			isOk = false
-		} else if v.RegisterYears > config.Cfg.Das.MaxRegisterYears {
+		} else if req.SubAccountList[i].RegisterYears > config.Cfg.Das.MaxRegisterYears {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
 			isOk = false
-		} else if len(v.AccountCharStr) > 0 && !h.checkAccountCharSet(v.AccountCharStr, v.Account[:strings.Index(v.Account, ".")]) {
+		} else if !h.checkAccountCharSet(req.SubAccountList[i].AccountCharStr, req.SubAccountList[i].Account[:strings.Index(req.SubAccountList[i].Account, ".")]) {
+			log.Info("checkAccountCharSet:", req.SubAccountList[i].Account, req.SubAccountList[i].AccountCharStr)
 			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("invalid charset")
+			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false
-		}
-		if len(v.AccountCharStr) == 0 {
-			if charList, err := common.AccountToAccountChars(v.Account[:strings.Index(v.Account, ".")]); err != nil {
-				// check char set
-				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("invalid character")
-				isOk = false
-			} else if isDiff := common.CheckAccountCharTypeDiff(charList); isDiff {
-				tmp.Status = CheckStatusFail
-				tmp.Message = fmt.Sprintf("invalid character")
-				isOk = false
-			}
 		}
 		if tmp.Status != CheckStatusOk {
 			resp.Result = append(resp.Result, tmp)
 			continue
 		}
 		//
-		addrHex, e := v.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		addrHex, e := req.SubAccountList[i].FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if e != nil {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("params is invalid: %s", e.Error())
 			isOk = false
 		} else {
-			accId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
+			accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
 			accountIds = append(accountIds, accId)
 			req.SubAccountList[i].chainType, req.SubAccountList[i].address = addrHex.ChainType, addrHex.AddressHex
 			subAccountMap[accountId] = i

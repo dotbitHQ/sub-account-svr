@@ -313,6 +313,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "mint_for_account": "",
       "account_char_str": [
         {
           "char_set_name": 2,
@@ -389,6 +390,7 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "sub_account_list": [
     {
       "account": "",
+      "mint_for_account": "",
       "account_char_str": [
         {
           "char_set_name": 2,
