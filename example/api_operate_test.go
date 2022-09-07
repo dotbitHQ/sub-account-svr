@@ -106,7 +106,7 @@ func TestSubAccountCreate(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account: "tzh20220718.bit",
+		Account: "5ph2lc3zs6x.bit",
 		SubAccountList: []handle.CreateSubAccount{
 			{
 				Account:       "00011.0001.bit",
@@ -138,7 +138,7 @@ func TestSubAccountCreate(t *testing.T) {
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
 	for i := 0; i < 98; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test01-%d.tzh20220718.bit", i),
+			Account:       fmt.Sprintf("test01-%d.5ph2lc3zs6x.bit", i),
 			RegisterYears: 1,
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",

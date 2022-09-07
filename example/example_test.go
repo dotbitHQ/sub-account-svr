@@ -148,7 +148,7 @@ func TestAccountLen(t *testing.T) {
 	var res = make(map[string]RegisterInfo)
 	var owner = make(map[string]struct{})
 	for _, v := range list {
-		length := common.GetAccountLength(v.Account)
+		_, length, _ := common.GetDotBitAccountLength(v.Account)
 		tm := time.Unix(int64(v.RegisteredAt), 0)
 		registeredAt := tm.Format("2006-01-02")
 		var tmp RegisterInfo
@@ -174,13 +174,17 @@ func TestAccountLen(t *testing.T) {
 	var strList []string
 
 	for k, v := range res {
-		strList = append(strList, fmt.Sprintf("%s,%d,%d,%d", k, v.Count4, v.Count5, v.CountOwner))
+		strList = append(strList, fmt.Sprintf("%s,%d,%d,%d,\n", k, v.Count4, v.Count5, v.CountOwner))
 		count += v.CountOwner
 	}
 	fmt.Println("count:", count)
 	sort.Strings(strList)
+	txtPath := "./register-info.csv"
 	for _, v := range strList {
-		fmt.Println(v)
+		//fmt.Println(v)
+		if err := writeToFile(txtPath, v); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -197,7 +201,7 @@ func TestAccountLen2(t *testing.T) {
 	txtPath := "./register.csv"
 	for _, v := range list {
 		timeAt := (v.ExpiredAt - v.RegisteredAt) / uint64(common.OneYearSec)
-		length := common.GetAccountLength(v.Account)
+		_, length, _ := common.GetDotBitAccountLength(v.Account)
 		lengthStr := "4位"
 		if length > 4 {
 			lengthStr = "5位及以上"

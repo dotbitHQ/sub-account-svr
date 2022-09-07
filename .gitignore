@@ -21,3 +21,4 @@ config/config.database.yaml
 mysql-data
 mongo-data
 sub_account
+example/*.csv
