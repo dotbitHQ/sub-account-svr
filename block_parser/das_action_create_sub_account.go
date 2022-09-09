@@ -75,6 +75,7 @@ func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (r
 	}
 
 	doNotify(smtRecordList)
+	b.doNotify2(smtRecordList)
 
 	return
 }
@@ -90,6 +91,49 @@ func doNotify(smtRecordList []tables.TableSmtRecordInfo) {
 
 		content += fmt.Sprintf(`** %s ** registered for %d year(s)
 `, account, registerYears)
+		count++
+		if count == 30 {
+			contentList = append(contentList, content)
+			content = ""
+			count = 0
+		}
+	}
+	if content != "" {
+		contentList = append(contentList, content)
+	}
+	go func() {
+		for _, v := range contentList {
+			if err := notify.SendNotifyDiscord(config.Cfg.Notify.DiscordCreateSubAccountKey, v); err != nil {
+				log.Error("notify.SendNotifyDiscord err: ", err.Error(), v)
+			}
+		}
+	}()
+	//go func() {
+	//	for _, v := range contentList {
+	//		tmp := strings.Replace(v, "** ", "", -1)
+	//		tmp = strings.Replace(tmp, " **", "", -1)
+	//		notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", tmp)
+	//	}
+	//}()
+}
+
+func (b *BlockParser) doNotify2(smtRecordList []tables.TableSmtRecordInfo) {
+	content := ""
+	count := 0
+	var contentList []string
+	for _, v := range smtRecordList {
+		account := v.Account
+		registerYears := uint64(1)
+		registerYears = v.RegisterYears
+
+		ownerNormal, _, _ := b.DasCore.Daf().ArgsToNormal(common.Hex2Bytes(v.RegisterArgs))
+		owner := ownerNormal.AddressNormal
+		if len(owner) > 4 {
+			owner = owner[len(owner)-4:]
+		}
+
+		content += fmt.Sprintf(`%s, %d, %s
+`, account, registerYears, owner)
 		count++
 		if count == 30 {
 			contentList = append(contentList, content)
