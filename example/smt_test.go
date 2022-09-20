@@ -10,11 +10,38 @@ import (
 	_ "net/http/pprof"
 	"sync"
 	"testing"
+	"time"
 )
 
 const (
 	URI = "mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb"
 )
+
+func TestSmt(t *testing.T) {
+	num := 1
+	list, err := initMongoSmtTree(num, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		http.ListenAndServe(":8899", nil)
+	}()
+	wg := sync.WaitGroup{}
+	now := time.Now()
+	for i := 0; i < num; i++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			if err := buildSmt(index, list[index]); err != nil {
+				panic(err)
+			}
+		}(i)
+	}
+	wg.Wait()
+	fmt.Println("ok", time.Since(now).Minutes())
+
+	select {}
+}
 
 func initMongoSmtTree(num, count int) ([]*smt.SparseMerkleTree, error) {
 	ctx := context.Background()
@@ -49,32 +76,6 @@ func TestInitSmt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestSmt(t *testing.T) {
-	num := 1
-	list, err := initMongoSmtTree(num, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	go func() {
-		http.ListenAndServe(":8899", nil)
-	}()
-	wg := sync.WaitGroup{}
-
-	for i := 0; i < num; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			if err := buildSmt(index, list[index]); err != nil {
-				panic(err)
-			}
-		}(i)
-	}
-	wg.Wait()
-	fmt.Println("ok")
-
-	select {}
 }
 
 func buildSmt(j int, tree *smt.SparseMerkleTree) error {
