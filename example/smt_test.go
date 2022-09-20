@@ -38,7 +38,7 @@ func TestSmt(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
-	fmt.Println("ok", time.Since(now).Minutes())
+	fmt.Println("ok", time.Since(now).Seconds())
 
 	select {}
 }
