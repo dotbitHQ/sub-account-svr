@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ const (
 )
 
 func TestSmt(t *testing.T) {
+	fmt.Println(runtime.GOMAXPROCS(runtime.NumCPU() - 1))
 	num := 1
 	list, err := initMongoSmtTree(num, 1)
 	if err != nil {
