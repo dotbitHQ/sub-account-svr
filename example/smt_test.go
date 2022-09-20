@@ -28,6 +28,7 @@ func TestSmt(t *testing.T) {
 	}()
 	wg := sync.WaitGroup{}
 	now := time.Now()
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
 	for i := 0; i < num; i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -38,6 +39,7 @@ func TestSmt(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
 	fmt.Println("ok", time.Since(now).Seconds())
 
 	select {}
