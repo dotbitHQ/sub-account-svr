@@ -77,7 +77,7 @@ func TestSmt(t *testing.T) {
 	select {}
 }
 
-func buildSmt(i int, tree *smt.SparseMerkleTree) error {
+func buildSmt(j int, tree *smt.SparseMerkleTree) error {
 	for i := 0; i < 100; i++ {
 		if _, err := tree.Root(); err != nil {
 			return fmt.Errorf("tree.Root 1 err: %s", err.Error())
@@ -102,7 +102,8 @@ func buildSmt(i int, tree *smt.SparseMerkleTree) error {
 		if _, err := tree.Root(); err != nil {
 			return fmt.Errorf("tree.Root 1 err: %s", err.Error())
 		}
+		fmt.Println("buildSmt :", j, "-", i)
 	}
-	fmt.Println("buildSmt:", i)
+	fmt.Println("buildSmt OK:", j)
 	return nil
 }
