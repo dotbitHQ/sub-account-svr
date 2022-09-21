@@ -6,9 +6,7 @@ import (
 	"github.com/dotbitHQ/das-lib/smt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"net/http"
 	_ "net/http/pprof"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -19,24 +17,24 @@ const (
 )
 
 func TestSmt(t *testing.T) {
-	fmt.Println(runtime.GOMAXPROCS(runtime.NumCPU() - 1))
-	num := 1
-	list, err := initMongoSmtTree(num, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	num := 50
+	list, err := initMongoSmtTree(ctx, num, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		http.ListenAndServe(":8899", nil)
-	}()
+	//go func() {
+	//	http.ListenAndServe(":8899", nil)
+	//}()
 	wg := sync.WaitGroup{}
 	now := time.Now()
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), len(list))
 	for i := 0; i < num; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
 			if err := buildSmt(index, list[index]); err != nil {
-				panic(err)
+				t.Error("buildSmt:", err.Error())
 			}
 		}(i)
 	}
@@ -44,18 +42,18 @@ func TestSmt(t *testing.T) {
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
 	fmt.Println("ok", time.Since(now).Seconds())
 
-	select {}
+	cancel()
+	//select {}
 }
 
-func initMongoSmtTree(num, count int) ([]*smt.SparseMerkleTree, error) {
-	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(URI))
-	if err != nil {
-		return nil, fmt.Errorf("mongo.Connect err: %s", err.Error())
-	}
+func initMongoSmtTree(ctx context.Context, num, count int) ([]*smt.SparseMerkleTree, error) {
 
 	var list []*smt.SparseMerkleTree
 	for i := 0; i < num; i++ {
+		client, err := mongo.Connect(ctx, options.Client().ApplyURI(URI))
+		if err != nil {
+			return nil, fmt.Errorf("mongo.Connect err: %s", err.Error())
+		}
 		store := smt.NewMongoStore(ctx, client, "testsmt", fmt.Sprintf("test-%d", i))
 		tree := smt.NewSparseMerkleTree(store)
 		for j := 0; j < count; j++ {
@@ -76,14 +74,16 @@ func initMongoSmtTree(num, count int) ([]*smt.SparseMerkleTree, error) {
 
 func TestInitSmt(t *testing.T) {
 	num := 10
-	_, err := initMongoSmtTree(num, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	_, err := initMongoSmtTree(ctx, num, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	cancel()
 }
 
 func buildSmt(j int, tree *smt.SparseMerkleTree) error {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		if _, err := tree.Root(); err != nil {
 			return fmt.Errorf("tree.Root 1 err: %s", err.Error())
 		}
