@@ -83,7 +83,7 @@ func TestInitSmt(t *testing.T) {
 }
 
 func buildSmt(j int, tree *smt.SparseMerkleTree) error {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		if _, err := tree.Root(); err != nil {
 			return fmt.Errorf("tree.Root 1 err: %s", err.Error())
 		}
