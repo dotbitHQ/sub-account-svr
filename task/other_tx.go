@@ -12,7 +12,7 @@ import (
 )
 
 func (t *SmtTask) doConfirmOtherTx() error {
-	list, err := t.DbDao.GetNeedToConfirmOtherTx()
+	list, err := t.DbDao.GetNeedToConfirmOtherTx(config.Cfg.Server.Name)
 	if err != nil {
 		return fmt.Errorf("GetNeedToConfirmOtherTx err: %s", err.Error())
 	}

@@ -7,9 +7,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func (d *DbDao) GetNeedDoCheckTxTaskList() (list []tables.TableTaskInfo, err error) {
-	err = d.db.Where("smt_status=? AND tx_status=?",
-		tables.SmtStatusWriteComplete, tables.TxStatusPending).
+func (d *DbDao) GetNeedDoCheckTxTaskList(svrName string) (list []tables.TableTaskInfo, err error) {
+	err = d.db.Where("smt_status=? AND tx_status=? AND svr_name=?",
+		tables.SmtStatusWriteComplete, tables.TxStatusPending, svrName).
 		Find(&list).Error
 	return
 }
@@ -35,8 +35,8 @@ func (d *DbDao) UpdateTaskTxStatusToPending(taskId string) error {
 		}).Error
 }
 
-func (d *DbDao) GetNeedRollBackTaskList() (list []tables.TableTaskInfo, err error) {
-	err = d.db.Where("smt_status=?", tables.SmtStatusNeedToRollback).
+func (d *DbDao) GetNeedRollBackTaskList(svrName string) (list []tables.TableTaskInfo, err error) {
+	err = d.db.Where("smt_status=? AND svr_name=?", tables.SmtStatusNeedToRollback, svrName).
 		Order("parent_account_id,id DESC").Find(&list).Error
 	return
 }
@@ -105,9 +105,9 @@ func (d *DbDao) UpdateSmtRecordToNeedToWrite(taskId string, retry int) error {
 		}).Error
 }
 
-func (d *DbDao) GetNeedToConfirmOtherTx() (list []tables.TableTaskInfo, err error) {
-	err = d.db.Where("smt_status=? AND tx_status=?",
-		tables.SmtStatusNeedToWrite, tables.TxStatusCommitted).
+func (d *DbDao) GetNeedToConfirmOtherTx(svrName string) (list []tables.TableTaskInfo, err error) {
+	err = d.db.Where("AND smt_status=? AND tx_status=? AND svr_name=?",
+		tables.SmtStatusNeedToWrite, tables.TxStatusCommitted, svrName).
 		Order("block_number").Find(&list).Error
 	return
 }
@@ -136,10 +136,10 @@ func (d *DbDao) UpdateSmtRecordOutpoint(taskId, refOutpoint, outpoint string) er
 		}).Error
 }
 
-func (d *DbDao) GetNeedToDoTaskListByAction(action common.DasAction) (list []tables.TableTaskInfo, err error) {
+func (d *DbDao) GetNeedToDoTaskListByAction(svrName string, action common.DasAction) (list []tables.TableTaskInfo, err error) {
 	smtStatus := []tables.SmtStatus{tables.SmtStatusNeedToWrite, tables.SmtStatusWriting}
-	err = d.db.Where("action=? AND task_type=? AND smt_status IN(?) AND tx_status=?",
-		action, tables.TaskTypeDelegate, smtStatus, tables.TxStatusUnSend).
+	err = d.db.Where("action=? AND task_type=? AND smt_status IN(?) AND tx_status=? AND svr_name=?",
+		svrName, action, tables.TaskTypeDelegate, smtStatus, tables.TxStatusUnSend, svrName).
 		Order("parent_account_id,id").
 		Find(&list).Error
 	return
@@ -283,9 +283,9 @@ func (d *DbDao) GetTaskByOutpointWithParentAccountId(parentAccountId, outpoint s
 	return
 }
 
-func (d *DbDao) GetNeedDoCheckErrorTaskList() (list []tables.TableTaskInfo, err error) {
-	err = d.db.Where("task_type=? AND smt_status=? AND tx_status=?",
-		tables.TaskTypeNormal, tables.SmtStatusWriting, tables.TxStatusUnSend).Find(&list).Error
+func (d *DbDao) GetNeedDoCheckErrorTaskList(svrName string) (list []tables.TableTaskInfo, err error) {
+	err = d.db.Where("task_type=? AND smt_status=? AND tx_status=? AND svr_name=?",
+		tables.TaskTypeNormal, tables.SmtStatusWriting, tables.TxStatusUnSend, svrName).Find(&list).Error
 	return
 }
 

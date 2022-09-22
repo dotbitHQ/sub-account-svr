@@ -16,6 +16,7 @@ var log = mylog.NewLogger("tables", mylog.LevelDebug)
 
 type TableSmtRecordInfo struct {
 	Id              uint64     `json:"id" gorm:"column:id;primaryKey;type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT ''"`
+	SvrName         string     `json:"svr_name" gorm:"column:svr_name; index:k_svr_name; type:varchar(255) NOT NULL DEFAULT '' COMMENT 'smt tree';"`
 	AccountId       string     `json:"account_id" gorm:"column:account_id;uniqueIndex:uk_account_nonce;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	Nonce           uint64     `json:"nonce" gorm:"column:nonce;uniqueIndex:uk_account_nonce;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RecordType      RecordType `json:"record_type" gorm:"column:record_type;uniqueIndex:uk_account_nonce;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-normal 1-closed 2-chain'"`

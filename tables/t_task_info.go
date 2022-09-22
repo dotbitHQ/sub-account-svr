@@ -36,6 +36,7 @@ const (
 
 type TableTaskInfo struct {
 	Id              uint64    `json:"id" gorm:"column:id;primaryKey;type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT ''"`
+	SvrName         string    `json:"svr_name" gorm:"column:svr_name; index:k_svr_name; type:varchar(255) NOT NULL DEFAULT '' COMMENT 'smt tree';"`
 	TaskId          string    `json:"task_id" gorm:"column:task_id;uniqueIndex:uk_task_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	TaskType        TaskType  `json:"task_type" gorm:"column:task_type;index:k_task_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-delegate 1-normal 2-chain 3-closed'"`
 	ParentAccountId string    `json:"parent_account_id" gorm:"column:parent_account_id;index:k_parent_account_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'smt tree'"`

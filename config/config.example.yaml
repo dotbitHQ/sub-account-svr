@@ -9,6 +9,7 @@ server:
   manager_private_key: ""
   server_address: ""
   server_private_key: ""
+  nmae: ""
 das:
   max_register_years: 20
   max_create_count: 100

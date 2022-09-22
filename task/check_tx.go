@@ -1,13 +1,14 @@
 package task
 
 import (
+	"das_sub_account/config"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
 func (t *SmtTask) doCheckTx() error {
-	list, err := t.DbDao.GetNeedDoCheckTxTaskList()
+	list, err := t.DbDao.GetNeedDoCheckTxTaskList(config.Cfg.Server.Name)
 	if err != nil {
 		return fmt.Errorf("GetNeedDoCheckTxTaskList err: %s", err.Error())
 	}

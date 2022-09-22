@@ -18,7 +18,7 @@ func (t *SmtTask) doDistribution() error {
 
 func (t *SmtTask) doEditDistribution() error {
 	action := common.DasActionEditSubAccount
-	list, err := t.DbDao.GetNeedDoDistributionRecordList(action)
+	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Server.Name, action)
 	if err != nil {
 		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
 	}
@@ -54,6 +54,7 @@ func (t *SmtTask) doEditDistribution() error {
 				Timestamp:       time.Now().UnixNano() / 1e6,
 				SmtStatus:       tables.SmtStatusNeedToWrite,
 				TxStatus:        tables.TxStatusUnSend,
+				SvrName:         v.SvrName,
 			}
 			tmp.InitTaskId()
 			taskList = append(taskList, tmp)
@@ -82,7 +83,7 @@ func (t *SmtTask) doMintDistribution() error {
 
 func (t *SmtTask) doCreateDistribution() error {
 	action := common.DasActionCreateSubAccount
-	list, err := t.DbDao.GetNeedDoDistributionRecordList(action)
+	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Server.Name, action)
 	if err != nil {
 		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
 	}
@@ -131,6 +132,7 @@ func (t *SmtTask) doCreateDistribution() error {
 				SmtStatus:       tables.SmtStatusNeedToWrite,
 				TxStatus:        tables.TxStatusUnSend,
 				CustomScripHash: customScripHash,
+				SvrName:         v.SvrName,
 			}
 			tmp.InitTaskId()
 			taskList = append(taskList, tmp)
