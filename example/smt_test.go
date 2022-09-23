@@ -18,7 +18,9 @@ const (
 
 func TestSmt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	num := 50
+	num := 100
+	buildNumStart := 0
+	buildNumEnd := 100
 	list, err := initMongoSmtTree(ctx, num, 0, 1)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +35,7 @@ func TestSmt(t *testing.T) {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			if err := buildSmt(index, list[index]); err != nil {
+			if err := buildSmt(index, list[index], buildNumStart, buildNumEnd); err != nil {
 				t.Error("buildSmt:", err.Error())
 			}
 		}(i)
@@ -82,8 +84,8 @@ func TestInitSmt(t *testing.T) {
 	cancel()
 }
 
-func buildSmt(j int, tree *smt.SparseMerkleTree) error {
-	for i := 0; i < 100; i++ {
+func buildSmt(j int, tree *smt.SparseMerkleTree, buildNumStart, buildNumEnd int) error {
+	for i := buildNumStart; i < buildNumEnd; i++ {
 		if _, err := tree.Root(); err != nil {
 			return fmt.Errorf("tree.Root 1 err: %s", err.Error())
 		}
