@@ -19,7 +19,7 @@ const (
 func TestSmt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	num := 50
-	list, err := initMongoSmtTree(ctx, num, 1)
+	list, err := initMongoSmtTree(ctx, num, 0, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestSmt(t *testing.T) {
 	//select {}
 }
 
-func initMongoSmtTree(ctx context.Context, num, count int) ([]*smt.SparseMerkleTree, error) {
+func initMongoSmtTree(ctx context.Context, num, countStart, countEnd int) ([]*smt.SparseMerkleTree, error) {
 
 	var list []*smt.SparseMerkleTree
 	for i := 0; i < num; i++ {
@@ -56,7 +56,7 @@ func initMongoSmtTree(ctx context.Context, num, count int) ([]*smt.SparseMerkleT
 		}
 		store := smt.NewMongoStore(ctx, client, "testsmt", fmt.Sprintf("test-%d", i))
 		tree := smt.NewSparseMerkleTree(store)
-		for j := 0; j < count; j++ {
+		for j := countStart; j < countEnd; j++ {
 			fmt.Println(i, "-", j)
 			key := fmt.Sprintf("key-%d", j)
 			value := fmt.Sprintf("value-%d", j)
@@ -73,9 +73,9 @@ func initMongoSmtTree(ctx context.Context, num, count int) ([]*smt.SparseMerkleT
 }
 
 func TestInitSmt(t *testing.T) {
-	num := 10
+	num := 100
 	ctx, cancel := context.WithCancel(context.Background())
-	_, err := initMongoSmtTree(ctx, num, 1)
+	_, err := initMongoSmtTree(ctx, num, 0, 100)
 	if err != nil {
 		t.Fatal(err)
 	}
