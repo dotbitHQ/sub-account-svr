@@ -106,3 +106,9 @@ type CfgServer struct {
 	} `json:"cache" yaml:"cache"`
 	SuspendMap map[string]string `json:"suspend_map" yaml:"suspend_map"`
 }
+
+type Server struct {
+	Name   string `json:"name" yaml:"name"`
+	Url    string `json:"url" yaml:"url"`
+	Weight int    `json:"weight" yaml:"weight"`
+}
