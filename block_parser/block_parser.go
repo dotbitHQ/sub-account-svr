@@ -4,6 +4,7 @@ import (
 	"context"
 	"das_sub_account/config"
 	"das_sub_account/dao"
+	"das_sub_account/lb"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"fmt"
@@ -31,6 +32,7 @@ type BlockParser struct {
 	Mongo                *mongo.Client
 	Ctx                  context.Context
 	Wg                   *sync.WaitGroup
+	Slb                  *lb.LoadBalancing
 }
 
 func (b *BlockParser) Run() error {

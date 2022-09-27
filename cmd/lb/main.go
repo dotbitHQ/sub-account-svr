@@ -83,6 +83,12 @@ func runServer(ctx *cli.Context) error {
 	}
 	log.Infof("mongo ok")
 
+	// lb
+	if len(config.Cfg.Slb.Servers) == 0 {
+		return fmt.Errorf("slb servers is nil")
+	}
+	slb := lb.NewLoadBalancing(config.Cfg.Slb.Servers)
+
 	// block parser
 	blockParser := block_parser.BlockParser{
 		DasCore:            dasCore,
@@ -93,6 +99,7 @@ func runServer(ctx *cli.Context) error {
 		Mongo:              mongoClient,
 		Ctx:                ctxServer,
 		Wg:                 &wgServer,
+		Slb:                slb,
 	}
 	if err := blockParser.Run(); err != nil {
 		return fmt.Errorf("blockParser.Run() err: %s", err.Error())
@@ -110,12 +117,6 @@ func runServer(ctx *cli.Context) error {
 		Ctx: ctxServer,
 		Red: red,
 	}
-
-	// lb
-	if len(config.Cfg.Slb.Servers) == 0 {
-		return fmt.Errorf("slb servers is nil")
-	}
-	slb := lb.NewLoadBalancing(config.Cfg.Slb.Servers)
 
 	// http
 	lbHS := http_server.LbHttpServer{

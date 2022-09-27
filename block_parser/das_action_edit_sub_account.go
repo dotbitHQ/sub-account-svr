@@ -1,6 +1,7 @@
 package block_parser
 
 import (
+	"das_sub_account/lb"
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
@@ -24,7 +25,7 @@ func (b *BlockParser) DasActionEditSubAccount(req FuncTransactionHandleReq) (res
 	outpoint := common.OutPoint2String(req.TxHash, 0)
 
 	// get sub account
-	taskInfo, smtRecordList, err := getTaskAndSmtRecords(&req, parentAccountId, refOutpoint, outpoint)
+	taskInfo, smtRecordList, err := getTaskAndSmtRecords(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
 	if err != nil {
 		resp.Err = fmt.Errorf("getTaskAndSmtRecords err: %s", err.Error())
 		return
@@ -54,7 +55,12 @@ func (b *BlockParser) DasActionEditSubAccount(req FuncTransactionHandleReq) (res
 	return
 }
 
-func getTaskAndSmtRecords(req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
+func getTaskAndSmtRecords(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
+	svrName := ""
+	if slb != nil {
+		s := slb.GetServer(parentAccountId)
+		svrName = s.Name
+	}
 	// get sub account
 	subAccountMap, err := witness.SubAccountBuilderMapFromTx(req.Tx)
 	if err != nil {
@@ -72,6 +78,7 @@ func getTaskAndSmtRecords(req *FuncTransactionHandleReq, parentAccountId, refOut
 		Timestamp:       req.BlockTimestamp,
 		SmtStatus:       tables.SmtStatusNeedToWrite,
 		TxStatus:        tables.TxStatusCommitted,
+		SvrName:         svrName,
 	}
 	taskInfo.InitTaskId()
 

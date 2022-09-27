@@ -47,7 +47,7 @@ func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (r
 	}
 
 	// get sub account
-	taskInfo, smtRecordList, err := getTaskAndSmtRecords(&req, parentAccountId, refOutpoint, outpoint)
+	taskInfo, smtRecordList, err := getTaskAndSmtRecords(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
 	if err != nil {
 		resp.Err = fmt.Errorf("getTaskAndSmtRecords err: %s", err.Error())
 		return

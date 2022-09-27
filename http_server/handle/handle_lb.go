@@ -69,7 +69,7 @@ func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
 		return
 	}
 
-	serverKey := req.Account
+	serverKey := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	h.doLBProxy(ctx, &apiResp, serverKey)
 }
 
@@ -110,7 +110,7 @@ func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 			return
 		}
 		log.Warn("EditSubAccountCache:", toolib.JsonString(&editCache))
-		serverKey = editCache.Account
+		serverKey = common.Bytes2Hex(common.GetAccountIdByAccount(editCache.Account))
 	}
 
 	h.doLBProxy(ctx, &apiResp, serverKey)
