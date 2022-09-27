@@ -1,8 +1,14 @@
 package handle
 
 import (
+	"bytes"
 	"das_sub_account/http_server/api_code"
+	"encoding/json"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
+	"github.com/scorpiotzh/toolib"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -13,11 +19,16 @@ func (h *HttpHandle) LBProxy(ctx *gin.Context) {
 		funcName = "LBProxy"
 		clientIp = GetClientIp(ctx)
 		apiResp  api_code.ApiResp
-		err      error
 	)
 	log.Info("ApiReq:", funcName, clientIp)
 
-	server := h.LB.GetServer(clientIp)
+	// slb by ip
+	h.doLBProxy(ctx, &apiResp, clientIp)
+
+}
+
+func (h *HttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, serverKey string) {
+	server := h.LB.GetServer(serverKey)
 	if server.Url == "" {
 		log.Error("h.LB.GetServer err: server url is nil")
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "proxy server is nil")
@@ -25,7 +36,7 @@ func (h *HttpHandle) LBProxy(ctx *gin.Context) {
 		return
 	}
 
-	log.Info("LBProxy:", server.Name, server.Url)
+	log.Info("LBProxy:", serverKey, server.Name, server.Url)
 	u, err := url.Parse(server.Url)
 	if err != nil {
 		log.Error("url.Parse err: %s", err.Error())
@@ -39,9 +50,68 @@ func (h *HttpHandle) LBProxy(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) LBSubAccountCreate(ctx *gin.Context) {
+	var (
+		funcName = "LBSubAccountCreate"
+		clientIp = GetClientIp(ctx)
+		apiResp  api_code.ApiResp
+		req      ReqSubAccountCreate
+	)
+	log.Info("ApiReq:", funcName, clientIp)
 
+	bodyBytes, _ := ctx.GetRawData()
+	ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	log.Info("LBSubAccountCreate:", string(bodyBytes))
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		log.Error("json.Unmarshal err: ", err.Error(), funcName, clientIp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+
+	serverKey := req.Account
+	h.doLBProxy(ctx, &apiResp, serverKey)
 }
 
-func (h *HttpHandle) LBSubAccountEdit(ctx *gin.Context) {
+func (h *HttpHandle) LBTransactionSend(ctx *gin.Context) {
+	var (
+		funcName = "LBTransactionSend"
+		clientIp = GetClientIp(ctx)
+		apiResp  api_code.ApiResp
+		req      ReqTransactionSend
+	)
+	log.Info("ApiReq:", funcName, clientIp)
 
+	bodyBytes, _ := ctx.GetRawData()
+	ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	log.Info("LBTransactionSend:", string(bodyBytes))
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		log.Error("json.Unmarshal err: ", err.Error(), funcName, clientIp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+
+	serverKey := clientIp
+	if req.Action == common.DasActionEditSubAccount {
+		var editCache EditSubAccountCache
+		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			ctx.JSON(http.StatusOK, apiResp)
+			return
+		} else if err = json.Unmarshal([]byte(txStr), &editCache); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			ctx.JSON(http.StatusOK, apiResp)
+			return
+		}
+		log.Warn("EditSubAccountCache:", toolib.JsonString(&editCache))
+		serverKey = editCache.Account
+	}
+
+	h.doLBProxy(ctx, &apiResp, serverKey)
 }

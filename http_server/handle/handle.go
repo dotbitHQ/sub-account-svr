@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/mylog"
 	"go.mongodb.org/mongo-driver/mongo"
+	"net"
 	"strings"
 )
 
@@ -38,7 +39,8 @@ type HttpHandle struct {
 
 func GetClientIp(ctx *gin.Context) string {
 	clientIP := fmt.Sprintf("%v", ctx.Request.Header.Get("X-Real-IP"))
-	return fmt.Sprintf("( %s )( %s )", clientIP, ctx.ClientIP())
+	remoteAddrIP, _, _ := net.SplitHostPort(ctx.Request.RemoteAddr)
+	return fmt.Sprintf("( %s )( %s )", clientIP, remoteAddrIP)
 }
 
 func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {

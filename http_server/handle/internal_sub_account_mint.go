@@ -159,6 +159,7 @@ func getRecordList(daf *core.DasAddressFormat, req *ReqSubAccountCreate, parentA
 			RenewYears:      0,
 			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
+			SvrName:         config.Cfg.Server.Name,
 		}
 		recordList = append(recordList, tmpRecord)
 	}

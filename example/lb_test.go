@@ -47,6 +47,7 @@ func TestLB(t *testing.T) {
 }
 
 func TestLBHttp(t *testing.T) {
+	config.Cfg.Server.RunMode = "normal"
 	ctxServer := context.Background()
 	hs1 := http_server.HttpServer{
 		Ctx:             ctxServer,
