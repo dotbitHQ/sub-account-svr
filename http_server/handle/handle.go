@@ -6,6 +6,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/lb"
 	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -23,6 +24,7 @@ var (
 )
 
 type HttpHandle struct {
+	ServerName    string
 	Ctx           context.Context
 	DasCore       *core.DasCore
 	DasCache      *dascache.DasCache
@@ -31,11 +33,12 @@ type HttpHandle struct {
 	RC            *cache.RedisCache
 	TxTool        *txtool.SubAccountTxTool
 	Mongo         *mongo.Client
+	LB            *lb.LoadBalancing
 }
 
 func GetClientIp(ctx *gin.Context) string {
 	clientIP := fmt.Sprintf("%v", ctx.Request.Header.Get("X-Real-IP"))
-	return fmt.Sprintf("(%s)(%s)", clientIP, ctx.Request.RemoteAddr)
+	return fmt.Sprintf("( %s )( %s )", clientIP, ctx.ClientIP())
 }
 
 func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {
