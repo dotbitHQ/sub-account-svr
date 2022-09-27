@@ -22,3 +22,4 @@ mysql-data
 mongo-data
 sub_account
 example/*.csv
+sub_slb_svr
