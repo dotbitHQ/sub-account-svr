@@ -196,7 +196,7 @@ func (h *HttpHandle) doTransactionSend(req *ReqTransactionSend, apiResp *api_cod
 			RenewYears:      0,
 			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
-			SvrName:         config.Cfg.Server.Name,
+			SvrName:         config.Cfg.Slb.SvrName,
 		}
 
 		if err := editCache.InitRecord(h.DasCore.Daf(), subAcc, &record); err != nil {

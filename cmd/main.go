@@ -121,7 +121,7 @@ func runServer(ctx *cli.Context) error {
 	log.Infof("tx tool ok")
 
 	// block parser
-	if config.Cfg.Server.Name == "" {
+	if config.Cfg.Slb.SvrName == "" {
 		blockParser := block_parser.BlockParser{
 			DasCore:            dasCore,
 			CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,

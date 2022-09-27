@@ -11,7 +11,7 @@ import (
 )
 
 func (t *SmtTask) doRollback() error {
-	list, err := t.DbDao.GetNeedRollBackTaskList(config.Cfg.Server.Name)
+	list, err := t.DbDao.GetNeedRollBackTaskList(config.Cfg.Slb.SvrName)
 	if err != nil {
 		return fmt.Errorf("GetNeedRollBackTaskList err: %s", err.Error())
 	}

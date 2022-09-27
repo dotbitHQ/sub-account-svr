@@ -8,7 +8,7 @@ import (
 )
 
 func (t *SmtTask) doCheckError() error {
-	list, err := t.DbDao.GetNeedDoCheckErrorTaskList(config.Cfg.Server.Name)
+	list, err := t.DbDao.GetNeedDoCheckErrorTaskList(config.Cfg.Slb.SvrName)
 	if err != nil {
 		return fmt.Errorf("GetNeedDoCheckErrorTaskList err: %s", err.Error())
 	}

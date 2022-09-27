@@ -19,7 +19,7 @@ import (
 )
 
 func (t *SmtTask) doTask(action common.DasAction) error {
-	list, err := t.DbDao.GetNeedToDoTaskListByAction(config.Cfg.Server.Name, action)
+	list, err := t.DbDao.GetNeedToDoTaskListByAction(config.Cfg.Slb.SvrName, action)
 	if err != nil {
 		return fmt.Errorf("GetNeedToDoTaskListByAction err: %s [%s]", err.Error(), action)
 	}
