@@ -14,7 +14,7 @@ import (
 	"net/url"
 )
 
-func (h *HttpHandle) LBProxy(ctx *gin.Context) {
+func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
 	var (
 		funcName = "LBProxy"
 		clientIp = GetClientIp(ctx)
@@ -27,7 +27,7 @@ func (h *HttpHandle) LBProxy(ctx *gin.Context) {
 
 }
 
-func (h *HttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, serverKey string) {
+func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, serverKey string) {
 	server := h.LB.GetServer(serverKey)
 	if server.Url == "" {
 		log.Error("h.LB.GetServer err: server url is nil")
@@ -49,7 +49,7 @@ func (h *HttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, serv
 	ctx.Abort()
 }
 
-func (h *HttpHandle) LBSubAccountCreate(ctx *gin.Context) {
+func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
 	var (
 		funcName = "LBSubAccountCreate"
 		clientIp = GetClientIp(ctx)
@@ -73,7 +73,7 @@ func (h *HttpHandle) LBSubAccountCreate(ctx *gin.Context) {
 	h.doLBProxy(ctx, &apiResp, serverKey)
 }
 
-func (h *HttpHandle) LBTransactionSend(ctx *gin.Context) {
+func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 	var (
 		funcName = "LBTransactionSend"
 		clientIp = GetClientIp(ctx)

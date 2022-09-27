@@ -25,7 +25,6 @@ var (
 )
 
 type HttpHandle struct {
-	ServerName    string
 	Ctx           context.Context
 	DasCore       *core.DasCore
 	DasCache      *dascache.DasCache
@@ -109,4 +108,10 @@ func doBuildTxs(err error, apiResp *api_code.ApiResp) error {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 	}
 	return err
+}
+
+type LBHttpHandle struct {
+	Ctx context.Context
+	RC  *cache.RedisCache
+	LB  *lb.LoadBalancing
 }

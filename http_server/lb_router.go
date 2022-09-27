@@ -3,20 +3,16 @@ package http_server
 import (
 	"das_sub_account/config"
 	"github.com/scorpiotzh/toolib"
-	"time"
 )
 
 func (h *LbHttpServer) initRouter() {
-	shortExpireTime, shortDataTime, lockTime := time.Second*5, time.Minute*3, time.Minute
-	cacheHandleShort := toolib.MiddlewareCacheByRedis(h.H.RC.Red, false, shortDataTime, lockTime, shortExpireTime, respHandle)
-
 	if len(config.Cfg.Origins) > 0 {
 		toolib.AllowOriginList = append(toolib.AllowOriginList, config.Cfg.Origins...)
 	}
 	h.engine.Use(toolib.MiddlewareCors())
 	v1 := h.engine.Group("v1")
 	{
-		v1.POST("/version", cacheHandleShort, h.H.LBProxy)
+		v1.POST("/version", h.H.LBProxy)
 		v1.POST("/config/info", h.H.LBProxy)
 		v1.POST("/account/list", h.H.LBProxy)
 		v1.POST("/account/detail", h.H.LBProxy)

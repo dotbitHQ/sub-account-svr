@@ -10,7 +10,7 @@ import (
 type LbHttpServer struct {
 	Ctx     context.Context
 	Address string
-	H       *handle.HttpHandle
+	H       *handle.LBHttpHandle
 	engine  *gin.Engine
 	srv     *http.Server
 }

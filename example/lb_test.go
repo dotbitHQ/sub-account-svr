@@ -54,9 +54,8 @@ func TestLBHttp(t *testing.T) {
 		Address:         ":8125",
 		InternalAddress: ":8126",
 		H: &handle.HttpHandle{
-			ServerName: "svr-1",
-			Ctx:        ctxServer,
-			RC:         &cache.RedisCache{},
+			Ctx: ctxServer,
+			RC:  &cache.RedisCache{},
 		},
 	}
 	hs1.Run()
@@ -66,9 +65,8 @@ func TestLBHttp(t *testing.T) {
 		Address:         ":8127",
 		InternalAddress: ":8128",
 		H: &handle.HttpHandle{
-			ServerName: "svr-2",
-			Ctx:        ctxServer,
-			RC:         &cache.RedisCache{},
+			Ctx: ctxServer,
+			RC:  &cache.RedisCache{},
 		},
 	}
 	hs2.Run()
@@ -89,7 +87,7 @@ func TestLBHttp(t *testing.T) {
 	lbhs := http_server.LbHttpServer{
 		Ctx:     ctxServer,
 		Address: ":8129",
-		H: &handle.HttpHandle{
+		H: &handle.LBHttpHandle{
 			Ctx: ctxServer,
 			RC:  &cache.RedisCache{},
 			LB:  slb,

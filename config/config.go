@@ -50,6 +50,9 @@ type DbMysql struct {
 }
 
 type CfgServer struct {
+	Slb struct {
+		Servers []Server `json:"servers" yaml:"servers"`
+	} `json:"slb" yaml:"slb"`
 	Server struct {
 		IsUpdate               bool              `json:"is_update" yaml:"is_update"`
 		Net                    common.DasNetType `json:"net" yaml:"net"`

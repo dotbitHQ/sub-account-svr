@@ -121,20 +121,22 @@ func runServer(ctx *cli.Context) error {
 	log.Infof("tx tool ok")
 
 	// block parser
-	blockParser := block_parser.BlockParser{
-		DasCore:            dasCore,
-		CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
-		DbDao:              dbDao,
-		ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
-		ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-		Mongo:              mongoClient,
-		Ctx:                ctxServer,
-		Wg:                 &wgServer,
+	if config.Cfg.Server.Name == "" {
+		blockParser := block_parser.BlockParser{
+			DasCore:            dasCore,
+			CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
+			DbDao:              dbDao,
+			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
+			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+			Mongo:              mongoClient,
+			Ctx:                ctxServer,
+			Wg:                 &wgServer,
+		}
+		if err := blockParser.Run(); err != nil {
+			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
+		}
+		log.Infof("block parser ok")
 	}
-	if err := blockParser.Run(); err != nil {
-		return fmt.Errorf("blockParser.Run() err: %s", err.Error())
-	}
-	log.Infof("block parser ok")
 
 	// task
 	smtTask := task.SmtTask{
