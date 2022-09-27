@@ -23,26 +23,16 @@ func TestLB(t *testing.T) {
 		Url:    "http://127.0.0.1:8889",
 		Weight: 1,
 	})
-	list = append(list, config.Server{
-		Name:   "svr-3",
-		Url:    "http://127.0.0.1:8887",
-		Weight: 1,
-	})
-	list = append(list, config.Server{
-		Name:   "svr-4",
-		Url:    "http://127.0.0.1:8887",
-		Weight: 0,
-	})
 	slb := lb.NewLoadBalancing(list)
 
-	accList := []string{"aaa.bit", "bbb.bit", "ccc.bit"}
+	accList := []string{"aaaaa.bit", "bbbbb.bit", "ccccc.bit", "12345.bit", "12a345.bit", "12b345.bit", "12c345.bit"}
 	for _, v := range accList {
 		fmt.Println(slb.GetServer(v), v)
 	}
 
 	s := slb.GetServers()
 	for i, v := range s {
-		fmt.Println(i, v.Name, v.Url)
+		fmt.Println(i, v.Name, v.Url, v.SpotVal)
 	}
 }
 

@@ -22,7 +22,7 @@ func NewLoadBalancing(list []config.Server) *LoadBalancing {
 			lb.servers = append(lb.servers, Server{
 				Name:    v.Name,
 				Url:     v.Url,
-				spotVal: spotVal,
+				SpotVal: spotVal,
 			})
 		}
 	}
@@ -32,7 +32,8 @@ func NewLoadBalancing(list []config.Server) *LoadBalancing {
 
 func (l *LoadBalancing) GetServer(key string) Server {
 	uint32Val := getUint32Val(key)
-	i := sort.Search(l.Len(), func(i int) bool { return l.servers[i].spotVal >= uint32Val })
+	//fmt.Println("GetServer:", uint32Val)
+	i := sort.Search(l.Len()-1, func(i int) bool { return l.servers[i].SpotVal >= uint32Val })
 	return l.servers[i]
 }
 func (l *LoadBalancing) GetServers() []Server {
@@ -42,14 +43,14 @@ func (l *LoadBalancing) GetServers() []Server {
 type Server struct {
 	Name    string
 	Url     string
-	spotVal uint32
+	SpotVal uint32
 }
 
 const defaultNum = 100
 
 func (l *LoadBalancing) Len() int { return len(l.servers) }
 func (l *LoadBalancing) Less(i, j int) bool {
-	return l.servers[i].spotVal < l.servers[j].spotVal
+	return l.servers[i].SpotVal < l.servers[j].SpotVal
 }
 func (l *LoadBalancing) Swap(i, j int) {
 	l.servers[i], l.servers[j] = l.servers[j], l.servers[i]
