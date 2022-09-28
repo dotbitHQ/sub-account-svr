@@ -16,7 +16,7 @@ const (
 	URI = "mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb"
 )
 
-// go test -v -timeout=0 -run TestSmt example/smt_test.go
+// nohup go test -v -timeout=0 -run TestSmt example/smt_test.go > out.log 2>&1 &
 func TestSmt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	num := 100
