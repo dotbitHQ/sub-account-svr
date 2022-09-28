@@ -47,15 +47,15 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		response.Header.Set("Access-Control-Allow-Origin", origin)
-		response.Header.Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		response.Header.Set("Access-Control-Allow-Headers", "Content-Length,Content-Type")
-		response.Header.Set("Access-Control-Allow-Credentials", "true")
-		response.Header.Set("content-type", "application/json")
+		response.Header.Set("Access-Control-Allow-Origin", "*")
+		//response.Header.Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		//response.Header.Set("Access-Control-Allow-Headers", "Content-Length,Content-Type")
+		//response.Header.Set("Access-Control-Allow-Credentials", "true")
+		//response.Header.Set("content-type", "application/json")
 		return nil
 	}
 	proxy.ServeHTTP(ctx.Writer, ctx.Request)
-	ctx.Abort()
+	//ctx.Abort()
 }
 
 func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
