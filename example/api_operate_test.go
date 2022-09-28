@@ -227,6 +227,7 @@ func TestSubAccountCreate2(t *testing.T) {
 
 func TestSubAccountCreate3(t *testing.T) {
 	url := ApiUrl + "/sub/account/create"
+	privateKey := ""
 
 	doCreate := func(account string) {
 		req := handle.ReqSubAccountCreate{
@@ -268,7 +269,7 @@ func TestSubAccountCreate3(t *testing.T) {
 		}
 
 		req.SubAccountList = make([]handle.CreateSubAccount, 0)
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 30; i++ {
 			req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
 				Account:       fmt.Sprintf("2007%d.%s", i, account),
 				RegisterYears: 1,
@@ -289,7 +290,7 @@ func TestSubAccountCreate3(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := doSign(data.SignInfoList, ""); err != nil {
+		if err := doSign(data.SignInfoList, privateKey); err != nil {
 			t.Fatal(err)
 		}
 
@@ -304,11 +305,11 @@ func TestSubAccountCreate3(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		doCreate("aaaazzxxx.bit")
+		doCreate("tzh202220928-01.bit")
 	}()
 	go func() {
 		defer wg.Done()
-		doCreate("0001.bit")
+		doCreate("tzh202220928-2.bit")
 	}()
 	wg.Wait()
 }

@@ -5,13 +5,12 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
-	"github.com/scorpiotzh/toolib"
 )
 
 func getSubAccountWitness(subAccountParamList []*witness.SubAccountParam) ([][]byte, error) {
 	var witnessList [][]byte
 	for _, v := range subAccountParamList {
-		log.Info("getSubAccountWitness:", toolib.JsonString(v))
+		//log.Info("getSubAccountWitness:", toolib.JsonString(v))
 		wit, _ := v.NewSubAccountWitness()
 		witnessList = append(witnessList, wit)
 	}
