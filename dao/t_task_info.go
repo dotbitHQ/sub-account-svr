@@ -106,7 +106,7 @@ func (d *DbDao) UpdateSmtRecordToNeedToWrite(taskId string, retry int) error {
 }
 
 func (d *DbDao) GetNeedToConfirmOtherTx(svrName string) (list []tables.TableTaskInfo, err error) {
-	err = d.db.Where("AND smt_status=? AND tx_status=? AND svr_name=?",
+	err = d.db.Where("smt_status=? AND tx_status=? AND svr_name=?",
 		tables.SmtStatusNeedToWrite, tables.TxStatusCommitted, svrName).
 		Order("block_number").Find(&list).Error
 	return
