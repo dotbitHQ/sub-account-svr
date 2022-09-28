@@ -110,7 +110,7 @@ func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, apiResp)
 			return
 		}
-		log.Warn("EditSubAccountCache:", toolib.JsonString(&editCache))
+		log.Info("EditSubAccountCache:", toolib.JsonString(&editCache))
 		serverKey = editCache.ParentAccountId
 	}
 
