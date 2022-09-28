@@ -277,6 +277,7 @@ func getTaskAndTaskMap(dc *core.DasCore, req *ReqSubAccountCreate, parentAccount
 				Timestamp:       time.Now().UnixNano() / 1e6,
 				SmtStatus:       tables.SmtStatusNeedToWrite,
 				TxStatus:        tables.TxStatusUnSend,
+				SvrName:         config.Cfg.Slb.SvrName,
 			}
 			tmpTask.InitTaskId()
 			taskId = tmpTask.TaskId
