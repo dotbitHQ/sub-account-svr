@@ -14,6 +14,7 @@ func (h *HttpServer) initRouter() {
 	shortExpireTime, shortDataTime, lockTime := time.Second*5, time.Minute*3, time.Minute
 	cacheHandleShort := toolib.MiddlewareCacheByRedis(h.H.RC.Red, false, shortDataTime, lockTime, shortExpireTime, respHandle)
 
+	log.Info("initRouter:", len(config.Cfg.Origins))
 	if len(config.Cfg.Origins) > 0 {
 		toolib.AllowOriginList = append(toolib.AllowOriginList, config.Cfg.Origins...)
 	}

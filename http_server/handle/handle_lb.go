@@ -20,7 +20,7 @@ func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
 		clientIp = GetClientIp(ctx)
 		apiResp  api_code.ApiResp
 	)
-	log.Info("ApiReq:", funcName, clientIp)
+	log.Info("ApiReq:", funcName, clientIp, ctx.Request.URL.Path)
 
 	// slb by ip
 	h.doLBProxy(ctx, &apiResp, clientIp)

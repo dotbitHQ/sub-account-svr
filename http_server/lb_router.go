@@ -6,6 +6,7 @@ import (
 )
 
 func (h *LbHttpServer) initRouter() {
+	log.Info("initRouter:", len(config.Cfg.Origins))
 	if len(config.Cfg.Origins) > 0 {
 		toolib.AllowOriginList = append(toolib.AllowOriginList, config.Cfg.Origins...)
 	}
