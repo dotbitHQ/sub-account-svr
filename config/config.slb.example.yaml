@@ -6,6 +6,20 @@ slb:
 server:
   net: 1 # 1 mainnet 2 testnet
   http_server_addr: ":8129"
+das:
+  max_register_years: 20
+  max_create_count: 100
+  max_edit_count: 10
+  max_edit_task_count: 2 # 1~5
+  max_retry: 10
+  is_edit_task_closed: false
+  is_create_task_closed: false
+origins:
+  - ""
+notify:
+  lark_error_key: ""
+  lark_create_sub_account_key: ""
+  discord_create_sub_account_key: ""
 chain:
   ckb_url: "http://127.0.0.1:8114"
   index_url: "http://127.0.0.1:8116"

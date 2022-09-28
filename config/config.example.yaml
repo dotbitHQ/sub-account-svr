@@ -1,3 +1,5 @@
+slb:
+  svr_name: "svr-1"
 server:
   is_update: false
   net: 1 # 1 mainnet 2 testnet
@@ -9,7 +11,6 @@ server:
   manager_private_key: ""
   server_address: ""
   server_private_key: ""
-  nmae: ""
 das:
   max_register_years: 20
   max_create_count: 100
@@ -20,6 +21,10 @@ das:
   is_create_task_closed: false
 origins:
   - ""
+notify:
+  lark_error_key: ""
+  lark_create_sub_account_key: ""
+  discord_create_sub_account_key: ""
 chain:
   ckb_url: "http://127.0.0.1:8114"
   index_url: "http://127.0.0.1:8116"
