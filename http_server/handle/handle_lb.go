@@ -47,6 +47,7 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ModifyResponse = func(response *http.Response) error {
+		log.Info("ModifyResponse:", response.Header)
 		response.Header.Set("Access-Control-Allow-Origin", "*")
 		//response.Header.Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		//response.Header.Set("Access-Control-Allow-Headers", "Content-Length,Content-Type")
