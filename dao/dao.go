@@ -13,7 +13,7 @@ type DbDao struct {
 	parserDb *gorm.DB
 }
 
-func NewGormDB(dbMysql, parserMysql config.DbMysql) (*DbDao, error) {
+func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, error) {
 	db, err := toolib.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
 	if err != nil {
 		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
@@ -22,12 +22,14 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql) (*DbDao, error) {
 	// AutoMigrate will create tables, missing foreign keys, constraints, columns and indexes.
 	// It will change existing column’s type if its size, precision, nullable changed.
 	// It WON’T delete unused columns to protect your data.
-	if err = db.AutoMigrate(
-		&tables.TableBlockParserInfo{},
-		&tables.TableSmtRecordInfo{},
-		&tables.TableTaskInfo{},
-	); err != nil {
-		return nil, err
+	if autoMigrate {
+		if err = db.AutoMigrate(
+			&tables.TableBlockParserInfo{},
+			&tables.TableSmtRecordInfo{},
+			&tables.TableTaskInfo{},
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	parserDb, err := toolib.NewGormDB(parserMysql.Addr, parserMysql.User, parserMysql.Password, parserMysql.DbName, parserMysql.MaxOpenConn, parserMysql.MaxIdleConn)

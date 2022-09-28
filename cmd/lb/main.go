@@ -70,7 +70,7 @@ func runServer(ctx *cli.Context) error {
 	log.Infof("das core ok")
 
 	// db
-	dbDao, err := dao.NewGormDB(config.Cfg.DB.Mysql, config.Cfg.DB.ParserMysql)
+	dbDao, err := dao.NewGormDB(config.Cfg.DB.Mysql, config.Cfg.DB.ParserMysql, config.Cfg.Slb.SvrName == "")
 	if err != nil {
 		return fmt.Errorf("NewGormDB err: %s", err.Error())
 	}
