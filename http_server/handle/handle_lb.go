@@ -46,7 +46,7 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ServeHTTP(ctx.Writer, ctx.Request)
-	ctx.Abort()
+	//ctx.Abort()
 }
 
 func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
