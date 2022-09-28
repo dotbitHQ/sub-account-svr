@@ -90,21 +90,23 @@ func runServer(ctx *cli.Context) error {
 	slb := lb.NewLoadBalancing(config.Cfg.Slb.Servers)
 
 	// block parser
-	blockParser := block_parser.BlockParser{
-		DasCore:            dasCore,
-		CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
-		DbDao:              dbDao,
-		ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
-		ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-		Mongo:              mongoClient,
-		Ctx:                ctxServer,
-		Wg:                 &wgServer,
-		Slb:                slb,
+	if config.Cfg.Slb.SvrName == "" {
+		blockParser := block_parser.BlockParser{
+			DasCore:            dasCore,
+			CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
+			DbDao:              dbDao,
+			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
+			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+			Mongo:              mongoClient,
+			Ctx:                ctxServer,
+			Wg:                 &wgServer,
+			Slb:                slb,
+		}
+		if err := blockParser.Run(); err != nil {
+			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
+		}
+		log.Infof("block parser ok")
 	}
-	if err := blockParser.Run(); err != nil {
-		return fmt.Errorf("blockParser.Run() err: %s", err.Error())
-	}
-	log.Infof("block parser ok")
 
 	// redis
 	red, err := toolib.NewRedisClient(config.Cfg.Cache.Redis.Addr, config.Cfg.Cache.Redis.Password, config.Cfg.Cache.Redis.DbNum)
