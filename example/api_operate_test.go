@@ -269,7 +269,7 @@ func TestSubAccountCreate3(t *testing.T) {
 		}
 
 		req.SubAccountList = make([]handle.CreateSubAccount, 0)
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 50; i++ {
 			req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
 				Account:       fmt.Sprintf("0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣%d.%s", i, account),
 				RegisterYears: 1,
