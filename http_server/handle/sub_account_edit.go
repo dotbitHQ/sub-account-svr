@@ -123,6 +123,7 @@ func (h *HttpHandle) doSubAccountEdit(req *ReqSubAccountEdit, apiResp *api_code.
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
+	editCache.ParentAccountId = subAcc.ParentAccountId
 	log.Warn("EditSubAccountCache:", toolib.JsonString(&editCache))
 
 	if _, ok := config.Cfg.SuspendMap[subAcc.ParentAccountId]; ok {
@@ -233,12 +234,13 @@ func (h *HttpHandle) CheckReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 
 // ===========
 type EditSubAccountCache struct {
-	ChainType  common.ChainType `json:"chain_type"`
-	Address    string           `json:"address"`
-	Account    string           `json:"account"`
-	EditKey    string           `json:"edit_key"`
-	EditValue  EditInfo         `json:"edit_value"`
-	OldSignMsg string           `json:"old_sign_msg"`
+	ParentAccountId string           `json:"parent_account_id"`
+	ChainType       common.ChainType `json:"chain_type"`
+	Address         string           `json:"address"`
+	Account         string           `json:"account"`
+	EditKey         string           `json:"edit_key"`
+	EditValue       EditInfo         `json:"edit_value"`
+	OldSignMsg      string           `json:"old_sign_msg"`
 }
 
 func (e *EditSubAccountCache) CacheKey() string {

@@ -111,7 +111,7 @@ func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 			return
 		}
 		log.Warn("EditSubAccountCache:", toolib.JsonString(&editCache))
-		serverKey = common.Bytes2Hex(common.GetAccountIdByAccount(editCache.Account))
+		serverKey = editCache.ParentAccountId
 	}
 
 	h.doLBProxy(ctx, &apiResp, serverKey)
