@@ -139,7 +139,7 @@ func (d *DbDao) UpdateSmtRecordOutpoint(taskId, refOutpoint, outpoint string) er
 func (d *DbDao) GetNeedToDoTaskListByAction(svrName string, action common.DasAction) (list []tables.TableTaskInfo, err error) {
 	smtStatus := []tables.SmtStatus{tables.SmtStatusNeedToWrite, tables.SmtStatusWriting}
 	err = d.db.Where("action=? AND task_type=? AND smt_status IN(?) AND tx_status=? AND svr_name=?",
-		svrName, action, tables.TaskTypeDelegate, smtStatus, tables.TxStatusUnSend, svrName).
+		action, tables.TaskTypeDelegate, smtStatus, tables.TxStatusUnSend, svrName).
 		Order("parent_account_id,id").
 		Find(&list).Error
 	return
