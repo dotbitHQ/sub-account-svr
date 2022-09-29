@@ -14,14 +14,13 @@ func (h *HttpServer) initRouter() {
 	shortExpireTime, shortDataTime, lockTime := time.Second*5, time.Minute*3, time.Minute
 	cacheHandleShort := toolib.MiddlewareCacheByRedis(h.H.RC.Red, false, shortDataTime, lockTime, shortExpireTime, respHandle)
 
-	if config.Cfg.Slb.SvrName == "" {
-		log.Info("initRouter:", len(config.Cfg.Origins))
-		if len(config.Cfg.Origins) > 0 {
-			toolib.AllowOriginList = append(toolib.AllowOriginList, config.Cfg.Origins...)
-		}
-		h.internalEngine.Use(toolib.MiddlewareCors())
-		h.engine.Use(toolib.MiddlewareCors())
+	log.Info("initRouter:", len(config.Cfg.Origins))
+	if len(config.Cfg.Origins) > 0 {
+		toolib.AllowOriginList = append(toolib.AllowOriginList, config.Cfg.Origins...)
 	}
+	h.internalEngine.Use(toolib.MiddlewareCors())
+	h.engine.Use(toolib.MiddlewareCors())
+
 	v1 := h.engine.Group("v1")
 	{
 		v1.POST("/version", cacheHandleShort, h.H.Version)
