@@ -47,13 +47,11 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		log.Info("doLBProxy:", response.Header)
-		for k, v := range response.Header {
-			if len(v) > 1 {
-				log.Info("doLBProxy:", k, len(v))
-				response.Header[k] = v[:1]
-			}
-		}
+		//log.Info("doLBProxy:", response.Header)
+		response.Header.Del("Access-Control-Allow-Credentials")
+		response.Header.Del("Access-Control-Allow-Headers")
+		response.Header.Del("Access-Control-Allow-Methods")
+		response.Header.Del("Access-Control-Allow-Origin")
 		return nil
 	}
 	proxy.ServeHTTP(ctx.Writer, ctx.Request)
