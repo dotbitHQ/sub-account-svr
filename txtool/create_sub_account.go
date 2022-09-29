@@ -102,7 +102,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
 			} else {
 				subAccountParam.Proof = *proof
-				log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
+				//log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
 			}
 			log.Info("Tree.Root")
 			if root, err := p.Tree.Root(); err != nil {

@@ -225,18 +225,20 @@ func TestSubAccountCreate2(t *testing.T) {
 	}
 }
 
+// go test -v -timeout=0 -run TestSubAccountCreate3 example/*.go
 func TestSubAccountCreate3(t *testing.T) {
 	url := ApiUrl + "/sub/account/create"
-	privateKey := ""
+	privateKey1 := ""
+	privateKey2 := ""
 
-	doCreate := func(account string) {
+	doCreate := func(account, privateKey, key string) {
 		req := handle.ReqSubAccountCreate{
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
 				KeyInfo: core.KeyInfo{
 					CoinType: "60",
 					ChainId:  "5",
-					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					Key:      key,
 				},
 			},
 			Account: account, //"aaaazzxxx.bit",
@@ -269,9 +271,9 @@ func TestSubAccountCreate3(t *testing.T) {
 		}
 
 		req.SubAccountList = make([]handle.CreateSubAccount, 0)
-		for i := 0; i < 50; i++ {
+		for i := 0; i < 100; i++ {
 			req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-				Account:       fmt.Sprintf("0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣%d.%s", i, account),
+				Account:       fmt.Sprintf("02test%d.%s", i, account),
 				RegisterYears: 1,
 				ChainTypeAddress: core.ChainTypeAddress{
 					Type: "blockchain",
@@ -305,11 +307,11 @@ func TestSubAccountCreate3(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		doCreate("tzh202220928-01.bit")
+		doCreate("tzh202220928-01.bit", privateKey1, "0xc9f53b1d85356B60453F867610888D89a0B667Ad")
 	}()
 	go func() {
 		defer wg.Done()
-		doCreate("tzh202220928-2.bit")
+		doCreate("tzh202220928-2.bit", privateKey2, "0x15a33588908cF8Edb27D1AbE3852Bf287Abd3891")
 	}()
 	wg.Wait()
 }
