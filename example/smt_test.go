@@ -19,10 +19,11 @@ const (
 // nohup go test -v -timeout=0 -run TestSmt example/smt_test.go > out.log 2>&1 &
 func TestSmt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	num := 100
+	numStart := 0
+	numEnd := 100
 	buildNumStart := 0
 	buildNumEnd := 100
-	list, err := initMongoSmtTree(ctx, num, 0, 1)
+	list, err := initMongoSmtTree(ctx, numStart, numEnd, 0, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +33,7 @@ func TestSmt(t *testing.T) {
 	wg := sync.WaitGroup{}
 	now := time.Now()
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), len(list))
-	for i := 0; i < num; i++ {
+	for i := 0; i < numEnd-numStart; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -49,10 +50,10 @@ func TestSmt(t *testing.T) {
 	//select {}
 }
 
-func initMongoSmtTree(ctx context.Context, num, countStart, countEnd int) ([]*smt.SparseMerkleTree, error) {
+func initMongoSmtTree(ctx context.Context, numStart, numEnd, countStart, countEnd int) ([]*smt.SparseMerkleTree, error) {
 
 	var list []*smt.SparseMerkleTree
-	for i := 0; i < num; i++ {
+	for i := numStart; i < numEnd; i++ {
 		client, err := mongo.Connect(ctx, options.Client().ApplyURI(URI))
 		if err != nil {
 			return nil, fmt.Errorf("mongo.Connect err: %s", err.Error())
@@ -78,7 +79,7 @@ func initMongoSmtTree(ctx context.Context, num, countStart, countEnd int) ([]*sm
 func TestInitSmt(t *testing.T) {
 	num := 100
 	ctx, cancel := context.WithCancel(context.Background())
-	_, err := initMongoSmtTree(ctx, num, 0, 100)
+	_, err := initMongoSmtTree(ctx, 0, num, 0, 100)
 	if err != nil {
 		t.Fatal(err)
 	}

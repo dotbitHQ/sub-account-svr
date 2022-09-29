@@ -9,11 +9,9 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/scorpiotzh/toolib"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"time"
 )
 
 func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
@@ -48,18 +46,6 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 		return
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
-	proxy.Transport = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       150 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
 	proxy.ServeHTTP(ctx.Writer, ctx.Request)
 	ctx.Abort()
 }
