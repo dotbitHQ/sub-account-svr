@@ -82,9 +82,9 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 		} else {
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := newSubAccount.ToH256()
-			log.Info("BuildCreateSubAccountTx:", v.AccountId)
-			log.Info("BuildCreateSubAccountTx key:", common.Bytes2Hex(key))
-			log.Info("BuildCreateSubAccountTx value:", common.Bytes2Hex(value))
+			//log.Info("BuildCreateSubAccountTx:", v.AccountId)
+			//log.Info("BuildCreateSubAccountTx key:", common.Bytes2Hex(key))
+			//log.Info("BuildCreateSubAccountTx value:", common.Bytes2Hex(value))
 
 			log.Info("Tree.Root")
 			if root, err := p.Tree.Root(); err != nil {
