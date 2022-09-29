@@ -32,6 +32,7 @@ func (h *HttpHandle) Version(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
+	//time.Sleep(time.Minute * 3)
 	if err = h.doVersion(&req, &apiResp); err != nil {
 		log.Error("doVersion err:", err.Error(), funcName, clientIp)
 	}

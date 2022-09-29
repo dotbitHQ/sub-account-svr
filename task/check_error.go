@@ -14,7 +14,7 @@ func (t *SmtTask) doCheckError() error {
 	var needRollbackIds []uint64
 	for _, v := range list {
 		// timestamp > 3min
-		timestamp := time.Now().Add(-time.Minute*5).UnixNano() / 1e6
+		timestamp := time.Now().Add(-time.Minute*3).UnixNano() / 1e6
 		//if config.Cfg.Server.Net != common.DasNetTypeMainNet {
 		//	timestamp = time.Now().Add(-time.Minute).UnixNano() / 1e6
 		//}
