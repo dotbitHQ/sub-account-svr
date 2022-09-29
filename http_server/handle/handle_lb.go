@@ -47,6 +47,7 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ModifyResponse = func(response *http.Response) error {
+		log.Info("doLBProxy:", response.Header)
 		for k, v := range response.Header {
 			if len(v) > 1 {
 				log.Info("doLBProxy:", k, len(v))
