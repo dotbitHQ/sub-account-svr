@@ -1,5 +1,3 @@
-slb:
-  svr_name: "svr-1"
 server:
   is_update: false
   net: 1 # 1 mainnet 2 testnet
