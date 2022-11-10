@@ -79,8 +79,8 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 		value := smt.H256Zero()
 
 		log.Info("rollback:", v)
-		log.Info("rollback key:", common.Bytes2Hex(key))
-		log.Info("rollback value:", common.Bytes2Hex(value))
+		//log.Info("rollback key:", common.Bytes2Hex(key))
+		//log.Info("rollback value:", common.Bytes2Hex(value))
 
 		if subAccountValue, ok := subAccountValueMap[v]; ok {
 			value = common.Hex2Bytes(subAccountValue)
@@ -89,10 +89,10 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 			return fmt.Errorf("tree.Update err: %s", err.Error())
 		}
 	}
-	if root, err := tree.Root(); err != nil {
+	if _, err = tree.Root(); err != nil {
 		return fmt.Errorf("tree.Root err: %s", err.Error())
 	} else {
-		log.Info("rollback CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
+		//log.Info("rollback CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
 	}
 
 	if task.TaskType == tables.TaskTypeDelegate && task.Retry < t.MaxRetry {
