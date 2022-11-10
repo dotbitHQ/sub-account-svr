@@ -91,7 +91,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 			if root, err := p.Tree.Root(); err != nil {
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
-				log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
+				//log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
 				subAccountParam.PrevRoot = root
 			}
 			//log.Info("Tree.Update")
