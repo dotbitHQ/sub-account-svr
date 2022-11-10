@@ -101,8 +101,8 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 		value := common.Hex2Bytes(smtInfo.LeafDataHash)
 
 		log.Info("confirmOtherTx:", smtInfo.AccountId)
-		log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
-		log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
+		//log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
+		//log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
 
 		err = tree.Update(key, value)
 		if err != nil {
@@ -110,10 +110,10 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 		}
 	}
 
-	if root, err := tree.Root(); err != nil {
+	if _, err = tree.Root(); err != nil {
 		return fmt.Errorf("tree.Root err: %s", err.Error())
 	} else {
-		log.Info("confirmOtherTx CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
+		//log.Info("confirmOtherTx CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
 	}
 
 	// 0,2 -> 2,2
