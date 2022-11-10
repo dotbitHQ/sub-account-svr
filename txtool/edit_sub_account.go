@@ -9,7 +9,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
-	"github.com/scorpiotzh/toolib"
 )
 
 type ParamBuildEditSubAccountTx struct {
@@ -57,13 +56,13 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := newSubAccount.ToH256()
 			log.Info("BuildEditSubAccountTx:", v.AccountId)
-			log.Info("BuildEditSubAccountTx key:", common.Bytes2Hex(key))
-			log.Info("BuildEditSubAccountTx value:", common.Bytes2Hex(value))
-			log.Info("BuildEditSubAccountTx sub account:", toolib.JsonString(newSubAccount))
+			//log.Info("BuildEditSubAccountTx key:", common.Bytes2Hex(key))
+			//log.Info("BuildEditSubAccountTx value:", common.Bytes2Hex(value))
+			//log.Info("BuildEditSubAccountTx sub account:", toolib.JsonString(newSubAccount))
 			if root, err := p.Tree.Root(); err != nil {
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
-				log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
+				//log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
 				subAccountParam.PrevRoot = root
 			}
 			if err := p.Tree.Update(key, value); err != nil {
@@ -73,12 +72,12 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
 			} else {
 				subAccountParam.Proof = *proof
-				log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
+				//log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
 			}
 			if root, err := p.Tree.Root(); err != nil {
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
-				log.Info("CurrentRoot:", v.AccountId, common.Bytes2Hex(root))
+				//log.Info("CurrentRoot:", v.AccountId, common.Bytes2Hex(root))
 				subAccountParam.CurrentRoot = root
 			}
 		}
