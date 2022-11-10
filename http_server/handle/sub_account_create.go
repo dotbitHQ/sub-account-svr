@@ -196,6 +196,7 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 	h.RC.DoLockExpire(ctx, parentAccountId)
 
 	// build tx
+	nowTime := time.Now()
 	res, err := h.TxTool.BuildTxs(&txtool.ParamBuildTxs{
 		TaskList:             taskList,
 		TaskMap:              taskMap,
@@ -212,6 +213,7 @@ func (h *HttpHandle) doSubAccountCreate(req *ReqSubAccountCreate, apiResp *api_c
 	if err != nil {
 		return doBuildTxs(err, apiResp)
 	}
+	log.Info("doSubAccountCreate:", time.Since(nowTime).Seconds())
 
 	// sign info
 	signInfoCacheList := SignInfoCacheList{

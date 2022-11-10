@@ -75,6 +75,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountParamList []*witness.SubAccountParam
 	for i, v := range p.SmtRecordInfoList {
+		log.Info("BuildCreateSubAccountTx:", v.ParentAccountId, v.AccountId, v.Account)
 		// update smt,get root and proof
 		newSubAccount, subAccountParam, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
 		if err != nil {
@@ -86,29 +87,29 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 			//log.Info("BuildCreateSubAccountTx key:", common.Bytes2Hex(key))
 			//log.Info("BuildCreateSubAccountTx value:", common.Bytes2Hex(value))
 
-			log.Info("Tree.Root")
+			//log.Info("Tree.Root")
 			if root, err := p.Tree.Root(); err != nil {
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
 				log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
 				subAccountParam.PrevRoot = root
 			}
-			log.Info("Tree.Update")
+			//log.Info("Tree.Update")
 			if err := p.Tree.Update(key, value); err != nil {
 				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
 			}
-			log.Info("Tree.MerkleProof")
+			//log.Info("Tree.MerkleProof")
 			if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
 				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
 			} else {
 				subAccountParam.Proof = *proof
 				//log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
 			}
-			log.Info("Tree.Root")
+			//log.Info("Tree.Root")
 			if root, err := p.Tree.Root(); err != nil {
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
-				log.Info("CurrentRoot:", v.AccountId, common.Bytes2Hex(root))
+				//log.Info("CurrentRoot:", v.AccountId, common.Bytes2Hex(root))
 				subAccountParam.CurrentRoot = root
 			}
 		}

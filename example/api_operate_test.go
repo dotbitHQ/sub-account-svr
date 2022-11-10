@@ -157,7 +157,7 @@ func TestSubAccountCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 
