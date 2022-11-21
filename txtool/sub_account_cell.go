@@ -7,17 +7,16 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
-func getSubAccountWitness(subAccountParamList []*witness.SubAccountParam) ([][]byte, error) {
+func getSubAccountWitness(subAccountParamList []*witness.SubAccountNew) ([][]byte, error) {
 	var witnessList [][]byte
 	for _, v := range subAccountParamList {
-		//log.Info("getSubAccountWitness:", toolib.JsonString(v))
-		wit, _ := v.NewSubAccountWitness()
+		wit, _ := v.GenWitness()
 		witnessList = append(witnessList, wit)
 	}
 	return witnessList, nil
 }
 
-func (s *SubAccountTxTool) GetOldSubAccount(subAccountIds []string, action common.DasAction) (map[string]string, map[string]*witness.SubAccountBuilder, error) {
+func (s *SubAccountTxTool) GetOldSubAccount(subAccountIds []string, action common.DasAction) (map[string]string, map[string]*witness.SubAccountNew, error) {
 	smtInfoList, err := s.DbDao.GetSmtInfoBySubAccountIds(subAccountIds)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetSmtInfoBySubAccountIds err: %s", err.Error())
@@ -30,14 +29,15 @@ func (s *SubAccountTxTool) GetOldSubAccount(subAccountIds []string, action commo
 		valueMap[v.AccountId] = v.LeafDataHash
 	}
 
-	var subAccountBuilderMap = make(map[string]*witness.SubAccountBuilder)
+	var subAccountBuilderMap = make(map[string]*witness.SubAccountNew)
 	if action == common.DasActionEditSubAccount {
+		var san witness.SubAccountBuilderNew
 		for _, v := range hashMap {
 			res, err := s.DasCore.Client().GetTransaction(s.Ctx, v)
 			if err != nil {
 				return nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
 			}
-			builderMap, err := witness.SubAccountBuilderMapFromTx(res.Transaction)
+			builderMap, err := san.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
 			if err != nil {
 				return nil, nil, fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())
 			}

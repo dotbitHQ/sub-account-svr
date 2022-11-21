@@ -22,7 +22,7 @@ type ParamBuildEditSubAccountTx struct {
 	SubAccountOutputsData []byte
 	CommonFee             uint64
 	BaseInfo              *BaseInfo
-	SubAccountBuilderMap  map[string]*witness.SubAccountBuilder
+	SubAccountBuilderMap  map[string]*witness.SubAccountNew
 }
 
 type ResultBuildEditSubAccountTx struct {
@@ -42,14 +42,14 @@ func (s *SubAccountTxTool) BuildEditSubAccountTx(p *ParamBuildEditSubAccountTx) 
 
 	// update smt,get root and proof
 	var res ResultBuildEditSubAccountTx
-	var subAccountParamList []*witness.SubAccountParam
+	var subAccountParamList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
 		// update smt,get root and proof
 		subAccountBuilder, ok := p.SubAccountBuilderMap[v.AccountId]
 		if !ok {
 			return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 		}
-		newSubAccount, subAccountParam, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(subAccountBuilder.CurrentSubAccount, p.BaseInfo.ContractDas, 0)
+		newSubAccount, subAccountParam, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
 		if err != nil {
 			return nil, fmt.Errorf("GetCurrentSubAccount err: %s", err.Error())
 		} else {

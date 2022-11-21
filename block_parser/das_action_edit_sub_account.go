@@ -62,7 +62,8 @@ func getTaskAndSmtRecords(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, 
 		svrName = s.Name
 	}
 	// get sub account
-	subAccountMap, err := witness.SubAccountBuilderMapFromTx(req.Tx)
+	var san witness.SubAccountBuilderNew
+	subAccountMap, err := san.SubAccountNewMapFromTx(req.Tx) //witness.SubAccountBuilderMapFromTx(req.Tx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("SubAccountDataBuilderMapFromTx err: %s", err.Error())
 	}
@@ -86,8 +87,8 @@ func getTaskAndSmtRecords(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, 
 	for _, v := range subAccountMap {
 		record := tables.TableSmtRecordInfo{
 			Id:              0,
-			AccountId:       v.SubAccount.AccountId,
-			Nonce:           v.CurrentSubAccount.Nonce,
+			AccountId:       v.SubAccountData.AccountId,
+			Nonce:           v.CurrentSubAccountData.Nonce,
 			RecordType:      tables.RecordTypeChain,
 			TaskId:          taskInfo.TaskId,
 			Action:          req.Action,
@@ -104,16 +105,14 @@ func getTaskAndSmtRecords(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, 
 		}
 		switch req.Action {
 		case common.DasActionCreateSubAccount:
-			record.RegisterArgs = common.Bytes2Hex(v.SubAccount.Lock.Args)
-			record.RegisterYears = (v.SubAccount.ExpiredAt - v.SubAccount.RegisteredAt) / 31536000
+			record.RegisterArgs = common.Bytes2Hex(v.SubAccountData.Lock.Args)
+			record.RegisterYears = (v.SubAccountData.ExpiredAt - v.SubAccountData.RegisteredAt) / 31536000
 		case common.DasActionEditSubAccount:
-			editValue, err := v.ConvertToEditValue()
-			if err != nil {
-				return nil, nil, fmt.Errorf("ConvertToEditValue err: %s", err.Error())
+			if len(v.EditLockArgs) > 0 {
+				record.EditArgs = common.Bytes2Hex(v.EditLockArgs)
 			}
-			record.EditArgs = editValue.LockArgs
-			if len(editValue.Records) > 0 {
-				recordsBys, err := json.Marshal(editValue.Records)
+			if len(v.EditRecords) > 0 {
+				recordsBys, err := json.Marshal(v.EditRecords)
 				if err != nil {
 					return nil, nil, fmt.Errorf("records json.Marshal err: %s", err.Error())
 				}

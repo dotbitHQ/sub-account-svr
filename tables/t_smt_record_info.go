@@ -57,9 +57,9 @@ func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err err
 	return
 }
 
-func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAccount, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccount, *witness.SubAccountParam, error) {
-	var currentSubAccount witness.SubAccount
-	var subAccountParam witness.SubAccountParam
+func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
+	var currentSubAccount witness.SubAccountData
+	var subAccountNew witness.SubAccountNew
 
 	if contractDas == nil {
 		return nil, nil, fmt.Errorf("contractDas is nil")
@@ -71,19 +71,6 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 		if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
 			return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
 		}
-
-		//if t.Content != "" {
-		//	if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
-		//		return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
-		//	}
-		//} else {
-		//	var err error
-		//	accountCharSet, err = common.AccountToAccountChars(t.Account[:strings.Index(t.Account, ".")])
-		//	if err != nil {
-		//		return nil, nil, fmt.Errorf("AccountToAccountChars err: %s", err.Error())
-		//	}
-		//}
-		//log.Info("GetCurrentSubAccount:", toolib.JsonString(accountCharSet), len(t.Content), t.Content)
 		currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
 		currentSubAccount.AccountId = t.AccountId
 		currentSubAccount.AccountCharSet = accountCharSet
@@ -91,43 +78,43 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 		currentSubAccount.RegisteredAt = uint64(timeCellTimestamp)
 		currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (31536000 * t.RegisterYears)
 
-		subAccountParam.SubAccount = &currentSubAccount
-		return &currentSubAccount, &subAccountParam, nil
+		subAccountNew.SubAccountData = &currentSubAccount
+		return &currentSubAccount, &subAccountNew, nil
 	case common.DasActionEditSubAccount, common.DasActionRenewSubAccount:
 		if oldSubAccount == nil {
 			return nil, nil, fmt.Errorf("oldSubAccount is nil")
 		}
 		currentSubAccount = *oldSubAccount
 
-		subAccountParam.Signature = common.Hex2Bytes(t.Signature)
-		subAccountParam.SubAccount = oldSubAccount
-		subAccountParam.EditKey = t.EditKey
+		subAccountNew.Signature = common.Hex2Bytes(t.Signature)
+		subAccountNew.SubAccountData = oldSubAccount
+		subAccountNew.EditKey = t.EditKey
 		switch t.EditKey {
 		case common.EditKeyOwner:
 			currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.EditArgs))
-			subAccountParam.SignRole = common.Hex2Bytes(common.ParamOwner)
-			subAccountParam.EditLockArgs = common.Hex2Bytes(t.EditArgs)
+			subAccountNew.SignRole = common.Hex2Bytes(common.ParamOwner)
+			subAccountNew.EditLockArgs = common.Hex2Bytes(t.EditArgs)
 			currentSubAccount.Records = nil
 		case common.EditKeyManager:
 			currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.EditArgs))
-			subAccountParam.SignRole = common.Hex2Bytes(common.ParamOwner)
-			subAccountParam.EditLockArgs = common.Hex2Bytes(t.EditArgs)
+			subAccountNew.SignRole = common.Hex2Bytes(common.ParamOwner)
+			subAccountNew.EditLockArgs = common.Hex2Bytes(t.EditArgs)
 		case common.EditKeyRecords:
 			records, err := t.getEditRecords()
 			if err != nil {
 				return nil, nil, fmt.Errorf("getEditRecords err: %s", err.Error())
 			}
 			currentSubAccount.Records = records
-			subAccountParam.SignRole = common.Hex2Bytes(common.ParamManager)
-			subAccountParam.EditRecords = records
+			subAccountNew.SignRole = common.Hex2Bytes(common.ParamManager)
+			subAccountNew.EditRecords = records
 		case common.EditKeyExpiredAt:
 			currentSubAccount.ExpiredAt += 31536000 * t.RegisterYears
-			subAccountParam.RenewExpiredAt = currentSubAccount.ExpiredAt
+			subAccountNew.RenewExpiredAt = currentSubAccount.ExpiredAt
 		default:
 			return nil, nil, fmt.Errorf("not supported edit key[%s]", t.Action)
 		}
 		currentSubAccount.Nonce++
-		return &currentSubAccount, &subAccountParam, nil
+		return &currentSubAccount, &subAccountNew, nil
 	default:
 		return nil, nil, fmt.Errorf("not supported action[%s]", t.Action)
 	}

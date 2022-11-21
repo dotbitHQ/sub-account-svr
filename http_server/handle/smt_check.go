@@ -91,7 +91,8 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 	}
 
 	// chain
-	var subAccountBuilderMap = make(map[string]*witness.SubAccountBuilder)
+	var subAccountBuilderMap = make(map[string]*witness.SubAccountNew)
+	var san witness.SubAccountBuilderNew
 	for _, v := range taskList {
 		outpoint := common.String2OutPointStruct(v.Outpoint)
 		res, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
@@ -99,7 +100,8 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetTransaction err: %s", err.Error())
 		}
-		builderMap, err := witness.SubAccountBuilderMapFromTx(res.Transaction)
+
+		builderMap, err := san.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())
@@ -114,7 +116,7 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 	// check
 	for _, v := range smtList {
 		item, _ := subAccountBuilderMap[v.AccountId]
-		chainValue := item.CurrentSubAccount.ToH256()
+		chainValue := item.CurrentSubAccountData.ToH256()
 		diff := common.Bytes2Hex(chainValue) != v.LeafDataHash
 		resp.List = append(resp.List, SmtCheckData{
 			AccountId:  v.AccountId,

@@ -41,7 +41,7 @@ type ParamBuildTxs struct {
 	BalanceDasType       *types.Script
 	SubAccountIds        []string
 	SubAccountValueMap   map[string]string
-	SubAccountBuilderMap map[string]*witness.SubAccountBuilder
+	SubAccountBuilderMap map[string]*witness.SubAccountNew
 }
 
 type ResultBuildTxs struct {

@@ -90,7 +90,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTxByScript(p *ParamBuildCreateSu
 
 	// update smt,get root and proof
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
-	var subAccountParamList []*witness.SubAccountParam
+	var subAccountParamList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
 		// update smt,get root and proof
 		newSubAccount, subAccountParam, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
