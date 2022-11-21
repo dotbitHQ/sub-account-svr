@@ -92,7 +92,7 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 
 	// chain
 	var subAccountBuilderMap = make(map[string]*witness.SubAccountNew)
-	var san witness.SubAccountBuilderNew
+	var sanb witness.SubAccountNewBuilder
 	for _, v := range taskList {
 		outpoint := common.String2OutPointStruct(v.Outpoint)
 		res, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
@@ -101,7 +101,7 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 			return fmt.Errorf("GetTransaction err: %s", err.Error())
 		}
 
-		builderMap, err := san.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
+		builderMap, err := sanb.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())

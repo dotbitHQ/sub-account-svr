@@ -123,8 +123,8 @@ func TestCustomScriptPrice(t *testing.T) {
 
 	subDetail := witness.ConvertSubAccountCellOutputData(tx.Transaction.OutputsData[0])
 	fmt.Println(subDetail.OwnerProfit)
-	var san witness.SubAccountBuilderNew
-	subAccountMap, err := san.SubAccountNewMapFromTx(tx.Transaction) //witness.SubAccountBuilderMapFromTx(tx.Transaction)
+	var sanb witness.SubAccountNewBuilder
+	subAccountMap, err := sanb.SubAccountNewMapFromTx(tx.Transaction) //witness.SubAccountBuilderMapFromTx(tx.Transaction)
 	for _, v := range subAccountMap {
 		fmt.Println(v.Account)
 		price, _ := conf.GetPriceBySubAccount(v.Account)
