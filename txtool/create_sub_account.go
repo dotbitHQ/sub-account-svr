@@ -73,16 +73,16 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 
 	// update smt,get root and proof
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
-	var subAccountParamList []*witness.SubAccountNew
+	var subAccountNewList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildCreateSubAccountTx:", v.ParentAccountId, v.AccountId, v.Account)
 		// update smt,get root and proof
-		newSubAccount, subAccountParam, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
+		subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
 		if err != nil {
 			return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 		} else {
 			key := smt.AccountIdToSmtH256(v.AccountId)
-			value := newSubAccount.ToH256()
+			value := subAccountData.ToH256()
 			//log.Info("BuildCreateSubAccountTx:", v.AccountId)
 			//log.Info("BuildCreateSubAccountTx key:", common.Bytes2Hex(key))
 			//log.Info("BuildCreateSubAccountTx value:", common.Bytes2Hex(value))
@@ -92,7 +92,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
 				//log.Info("PrevRoot:", v.AccountId, common.Bytes2Hex(root))
-				subAccountParam.PrevRoot = root
+				subAccountNew.PrevRoot = root
 			}
 			//log.Info("Tree.Update")
 			if err := p.Tree.Update(key, value); err != nil {
@@ -102,7 +102,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 			if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
 				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
 			} else {
-				subAccountParam.Proof = *proof
+				subAccountNew.Proof = *proof
 				//log.Info("Proof:", v.AccountId, common.Bytes2Hex(*proof))
 			}
 			//log.Info("Tree.Root")
@@ -110,11 +110,11 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
 			} else {
 				//log.Info("CurrentRoot:", v.AccountId, common.Bytes2Hex(root))
-				subAccountParam.CurrentRoot = root
+				subAccountNew.CurrentRoot = root
 			}
 		}
-		common.GetAccountCharType(accountCharTypeMap, newSubAccount.AccountCharSet)
-		subAccountParamList = append(subAccountParamList, subAccountParam)
+		common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
+		subAccountNewList = append(subAccountNewList, subAccountNew)
 	}
 
 	// update smt status
@@ -149,7 +149,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub account
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
-	subDataDetail.SmtRoot = subAccountParamList[len(subAccountParamList)-1].CurrentRoot
+	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].CurrentRoot
 	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
@@ -177,7 +177,7 @@ func (s *SubAccountTxTool) BuildCreateSubAccountTx(p *ParamBuildCreateSubAccount
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 	txParams.Witnesses = append(txParams.Witnesses, p.AccountCellWitness) // account
 
-	smtWitnessList, _ := getSubAccountWitness(subAccountParamList)
+	smtWitnessList, _ := getSubAccountWitness(subAccountNewList)
 	for _, v := range smtWitnessList {
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness
 	}
