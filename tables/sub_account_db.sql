@@ -65,6 +65,8 @@ CREATE TABLE `t_smt_record_info`
     `edit_records`      TEXT                NOT NULL COMMENT '',
     `renew_years`       INT                 NOT NULL DEFAULT '0' COMMENT '',
     `timestamp`         BIGINT              NOT NULL DEFAULT '0' COMMENT 'record timestamp',
+    `sub_action`        VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
+    `mint_sign_id`      VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
     `created_at`        TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
     `updated_at`        TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
     PRIMARY KEY (`id`),
@@ -72,7 +74,22 @@ CREATE TABLE `t_smt_record_info`
     KEY `k_task_id` (`task_id`),
     KEY `k_parent_account_id` (`parent_account_id`),
     KEY `k_account` (`account`),
-    KEY `k_action` (`action`)
+    KEY `k_action` (`action`, `sub_action`),
+    KEY `k_mint_sign_id` (`mint_sign_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='smt record info';
+
+-- t_mint_sign_info
+CREATE TABLE `t_mint_sign_info`
+(
+    `id`           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '',
+    `mint_sign_id` VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
+    `signature`    VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
+    `created_at`   TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+    `updated_at`   TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_mint_sign_id` (`mint_sign_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='mint sign info';

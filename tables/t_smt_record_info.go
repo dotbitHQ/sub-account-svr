@@ -32,6 +32,8 @@ type TableSmtRecordInfo struct {
 	RenewYears      uint64     `json:"renew_years" gorm:"column:renew_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	EditRecords     string     `json:"edit_records" gorm:"column:edit_records;type:text NOT NULL COMMENT ''"`
 	Timestamp       int64      `json:"timestamp" gorm:"column:timestamp;type:bigint(20) NOT NULL DEFAULT '0' COMMENT 'record timestamp'"`
+	SubAction       string     `json:"sub_action" gorm:"column:sub_action; index:k_action; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	MintSignId      string     `json:"mint_sign_id" gorm:"column:mint_sign_id; index:uk_mint_sign_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"column:created_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT ''"`
 	UpdatedAt       time.Time  `json:"updated_at" gorm:"column:updated_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''"`
 }
