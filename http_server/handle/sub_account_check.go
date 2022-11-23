@@ -121,7 +121,7 @@ func (h *HttpHandle) doSubAccountCheckAccount(account string, apiResp *api_code.
 		return nil, nil
 	}
 	switch action {
-	case common.DasActionCreateSubAccount, common.DasActionEditSubAccount:
+	case common.DasActionCreateSubAccount, common.DasActionEditSubAccount, common.DasActionUpdateSubAccount:
 		if acc.EnableSubAccount != tables.AccountEnableStatusOn {
 			apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub account uninitialized")
 			return nil, nil
@@ -141,43 +141,12 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 	resp.Result = make([]CheckSubAccount, 0)
 
 	// check mint for account
-	var mintForAccountIds []string
-	for i, _ := range req.SubAccountList {
-		if req.SubAccountList[i].KeyInfo.Key != "" {
-			continue
-		}
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
-		mintForAccountIds = append(mintForAccountIds, accId)
+	if err := h.doMintForAccountCheck(req, apiResp); err != nil {
+		return false, nil, fmt.Errorf("doMintForAccountCheck err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return false, nil, nil
 	}
-	mintForAccountList, err := h.DbDao.GetAccountListByAccountIds(mintForAccountIds)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
-		return false, nil, fmt.Errorf("GetAccountListByAccountIds: %s", err.Error())
-	}
-	var mapMinForAccount = make(map[string]tables.TableAccountInfo)
-	for i, v := range mintForAccountList {
-		mapMinForAccount[v.AccountId] = mintForAccountList[i]
-	}
-	for i, _ := range req.SubAccountList {
-		if req.SubAccountList[i].KeyInfo.Key != "" {
-			continue
-		}
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
-		if acc, ok := mapMinForAccount[accId]; ok {
-			coinType := common.CoinTypeEth
-			keyOwner := acc.Owner
-			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
-				coinType = common.CoinTypeTrx
-				keyOwner, _ = common.TronHexToBase58(acc.Owner)
-			}
-			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
-			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
-			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = keyOwner
-		} else {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
-			return false, nil, nil
-		}
-	}
+
 	//
 	var subAccountMap = make(map[string]int)
 	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
@@ -306,6 +275,47 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		}
 	}
 	return isOk, &resp, nil
+}
+
+func (h *HttpHandle) doMintForAccountCheck(req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
+	var mintForAccountIds []string
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
+		mintForAccountIds = append(mintForAccountIds, accId)
+	}
+	mintForAccountList, err := h.DbDao.GetAccountListByAccountIds(mintForAccountIds)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query mint for account list")
+		return fmt.Errorf("GetAccountListByAccountIds: %s", err.Error())
+	}
+	var mapMinForAccount = make(map[string]tables.TableAccountInfo)
+	for i, v := range mintForAccountList {
+		mapMinForAccount[v.AccountId] = mintForAccountList[i]
+	}
+	for i, _ := range req.SubAccountList {
+		if req.SubAccountList[i].KeyInfo.Key != "" {
+			continue
+		}
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].MintForAccount))
+		if acc, ok := mapMinForAccount[accId]; ok {
+			coinType := common.CoinTypeEth
+			keyOwner := acc.Owner
+			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
+				coinType = common.CoinTypeTrx
+				keyOwner, _ = common.TronHexToBase58(acc.Owner)
+			}
+			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
+			req.SubAccountList[i].ChainTypeAddress.KeyInfo.Key = keyOwner
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
+			return fmt.Errorf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount)
+		}
+	}
+	return nil
 }
 
 func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
