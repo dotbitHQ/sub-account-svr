@@ -181,7 +181,7 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, 
 			RenewYears:      0,
 			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
-			SubAction:       witness.SubActionCreate,
+			SubAction:       common.SubActionCreate,
 			MintSignId:      "", // todo
 		}
 		listSmtRecord = append(listSmtRecord, tmp)

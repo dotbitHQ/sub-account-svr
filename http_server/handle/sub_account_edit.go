@@ -34,34 +34,6 @@ type ReqSubAccountEdit struct {
 	EditValue EditInfo `json:"edit_value"`
 }
 
-type EditInfo struct {
-	Owner   core.ChainTypeAddress `json:"owner"`
-	Manager core.ChainTypeAddress `json:"manager"`
-	Records []EditRecord          `json:"records"`
-	//
-	OwnerChainType   common.ChainType `json:"owner_chain_type"`
-	OwnerAddress     string           `json:"owner_address"`
-	ManagerChainType common.ChainType `json:"manager_chain_type"`
-	ManagerAddress   string           `json:"manager_address"`
-}
-
-type EditRecord struct {
-	Index int    `json:"index"`
-	Key   string `json:"key"`
-	Type  string `json:"type"`
-	Label string `json:"label"`
-	Value string `json:"value"`
-	TTL   string `json:"ttl"`
-}
-
-type EditRecordList []EditRecord
-
-func (e EditRecordList) Len() int { return len(e) }
-func (e EditRecordList) Less(i, j int) bool {
-	return e[i].Index < e[j].Index
-}
-func (e EditRecordList) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
-
 type RespSubAccountEdit struct {
 	SignInfoList
 }
