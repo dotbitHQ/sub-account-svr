@@ -85,6 +85,8 @@ CREATE TABLE `t_mint_sign_info`
 (
     `id`           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '',
     `mint_sign_id` VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
+    `smt_root`     VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
+    `expired_at`   BIGINT              NOT NULL DEFAULT '0' COMMENT '',
     `signature`    VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
     `created_at`   TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
     `updated_at`   TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
