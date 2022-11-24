@@ -68,12 +68,16 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 	}
 
 	// check edit value
-	var dataCache UpdateSubAccountCache
-	dataCache.ChainType = req.chainType
-	dataCache.Address = req.address
-	dataCache.SubAccount = req.Account
-	dataCache.EditKey = req.EditKey
-	dataCache.EditValue = req.EditValue
+	dataCache := UpdateSubAccountCache{
+		ParentAccountId: "",
+		Account:         req.Account,
+		ChainType:       req.chainType,
+		Address:         req.address,
+		SubAction:       common.SubActionEdit,
+		EditKey:         req.EditKey,
+		EditValue:       req.EditValue,
+		OldSignMsg:      "",
+	}
 	_, subAcc, err := dataCache.EditCheck(h.DbDao, apiResp)
 	if err != nil {
 		return fmt.Errorf("EditCheck err: %s", err.Error())
@@ -119,23 +123,25 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 // === UpdateSubAccount ===
 type UpdateSubAccountCache struct {
 	ParentAccountId string           `json:"parent_account_id"`
-	SubAccount      string           `json:"sub_account"`
+	Account         string           `json:"account"`
 	ChainType       common.ChainType `json:"chain_type"`
 	Address         string           `json:"address"`
 	SubAction       common.SubAction `json:"sub_action"`
 	EditKey         common.EditKey   `json:"edit_key"`
 	EditValue       EditInfo         `json:"edit_value"`
 
-	OldSignMsg string `json:"old_sign_msg"`
+	OldSignMsg    string                      `json:"old_sign_msg"`
+	MinSignInfo   tables.TableMintSignInfo    `json:"min_sign_info"`
+	ListSmtRecord []tables.TableSmtRecordInfo `json:"list_smt_record"`
 }
 
 func (u *UpdateSubAccountCache) CacheKey() string {
-	key := fmt.Sprintf("%s%d%s%s%s%d", common.DasActionUpdateSubAccount, u.ChainType, u.Address, u.SubAction, u.EditKey, time.Now().UnixNano())
+	key := fmt.Sprintf("%s%d%s%s%s%s%s%d", common.DasActionUpdateSubAccount, u.ChainType, u.Address, u.ParentAccountId, u.SubAction, u.Account, u.EditKey, time.Now().UnixNano())
 	return fmt.Sprintf("%x", md5.Sum([]byte(key)))
 }
 
 func (u *UpdateSubAccountCache) EditCheck(db *dao.DbDao, apiResp *api_code.ApiResp) (string, *tables.TableAccountInfo, error) {
-	subAccId := common.Bytes2Hex(common.GetAccountIdByAccount(u.SubAccount))
+	subAccId := common.Bytes2Hex(common.GetAccountIdByAccount(u.Account))
 	subAcc, err := db.GetAccountInfoByAccountId(subAccId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account")
@@ -150,7 +156,7 @@ func (u *UpdateSubAccountCache) EditCheck(db *dao.DbDao, apiResp *api_code.ApiRe
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")
 		return "", nil, nil
 	} else if subAcc.ParentAccountId == "" {
-		apiResp.ApiRespErr(api_code.ApiCodeNotSubAccount, fmt.Sprintf("%s not a sub account", u.SubAccount))
+		apiResp.ApiRespErr(api_code.ApiCodeNotSubAccount, fmt.Sprintf("%s not a sub account", u.Account))
 		return "", nil, nil
 	}
 
@@ -291,6 +297,34 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 
 	bys, _ := blake2b.Blake256(data)
 	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+	return
+}
+
+func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
+	// ExpiredAt + SmtRoot
+
+	expiredAtBys := bytes.NewBuffer([]byte{})
+	if err := binary.Write(expiredAtBys, binary.LittleEndian, u.MinSignInfo.ExpiredAt); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
+		return
+	}
+	data := expiredAtBys.Bytes()
+
+	data = append(data, common.Hex2Bytes(u.MinSignInfo.SmtRoot)...)
+
+	bys, err := blake2b.Blake256(data)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("blake2b.Blake256 err: %s", err.Error()))
+		return
+	}
+	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+
+	// sig msg
+	signData.SignType = acc.ManagerAlgorithmId
+	if signData.SignType == common.DasAlgorithmIdEth712 {
+		signData.SignType = common.DasAlgorithmIdEth
+	}
+
 	return
 }
 

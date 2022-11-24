@@ -9,6 +9,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
@@ -123,14 +124,40 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 	}
 	log.Info("doSubAccountCreateNew:", parentAccountId, minSignInfo.ExpiredAt, len(listSmtRecord))
 
-	// todo sign info
-	// minSignInfo.ExpiredAt+minSignInfo.SmtRoot
+	// sign info
+	dataCache := UpdateSubAccountCache{
+		ParentAccountId: acc.AccountId,
+		Account:         req.Account,
+		ChainType:       req.chainType,
+		Address:         req.address,
+		SubAction:       common.SubActionCreate,
+		OldSignMsg:      "",
+		MinSignInfo:     *minSignInfo,
+		ListSmtRecord:   listSmtRecord,
+	}
+	signData := dataCache.GetCreateSignData(acc, apiResp)
+	if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+	dataCache.OldSignMsg = signData.SignMsg // for check after user sign
 
-	// todo cache
+	// cache
+	signKey := dataCache.CacheKey()
+	cacheStr := toolib.JsonString(&dataCache)
+	if err = h.RC.SetSignTxCache(signKey, cacheStr); err != nil {
+		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
+	}
 
-	log.Info("doSubAccountCreate:", toolib.JsonString(resp))
+	// resp
 	resp.Action = common.DasActionUpdateSubAccount
-	resp.SignKey = minSignInfo.MintSignId
+	resp.SignKey = signKey
+	resp.List = append(resp.List, SignInfo{
+		//SignKey: "",
+		SignList: []txbuilder.SignData{
+			signData,
+		},
+	})
+
 	apiResp.ApiRespOK(resp)
 	return nil
 }
@@ -182,7 +209,7 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, 
 			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
 			SubAction:       common.SubActionCreate,
-			MintSignId:      "", // todo
+			MintSignId:      "",
 		}
 		listSmtRecord = append(listSmtRecord, tmp)
 
