@@ -65,7 +65,7 @@ func getTaskAndSmtRecords(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, 
 	var sanb witness.SubAccountNewBuilder
 	subAccountMap, err := sanb.SubAccountNewMapFromTx(req.Tx) //witness.SubAccountBuilderMapFromTx(req.Tx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("SubAccountDataBuilderMapFromTx err: %s", err.Error())
+		return nil, nil, fmt.Errorf("SubAccountNewMapFromTx err: %s", err.Error())
 	}
 	taskInfo := tables.TableTaskInfo{
 		Id:              0,
