@@ -336,11 +336,6 @@ func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
 	}
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountPrice().RawData())
-	//newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
-	//if err != nil {
-	//	apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-	//	return fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
-	//}
 	quoteCell, err := h.DasCore.GetQuoteCell()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
