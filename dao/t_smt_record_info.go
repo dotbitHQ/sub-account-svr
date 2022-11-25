@@ -115,3 +115,15 @@ func (d *DbDao) UpdateRecordsToClosed(taskId string, diffNonceList []tables.Tabl
 		return nil
 	})
 }
+
+func (d *DbDao) CreateMinSignInfo(mintSignInfo tables.TableMintSignInfo, list []tables.TableSmtRecordInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&mintSignInfo).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&list).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}

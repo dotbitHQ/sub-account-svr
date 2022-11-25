@@ -357,3 +357,44 @@ func (e EditRecordList) Less(i, j int) bool {
 	return e[i].Index < e[j].Index
 }
 func (e EditRecordList) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
+
+func (u *UpdateSubAccountCache) ConvertEditValue(daf *core.DasAddressFormat, subAcc *tables.TableAccountInfo, record *tables.TableSmtRecordInfo) error {
+	switch u.EditKey {
+	case common.EditKeyOwner:
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: u.EditValue.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     u.EditValue.OwnerAddress,
+			IsMulti:        false,
+			ChainType:      u.EditValue.OwnerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, ownerHex)
+		if err != nil {
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+		record.EditArgs = common.Bytes2Hex(args)
+	case common.EditKeyManager:
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     subAcc.Owner,
+			IsMulti:        false,
+			ChainType:      subAcc.OwnerChainType,
+		}
+		managerHex := core.DasAddressHex{
+			DasAlgorithmId: u.EditValue.ManagerChainType.ToDasAlgorithmId(true),
+			AddressHex:     u.EditValue.ManagerAddress,
+			IsMulti:        false,
+			ChainType:      u.EditValue.ManagerChainType,
+		}
+		args, err := daf.HexToArgs(ownerHex, managerHex)
+		if err != nil {
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+		record.EditArgs = common.Bytes2Hex(args)
+	case common.EditKeyRecords:
+		records := u.FormatRecords()
+		record.EditRecords = toolib.JsonString(records)
+	default:
+		return fmt.Errorf("not exist edit key [%s]", u.EditKey)
+	}
+	return nil
+}
