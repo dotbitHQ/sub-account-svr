@@ -5,147 +5,224 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/witness"
 	"time"
 )
 
-func (t *SmtTask) doDistribution() error {
-	if err := t.doEditDistribution(); err != nil {
-		return fmt.Errorf("doEditDistribution err: %s", err.Error())
-	}
-	return nil
-}
+//
+//func (t *SmtTask) doDistribution() error {
+//	if err := t.doEditDistribution(); err != nil {
+//		return fmt.Errorf("doEditDistribution err: %s", err.Error())
+//	}
+//	return nil
+//}
+//
+//func (t *SmtTask) doEditDistribution() error {
+//	action := common.DasActionEditSubAccount
+//	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Slb.SvrName, action)
+//	if err != nil {
+//		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
+//	}
+//	if len(list) == 0 {
+//		return nil
+//	}
+//	var idsList [][]uint64
+//	var ids []uint64
+//	// distribution
+//	var taskList []tables.TableTaskInfo
+//	lastParentAccountId, count := "", 0
+//	for i, v := range list {
+//		addTask := false
+//		if v.ParentAccountId != lastParentAccountId {
+//			addTask = true
+//		} else if count >= config.Cfg.Das.MaxEditCount {
+//			addTask = true
+//		} else {
+//			count++
+//		}
+//		if addTask {
+//			lastParentAccountId = v.ParentAccountId
+//			count = 0
+//			tmp := tables.TableTaskInfo{
+//				Id:              0,
+//				TaskId:          "",
+//				TaskType:        tables.TaskTypeDelegate,
+//				ParentAccountId: lastParentAccountId,
+//				Action:          action,
+//				RefOutpoint:     "",
+//				BlockNumber:     0,
+//				Outpoint:        "",
+//				Timestamp:       time.Now().UnixNano() / 1e6,
+//				SmtStatus:       tables.SmtStatusNeedToWrite,
+//				TxStatus:        tables.TxStatusUnSend,
+//				SvrName:         v.SvrName,
+//			}
+//			tmp.InitTaskId()
+//			taskList = append(taskList, tmp)
+//			if len(ids) > 0 {
+//				idsList = append(idsList, ids)
+//			}
+//			ids = make([]uint64, 0)
+//		}
+//		ids = append(ids, list[i].Id)
+//	}
+//	if len(ids) > 0 {
+//		idsList = append(idsList, ids)
+//	}
+//	if err := t.DbDao.UpdateTaskDistribution(taskList, idsList); err != nil {
+//		return fmt.Errorf("UpdateTaskDistribution err: %s", err.Error())
+//	}
+//	return nil
+//}
+//
+//func (t *SmtTask) doMintDistribution() error {
+//	if err := t.doCreateDistribution(); err != nil {
+//		return fmt.Errorf("doCreateDistribution err: %s", err.Error())
+//	}
+//	return nil
+//}
+//
+//func (t *SmtTask) doCreateDistribution() error {
+//	action := common.DasActionCreateSubAccount
+//	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Slb.SvrName, action)
+//	if err != nil {
+//		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
+//	}
+//	if len(list) == 0 {
+//		return nil
+//	}
+//	var idsList [][]uint64
+//	var ids []uint64
+//	// distribution
+//	var taskList []tables.TableTaskInfo
+//	lastParentAccountId, count := "", 0
+//	for i, v := range list {
+//		addTask := false
+//		if v.ParentAccountId != lastParentAccountId {
+//			addTask = true
+//		} else if count >= config.Cfg.Das.MaxCreateCount {
+//			addTask = true
+//		} else {
+//			count++
+//		}
+//		if addTask {
+//			lastParentAccountId = v.ParentAccountId
+//			count = 0
+//
+//			// check custom-script
+//			subAccLiveCell, err := t.DasCore.GetSubAccountCell(lastParentAccountId)
+//			if err != nil {
+//				return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+//			}
+//			subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
+//			customScripHash := ""
+//			if subAccDetail.HasCustomScriptArgs() {
+//				customScripHash = subAccDetail.ArgsAndConfigHash()
+//			}
+//
+//			tmp := tables.TableTaskInfo{
+//				Id:              0,
+//				TaskId:          "",
+//				TaskType:        tables.TaskTypeDelegate,
+//				ParentAccountId: lastParentAccountId,
+//				Action:          action,
+//				RefOutpoint:     "",
+//				BlockNumber:     0,
+//				Outpoint:        "",
+//				Timestamp:       time.Now().UnixNano() / 1e6,
+//				SmtStatus:       tables.SmtStatusNeedToWrite,
+//				TxStatus:        tables.TxStatusUnSend,
+//				CustomScripHash: customScripHash,
+//				SvrName:         v.SvrName,
+//			}
+//			tmp.InitTaskId()
+//			taskList = append(taskList, tmp)
+//			if len(ids) > 0 {
+//				idsList = append(idsList, ids)
+//			}
+//			ids = make([]uint64, 0)
+//		}
+//		ids = append(ids, list[i].Id)
+//	}
+//	if len(ids) > 0 {
+//		idsList = append(idsList, ids)
+//	}
+//	if err := t.DbDao.UpdateTaskDistribution(taskList, idsList); err != nil {
+//		return fmt.Errorf("UpdateTaskDistribution err: %s", err.Error())
+//	}
+//	return nil
+//}
 
-func (t *SmtTask) doEditDistribution() error {
-	action := common.DasActionEditSubAccount
-	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Slb.SvrName, action)
+// update-sub-account
+func (t *SmtTask) doUpdateDistribution() error {
+	action := common.DasActionUpdateSubAccount
+	list, err := t.DbDao.GetNeedDoDistributionRecordListNew(config.Cfg.Slb.SvrName, action)
 	if err != nil {
 		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
 	}
 	if len(list) == 0 {
 		return nil
 	}
-	var idsList [][]uint64
-	var ids []uint64
+	var mapSmtRecordList = make(map[string][]tables.TableSmtRecordInfo)
+	for i, v := range list {
+		mapSmtRecordList[v.ParentAccountId] = append(mapSmtRecordList[v.ParentAccountId], list[i])
+	}
+	timestamp := time.Now().Add(-time.Minute*3).UnixNano() / 1e6
+	for k, v := range mapSmtRecordList {
+		if timestamp < v[0].Timestamp && len(v) < config.Cfg.Das.MaxCreateCount {
+			delete(mapSmtRecordList, k)
+		}
+	}
 	// distribution
 	var taskList []tables.TableTaskInfo
-	lastParentAccountId, count := "", 0
-	for i, v := range list {
-		addTask := false
-		if v.ParentAccountId != lastParentAccountId {
-			addTask = true
-		} else if count >= config.Cfg.Das.MaxEditCount {
-			addTask = true
-		} else {
-			count++
-		}
-		if addTask {
-			lastParentAccountId = v.ParentAccountId
-			count = 0
-			tmp := tables.TableTaskInfo{
-				Id:              0,
-				TaskId:          "",
-				TaskType:        tables.TaskTypeDelegate,
-				ParentAccountId: lastParentAccountId,
-				Action:          action,
-				RefOutpoint:     "",
-				BlockNumber:     0,
-				Outpoint:        "",
-				Timestamp:       time.Now().UnixNano() / 1e6,
-				SmtStatus:       tables.SmtStatusNeedToWrite,
-				TxStatus:        tables.TxStatusUnSend,
-				SvrName:         v.SvrName,
-			}
-			tmp.InitTaskId()
-			taskList = append(taskList, tmp)
-			if len(ids) > 0 {
-				idsList = append(idsList, ids)
-			}
-			ids = make([]uint64, 0)
-		}
-		ids = append(ids, list[i].Id)
-	}
-	if len(ids) > 0 {
-		idsList = append(idsList, ids)
-	}
-	if err := t.DbDao.UpdateTaskDistribution(taskList, idsList); err != nil {
-		return fmt.Errorf("UpdateTaskDistribution err: %s", err.Error())
-	}
-	return nil
-}
-
-func (t *SmtTask) doMintDistribution() error {
-	if err := t.doCreateDistribution(); err != nil {
-		return fmt.Errorf("doCreateDistribution err: %s", err.Error())
-	}
-	return nil
-}
-
-func (t *SmtTask) doCreateDistribution() error {
-	action := common.DasActionCreateSubAccount
-	list, err := t.DbDao.GetNeedDoDistributionRecordList(config.Cfg.Slb.SvrName, action)
-	if err != nil {
-		return fmt.Errorf("GetNeedDoDistributionRecordList err: %s", err.Error())
-	}
-	if len(list) == 0 {
-		return nil
-	}
 	var idsList [][]uint64
 	var ids []uint64
-	// distribution
-	var taskList []tables.TableTaskInfo
-	lastParentAccountId, count := "", 0
-	for i, v := range list {
-		addTask := false
-		if v.ParentAccountId != lastParentAccountId {
-			addTask = true
-		} else if count >= config.Cfg.Das.MaxCreateCount {
-			addTask = true
-		} else {
+
+	for _, smtRecordList := range mapSmtRecordList {
+		count := 0
+		lastMintSignId := ""
+		addTask := true
+		for _, smtRecord := range smtRecordList {
+			if count == config.Cfg.Das.MaxCreateCount {
+				addTask = true
+				count = 0
+			} else if lastMintSignId != "" && smtRecord.MintSignId != "" && lastMintSignId != smtRecord.MintSignId {
+				addTask = true
+				count = 0
+			}
 			count++
-		}
-		if addTask {
-			lastParentAccountId = v.ParentAccountId
-			count = 0
+			lastMintSignId = smtRecord.MintSignId
+			if addTask {
+				taskInfo := tables.TableTaskInfo{
+					Id:              0,
+					SvrName:         smtRecord.SvrName,
+					TaskId:          "",
+					TaskType:        tables.TaskTypeDelegate,
+					ParentAccountId: smtRecord.ParentAccountId,
+					Action:          action,
+					RefOutpoint:     "",
+					BlockNumber:     0,
+					Outpoint:        "",
+					Timestamp:       time.Now().UnixNano() / 1e6,
+					SmtStatus:       tables.SmtStatusNeedToWrite,
+					TxStatus:        tables.TxStatusUnSend,
+					Retry:           0,
+					CustomScripHash: "",
+				}
+				taskInfo.InitTaskId()
+				taskList = append(taskList, taskInfo)
 
-			// check custom-script
-			subAccLiveCell, err := t.DasCore.GetSubAccountCell(lastParentAccountId)
-			if err != nil {
-				return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+				if len(ids) > 0 {
+					idsList = append(idsList, ids)
+				}
+				ids = make([]uint64, 0)
 			}
-			subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
-			customScripHash := ""
-			if subAccDetail.HasCustomScriptArgs() {
-				customScripHash = subAccDetail.ArgsAndConfigHash()
-			}
-
-			tmp := tables.TableTaskInfo{
-				Id:              0,
-				TaskId:          "",
-				TaskType:        tables.TaskTypeDelegate,
-				ParentAccountId: lastParentAccountId,
-				Action:          action,
-				RefOutpoint:     "",
-				BlockNumber:     0,
-				Outpoint:        "",
-				Timestamp:       time.Now().UnixNano() / 1e6,
-				SmtStatus:       tables.SmtStatusNeedToWrite,
-				TxStatus:        tables.TxStatusUnSend,
-				CustomScripHash: customScripHash,
-				SvrName:         v.SvrName,
-			}
-			tmp.InitTaskId()
-			taskList = append(taskList, tmp)
-			if len(ids) > 0 {
-				idsList = append(idsList, ids)
-			}
-			ids = make([]uint64, 0)
+			ids = append(ids, smtRecord.Id)
 		}
-		ids = append(ids, list[i].Id)
+		if len(ids) > 0 {
+			idsList = append(idsList, ids)
+		}
 	}
-	if len(ids) > 0 {
-		idsList = append(idsList, ids)
-	}
+
 	if err := t.DbDao.UpdateTaskDistribution(taskList, idsList); err != nil {
 		return fmt.Errorf("UpdateTaskDistribution err: %s", err.Error())
 	}

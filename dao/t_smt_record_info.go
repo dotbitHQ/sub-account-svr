@@ -16,8 +16,15 @@ func (d *DbDao) CreateSmtRecordList(recordList []tables.TableSmtRecordInfo) erro
 }
 
 func (d *DbDao) GetNeedDoDistributionRecordList(svrName string, action common.DasAction) (list []tables.TableSmtRecordInfo, err error) {
-	err = d.db.Where("task_id='' AND action=? AND svr_name=?", action, svrName).Order("parent_account_id,id").
+	err = d.db.Where("task_id='' AND action=? AND svr_name=?", action, svrName).
+		Order("parent_account_id,mint_sign_id,id").
 		Limit(100).Find(&list).Error
+	return
+}
+
+func (d *DbDao) GetNeedDoDistributionRecordListNew(svrName string, action common.DasAction) (list []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("task_id='' AND action=? AND svr_name=?", action, svrName).
+		Order("parent_account_id,mint_sign_id,id").Limit(2000).Find(&list).Error
 	return
 }
 

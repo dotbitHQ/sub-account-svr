@@ -29,21 +29,21 @@ type SmtTask struct {
 }
 
 // task_id='' -> task_id!=''
-func (t *SmtTask) RunTaskDistribution() {
-	tickerDistribution := time.NewTicker(time.Minute * 3)
+func (t *SmtTask) RunUpdateSubAccountTaskDistribution() {
+	tickerDistribution := time.NewTicker(time.Minute)
 	t.Wg.Add(1)
 	go func() {
 		for {
 			select {
 			case <-tickerDistribution.C:
-				log.Info("doDistribution start ...")
-				if err := t.doDistribution(); err != nil {
-					log.Error("doDistribution err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doDistribution", err.Error())
+				log.Info("doUpdateDistribution start ...")
+				if err := t.doUpdateDistribution(); err != nil {
+					log.Error("doUpdateDistribution err:", err.Error())
+					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doUpdateDistribution", err.Error())
 				}
-				log.Info("doDistribution end ...")
+				log.Info("doUpdateDistribution end ...")
 			case <-t.Ctx.Done():
-				log.Info("task Distribution done")
+				log.Info("task doUpdateDistribution done")
 				t.Wg.Done()
 				return
 			}
@@ -51,27 +51,49 @@ func (t *SmtTask) RunTaskDistribution() {
 	}()
 }
 
-func (t *SmtTask) RunMintTaskDistribution() {
-	tickerDistribution := time.NewTicker(time.Minute * 3)
-	t.Wg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-tickerDistribution.C:
-				log.Info("RunMintTaskDistribution start ...")
-				if err := t.doMintDistribution(); err != nil {
-					log.Error("doMintDistribution err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doMintDistribution", err.Error())
-				}
-				log.Info("RunMintTaskDistribution end ...")
-			case <-t.Ctx.Done():
-				log.Info("task RunMintTaskDistribution done")
-				t.Wg.Done()
-				return
-			}
-		}
-	}()
-}
+//func (t *SmtTask) RunTaskDistribution() {
+//	tickerDistribution := time.NewTicker(time.Minute * 3)
+//	t.Wg.Add(1)
+//	go func() {
+//		for {
+//			select {
+//			case <-tickerDistribution.C:
+//				log.Info("doDistribution start ...")
+//				if err := t.doDistribution(); err != nil {
+//					log.Error("doDistribution err:", err.Error())
+//					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doDistribution", err.Error())
+//				}
+//				log.Info("doDistribution end ...")
+//			case <-t.Ctx.Done():
+//				log.Info("task Distribution done")
+//				t.Wg.Done()
+//				return
+//			}
+//		}
+//	}()
+//}
+
+//func (t *SmtTask) RunMintTaskDistribution() {
+//	tickerDistribution := time.NewTicker(time.Minute * 3)
+//	t.Wg.Add(1)
+//	go func() {
+//		for {
+//			select {
+//			case <-tickerDistribution.C:
+//				log.Info("RunMintTaskDistribution start ...")
+//				if err := t.doMintDistribution(); err != nil {
+//					log.Error("doMintDistribution err:", err.Error())
+//					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doMintDistribution", err.Error())
+//				}
+//				log.Info("RunMintTaskDistribution end ...")
+//			case <-t.Ctx.Done():
+//				log.Info("task RunMintTaskDistribution done")
+//				t.Wg.Done()
+//				return
+//			}
+//		}
+//	}()
+//}
 
 // smt_status,tx_status: (2,1)->(3,3)
 func (t *SmtTask) RunTaskCheckTx() {
