@@ -132,7 +132,6 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 			subAccountOutputsData = resCreate.SubAccountOutputsData
 			subAccountCellOutput = resCreate.SubAccountCellOutput
 			res.DasTxBuilderList = append(res.DasTxBuilderList, resCreate.DasTxBuilder)
-
 		case common.DasActionEditSubAccount:
 			resEdit, err := s.BuildEditSubAccountTx(&ParamBuildEditSubAccountTx{
 				TaskInfo:              &p.TaskList[i],
@@ -154,6 +153,27 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 			subAccountOutputsData = resEdit.SubAccountOutputsData
 			subAccountCellOutput = resEdit.SubAccountCellOutput
 			res.DasTxBuilderList = append(res.DasTxBuilderList, resEdit.DasTxBuilder)
+		case common.DasActionUpdateSubAccount:
+			resUpdate, err := s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
+				TaskInfo:              &p.TaskList[i],
+				Account:               p.Account,
+				AccountOutPoint:       accountOutPoint,
+				SubAccountOutpoint:    subAccountOutpoint,
+				SmtRecordInfoList:     records,
+				Tree:                  p.Tree,
+				BaseInfo:              p.BaseInfo,
+				SubAccountBuilderMap:  p.SubAccountBuilderMap,
+				NewSubAccountPrice:    newSubAccountPrice,
+				BalanceDasLock:        p.BalanceDasLock,
+				BalanceDasType:        p.BalanceDasType,
+				CommonFee:             commonFee,
+				SubAccountCellOutput:  subAccountCellOutput,
+				SubAccountOutputsData: subAccountOutputsData,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("BuildUpdateSubAccountTx err: %s", err.Error())
+			}
+			res.DasTxBuilderList = append(res.DasTxBuilderList, resUpdate.DasTxBuilder)
 		default:
 			return nil, fmt.Errorf("not exist action [%s]", task.Action)
 		}

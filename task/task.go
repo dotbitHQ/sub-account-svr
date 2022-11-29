@@ -164,24 +164,22 @@ func (t *SmtTask) RunTaskRollback() {
 	}()
 }
 
-// edit: smt_status,tx_status: (0,0)->(2,1)
-func (t *SmtTask) RunEditSubAccountTask() {
+// update: smt_status,tx_status: (0,0)->(2,1)
+func (t *SmtTask) RunUpdateSubAccountTask() {
 	ticker := time.NewTicker(time.Second * 6)
 	t.Wg.Add(1)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				log.Info("RunEditSubAccountTask start ...")
-				if !config.Cfg.Das.IsEditTaskClosed {
-					if err := t.doTask(common.DasActionEditSubAccount); err != nil {
-						log.Error("RunEditSubAccountTask err:", err.Error())
-						notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunEditSubAccountTask", err.Error())
-					}
+				log.Info("RunUpdateSubAccountTask start ...")
+				if err := t.doUpdateSubAccountTask(common.DasActionUpdateSubAccount); err != nil {
+					log.Error("RunUpdateSubAccountTask err:", err.Error())
+					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunUpdateSubAccountTask", err.Error())
 				}
-				log.Info("RunEditSubAccountTask end ...")
+				log.Info("RunUpdateSubAccountTask end ...")
 			case <-t.Ctx.Done():
-				log.Info("RunEditSubAccountTask done")
+				log.Info("RunUpdateSubAccountTask done")
 				t.Wg.Done()
 				return
 			}
@@ -189,49 +187,74 @@ func (t *SmtTask) RunEditSubAccountTask() {
 	}()
 }
 
-// create: smt_status,tx_status: (0,0)->(2,1)
-func (t *SmtTask) RunCreateSubAccountTask() {
-	ticker := time.NewTicker(time.Second * 7)
-	t.Wg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				log.Info("RunCreateSubAccountTask start ...")
-				if !config.Cfg.Das.IsCreateTaskClosed && t.TxTool.ServerScript != nil {
-					if err := t.doTask(common.DasActionCreateSubAccount); err != nil {
-						log.Error("RunCreateSubAccountTask err:", err.Error())
-						notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunCreateSubAccountTask", err.Error())
-					}
-				}
-				log.Info("RunCreateSubAccountTask end ...")
-			case <-t.Ctx.Done():
-				log.Info("RunCreateSubAccountTask done")
-				t.Wg.Done()
-				return
-			}
-		}
-	}()
-}
-
-// smt_status,tx_status: (1,0) check user create sub account
-func (t *SmtTask) RunCheckError() {
-	tickerError := time.NewTicker(time.Second * 10)
-	t.Wg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-tickerError.C:
-				log.Info("doCheckError start ...")
-				if err := t.doCheckError(); err != nil {
-					log.Error("doCheckError err:", err.Error())
-				}
-				log.Info("doCheckError end ...")
-			case <-t.Ctx.Done():
-				log.Info("task check error done")
-				t.Wg.Done()
-				return
-			}
-		}
-	}()
-}
+// edit: smt_status,tx_status: (0,0)->(2,1)
+//func (t *SmtTask) RunEditSubAccountTask() {
+//	ticker := time.NewTicker(time.Second * 6)
+//	t.Wg.Add(1)
+//	go func() {
+//		for {
+//			select {
+//			case <-ticker.C:
+//				log.Info("RunEditSubAccountTask start ...")
+//				if !config.Cfg.Das.IsEditTaskClosed {
+//					if err := t.doTask(common.DasActionEditSubAccount); err != nil {
+//						log.Error("RunEditSubAccountTask err:", err.Error())
+//						notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunEditSubAccountTask", err.Error())
+//					}
+//				}
+//				log.Info("RunEditSubAccountTask end ...")
+//			case <-t.Ctx.Done():
+//				log.Info("RunEditSubAccountTask done")
+//				t.Wg.Done()
+//				return
+//			}
+//		}
+//	}()
+//}
+//
+//// create: smt_status,tx_status: (0,0)->(2,1)
+//func (t *SmtTask) RunCreateSubAccountTask() {
+//	ticker := time.NewTicker(time.Second * 7)
+//	t.Wg.Add(1)
+//	go func() {
+//		for {
+//			select {
+//			case <-ticker.C:
+//				log.Info("RunCreateSubAccountTask start ...")
+//				if !config.Cfg.Das.IsCreateTaskClosed && t.TxTool.ServerScript != nil {
+//					if err := t.doTask(common.DasActionCreateSubAccount); err != nil {
+//						log.Error("RunCreateSubAccountTask err:", err.Error())
+//						notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunCreateSubAccountTask", err.Error())
+//					}
+//				}
+//				log.Info("RunCreateSubAccountTask end ...")
+//			case <-t.Ctx.Done():
+//				log.Info("RunCreateSubAccountTask done")
+//				t.Wg.Done()
+//				return
+//			}
+//		}
+//	}()
+//}
+//
+//// smt_status,tx_status: (1,0) check user create sub account
+//func (t *SmtTask) RunCheckError() {
+//	tickerError := time.NewTicker(time.Second * 10)
+//	t.Wg.Add(1)
+//	go func() {
+//		for {
+//			select {
+//			case <-tickerError.C:
+//				log.Info("doCheckError start ...")
+//				if err := t.doCheckError(); err != nil {
+//					log.Error("doCheckError err:", err.Error())
+//				}
+//				log.Info("doCheckError end ...")
+//			case <-t.Ctx.Done():
+//				log.Info("task check error done")
+//				t.Wg.Done()
+//				return
+//			}
+//		}
+//	}()
+//}

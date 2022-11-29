@@ -5,6 +5,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 	"time"
 )
 
@@ -178,6 +179,17 @@ func (t *SmtTask) doUpdateDistribution() error {
 	var ids []uint64
 
 	for _, smtRecordList := range mapSmtRecordList {
+		// check custom-script
+		subAccLiveCell, err := t.DasCore.GetSubAccountCell(smtRecordList[0].ParentAccountId)
+		if err != nil {
+			return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		}
+		subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
+		customScripHash := ""
+		if subAccDetail.HasCustomScriptArgs() {
+			customScripHash = subAccDetail.ArgsAndConfigHash()
+		}
+		//
 		count := 0
 		lastMintSignId := ""
 		addTask := true
@@ -206,7 +218,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 					SmtStatus:       tables.SmtStatusNeedToWrite,
 					TxStatus:        tables.TxStatusUnSend,
 					Retry:           0,
-					CustomScripHash: "",
+					CustomScripHash: customScripHash,
 				}
 				taskInfo.InitTaskId()
 				taskList = append(taskList, taskInfo)
