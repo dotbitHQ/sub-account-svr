@@ -120,6 +120,23 @@ func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 		}
 		log.Info("EditSubAccountCache:", toolib.JsonString(&editCache))
 		serverKey = editCache.ParentAccountId
+	} else if req.Action == common.DasActionUpdateSubAccount {
+		var dataCache UpdateSubAccountCache
+		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			ctx.JSON(http.StatusOK, apiResp)
+			return
+		} else if err = json.Unmarshal([]byte(txStr), &dataCache); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			ctx.JSON(http.StatusOK, apiResp)
+			return
+		}
+		log.Info("UpdateSubAccountCache:", toolib.JsonString(&dataCache))
+		serverKey = dataCache.ParentAccountId
 	}
 
 	h.doLBProxy(ctx, &apiResp, serverKey)
