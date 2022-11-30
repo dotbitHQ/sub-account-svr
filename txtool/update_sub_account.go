@@ -7,6 +7,7 @@ import (
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
@@ -59,6 +60,40 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err := s.DbDao.UpdateSmtStatus(p.TaskInfo.TaskId, tables.SmtStatusWriting); err != nil {
 		return nil, fmt.Errorf("UpdateSmtStatus err: %s", err.Error())
 	}
+
+	// get mint sign info
+	var witnessMintSignInfo []byte
+	var mintSignList []tables.TableSmtRecordInfo
+	mintSignTree := smt.NewSparseMerkleTree(nil)
+	for _, v := range p.SmtRecordInfoList {
+		if v.SubAction != common.SubActionCreate {
+			continue
+		}
+		if v.MintSignId != "" {
+			mintSignInfo, err := s.DbDao.GetMinSignInfo(v.MintSignId)
+			if err != nil {
+				return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
+			}
+			witnessMintSignInfo = mintSignInfo.GenWitness()
+			mintSignList, err = s.DbDao.GetSmtRecordListByMintSignId(v.MintSignId)
+			if err != nil {
+				return nil, fmt.Errorf("GetSmtRecordListByMintSignId err: %s", err.Error())
+			}
+			for _, record := range mintSignList {
+				smtKey := smt.AccountIdToSmtH256(record.AccountId)
+				smtValue, err := blake2b.Blake256(common.Hex2Bytes(record.RegisterArgs))
+				if err != nil {
+					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+				}
+				if err = mintSignTree.Update(smtKey, smtValue); err != nil {
+					return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
+				}
+			}
+			break
+		}
+	}
+
+	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
@@ -69,6 +104,18 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if err != nil {
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			} else {
+				if len(witnessMintSignInfo) > 0 {
+					smtKey := smt.AccountIdToSmtH256(v.AccountId)
+					smtValue, err := blake2b.Blake256(common.Hex2Bytes(v.RegisterArgs))
+					if err != nil {
+						return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+					}
+					mintSignProof, err := mintSignTree.MerkleProof([]smt.H256{smtKey}, []smt.H256{smtValue})
+					if err != nil {
+						return nil, fmt.Errorf("mintSignTree.MerkleProof err: %s", err.Error())
+					}
+					subAccountNew.EditValue = *mintSignProof
+				}
 				key := smt.AccountIdToSmtH256(v.AccountId)
 				value := subAccountData.ToH256()
 				if err := p.Tree.Update(key, value); err != nil {
@@ -151,12 +198,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	txParams.OutputsData = append(txParams.OutputsData, []byte{})
 
 	// witness
-	actionWitness, err := witness.GenActionDataWitnessV2(common.DasActionCreateSubAccount, nil, common.ParamManager)
+	actionWitness, err := witness.GenActionDataWitnessV2(common.DasActionUpdateSubAccount, nil, "")
 	if err != nil {
 		return nil, fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
+	// mint sign info
+	if len(witnessMintSignInfo) > 0 {
+		txParams.Witnesses = append(txParams.Witnesses, witnessMintSignInfo)
+	}
+	// smt
 	smtWitnessList, _ := getSubAccountWitness(subAccountNewList)
 	for _, v := range smtWitnessList {
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness

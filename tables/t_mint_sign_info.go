@@ -3,6 +3,8 @@ package tables
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/witness"
 	"time"
 )
 
@@ -29,4 +31,15 @@ func (t *TableMintSignInfo) InitMintSignId(parentAccountId string) {
 	mintSignId := fmt.Sprintf("%s%s%d%d", parentAccountId, t.SmtRoot, t.ExpiredAt, t.Timestamp)
 	mintSignId = fmt.Sprintf("%x", md5.Sum([]byte(mintSignId)))
 	t.MintSignId = mintSignId
+}
+
+func (t *TableMintSignInfo) GenWitness() []byte {
+	sams := witness.SubAccountMintSign{
+		Version:            witness.SubAccountMintSignVersion1,
+		Signature:          common.Hex2Bytes(t.Signature),
+		SignRole:           common.Hex2Bytes(common.ParamOwner),
+		ExpiredAt:          t.ExpiredAt,
+		AccountListSmtRoot: common.Hex2Bytes(t.SmtRoot),
+	}
+	return sams.GenSubAccountMintSignBytes()
 }
