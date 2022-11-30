@@ -30,20 +30,18 @@ func (s *SubAccountTxTool) GetOldSubAccount(subAccountIds []string, action commo
 	}
 
 	var subAccountBuilderMap = make(map[string]*witness.SubAccountNew)
-	if action == common.DasActionEditSubAccount {
-		var sanb witness.SubAccountNewBuilder
-		for _, v := range hashMap {
-			res, err := s.DasCore.Client().GetTransaction(s.Ctx, v)
-			if err != nil {
-				return nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
-			}
-			builderMap, err := sanb.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())
-			}
-			for k, _ := range builderMap {
-				subAccountBuilderMap[k] = builderMap[k]
-			}
+	var sanb witness.SubAccountNewBuilder
+	for _, v := range hashMap {
+		res, err := s.DasCore.Client().GetTransaction(s.Ctx, v)
+		if err != nil {
+			return nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+		}
+		builderMap, err := sanb.SubAccountNewMapFromTx(res.Transaction) //witness.SubAccountBuilderMapFromTx(res.Transaction)
+		if err != nil {
+			return nil, nil, fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())
+		}
+		for k, _ := range builderMap {
+			subAccountBuilderMap[k] = builderMap[k]
 		}
 	}
 	return valueMap, subAccountBuilderMap, nil
