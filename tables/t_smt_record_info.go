@@ -122,3 +122,72 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccount(oldSubAccount *witness.SubAcco
 		return nil, nil, fmt.Errorf("not supported action[%s]", t.Action)
 	}
 }
+
+func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
+	var currentSubAccount witness.SubAccountData
+	var subAccountNew witness.SubAccountNew
+	subAccountNew.Version = witness.SubAccountNewVersion2
+
+	if contractDas == nil {
+		return nil, nil, fmt.Errorf("contractDas is nil")
+	}
+
+	switch t.Action {
+	case common.DasActionUpdateSubAccount:
+		switch t.SubAction {
+		case common.SubActionCreate:
+			var accountCharSet []common.AccountCharSet
+			if err := json.Unmarshal([]byte(t.Content), &accountCharSet); err != nil {
+				return nil, nil, fmt.Errorf("json Unmarshal err: %s", err.Error())
+			}
+			currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.RegisterArgs))
+			currentSubAccount.AccountId = t.AccountId
+			currentSubAccount.AccountCharSet = accountCharSet
+			currentSubAccount.Suffix = t.Account[strings.Index(t.Account, "."):]
+			currentSubAccount.RegisteredAt = uint64(timeCellTimestamp)
+			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (31536000 * t.RegisterYears)
+
+			subAccountNew.SubAccountData = &currentSubAccount
+			return &currentSubAccount, &subAccountNew, nil
+		case common.SubActionEdit:
+			if oldSubAccount == nil {
+				return nil, nil, fmt.Errorf("oldSubAccount is nil")
+			}
+			currentSubAccount = *oldSubAccount
+
+			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
+			subAccountNew.SubAccountData = oldSubAccount
+			subAccountNew.EditKey = t.EditKey
+			switch t.EditKey {
+			case common.EditKeyOwner:
+				currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.EditArgs))
+				subAccountNew.SignRole = common.Hex2Bytes(common.ParamOwner)
+				subAccountNew.EditLockArgs = common.Hex2Bytes(t.EditArgs)
+				currentSubAccount.Records = nil
+			case common.EditKeyManager:
+				currentSubAccount.Lock = contractDas.ToScript(common.Hex2Bytes(t.EditArgs))
+				subAccountNew.SignRole = common.Hex2Bytes(common.ParamOwner)
+				subAccountNew.EditLockArgs = common.Hex2Bytes(t.EditArgs)
+			case common.EditKeyRecords:
+				records, err := t.getEditRecords()
+				if err != nil {
+					return nil, nil, fmt.Errorf("getEditRecords err: %s", err.Error())
+				}
+				currentSubAccount.Records = records
+				subAccountNew.SignRole = common.Hex2Bytes(common.ParamManager)
+				subAccountNew.EditRecords = records
+			case common.EditKeyExpiredAt:
+				currentSubAccount.ExpiredAt += 31536000 * t.RegisterYears
+				subAccountNew.RenewExpiredAt = currentSubAccount.ExpiredAt
+			default:
+				return nil, nil, fmt.Errorf("not supported edit key[%s]", t.Action)
+			}
+			currentSubAccount.Nonce++
+			return &currentSubAccount, &subAccountNew, nil
+		default:
+			return nil, nil, fmt.Errorf("unknow sub-action[%s]", t.SubAction)
+		}
+	default:
+		return nil, nil, fmt.Errorf("unknow action[%s]", t.Action)
+	}
+}

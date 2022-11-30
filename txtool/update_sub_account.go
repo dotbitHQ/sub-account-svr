@@ -65,7 +65,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		// update smt,get root and proof
 		if v.SubAction == common.SubActionCreate {
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
 			if err != nil {
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			} else {
@@ -92,7 +92,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !ok {
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccount(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccount err: %s", err.Error())
 			} else {

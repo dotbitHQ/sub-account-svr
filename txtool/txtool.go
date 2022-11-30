@@ -69,11 +69,6 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 		return nil, fmt.Errorf("getAccountByOutpoint err: %s", err.Error())
 	}
 
-	// note: rollback all latest records
-	//if err := s.RollbackSmtRecords(p.Tree, p.SubAccountIds, p.SubAccountValueMap); err != nil {
-	//	return nil, fmt.Errorf("RollbackSmtRecords err: %s", err.Error())
-	//}
-
 	// build txs
 	for i, task := range p.TaskList {
 		records, ok := p.TaskMap[task.TaskId]
