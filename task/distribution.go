@@ -166,8 +166,8 @@ func (t *SmtTask) doUpdateDistribution() error {
 	for i, v := range list {
 		mapSmtRecordList[v.ParentAccountId] = append(mapSmtRecordList[v.ParentAccountId], list[i])
 	}
-	// todo distribution time
-	timestamp := time.Now().Add(-time.Minute*3).UnixNano() / 1e6
+	// distribution time
+	timestamp := time.Now().Add(-time.Minute).UnixNano() / 1e6
 	for k, v := range mapSmtRecordList {
 		if timestamp < v[0].Timestamp && len(v) < config.Cfg.Das.MaxCreateCount {
 			delete(mapSmtRecordList, k)
@@ -180,7 +180,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 	var taskList []tables.TableTaskInfo
 	var idsList [][]uint64
 	var ids []uint64
-
+	log.Info("doUpdateDistribution:", len(mapSmtRecordList))
 	for _, smtRecordList := range mapSmtRecordList {
 		// check custom-script
 		subAccLiveCell, err := t.DasCore.GetSubAccountCell(smtRecordList[0].ParentAccountId)
@@ -204,8 +204,11 @@ func (t *SmtTask) doUpdateDistribution() error {
 				addTask = true
 				count = 0
 			}
+			if smtRecord.MintSignId != "" {
+				lastMintSignId = smtRecord.MintSignId
+			}
 			count++
-			lastMintSignId = smtRecord.MintSignId
+
 			if addTask {
 				taskInfo := tables.TableTaskInfo{
 					Id:              0,
@@ -230,6 +233,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 					idsList = append(idsList, ids)
 				}
 				ids = make([]uint64, 0)
+				addTask = false
 			}
 			ids = append(ids, smtRecord.Id)
 		}
