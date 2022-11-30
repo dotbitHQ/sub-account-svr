@@ -9,7 +9,7 @@ import (
 
 const (
 	addr       = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
-	privateKey = "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
+	privateKey = ""
 )
 
 func TestSubAccountCreateNew(t *testing.T) {
