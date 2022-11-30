@@ -15,6 +15,7 @@ type TableMintSignInfo struct {
 	SmtRoot    string    `json:"smt_root" gorm:"column:smt_root; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	ExpiredAt  uint64    `json:"expired_at" gorm:"column:expired_at; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
 	Timestamp  uint64    `json:"timestamp" gorm:"column:timestamp; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
+	KeyValue   string    `json:"key_value" gorm:"column:key_value; type:text NOT NULL COMMENT '';"`
 	CreatedAt  time.Time `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt  time.Time `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
@@ -42,4 +43,10 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 		AccountListSmtRoot: common.Hex2Bytes(t.SmtRoot),
 	}
 	return sams.GenSubAccountMintSignBytes()
+}
+
+// === KeyValue ===
+type MintSignInfoKeyValue struct {
+	Key   string `json:"k"`
+	Value string `json:"v"`
 }

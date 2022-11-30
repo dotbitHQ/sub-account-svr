@@ -2,6 +2,7 @@ package txtool
 
 import (
 	"das_sub_account/tables"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/smt"
@@ -63,7 +64,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// get mint sign info
 	var witnessMintSignInfo []byte
-	var mintSignList []tables.TableSmtRecordInfo
 	mintSignTree := smt.NewSparseMerkleTree(nil)
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
@@ -75,13 +75,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
 			}
 			witnessMintSignInfo = mintSignInfo.GenWitness()
-			mintSignList, err = s.DbDao.GetSmtRecordListByMintSignId(v.MintSignId)
-			if err != nil {
-				return nil, fmt.Errorf("GetSmtRecordListByMintSignId err: %s", err.Error())
-			}
-			for _, record := range mintSignList {
-				smtKey := smt.AccountIdToSmtH256(record.AccountId)
-				smtValue, err := blake2b.Blake256(common.Hex2Bytes(record.RegisterArgs))
+			var listKeyValue []tables.MintSignInfoKeyValue
+			_ = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+			for _, kv := range listKeyValue {
+				smtKey := smt.AccountIdToSmtH256(kv.Key)
+				smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
 				if err != nil {
 					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
 				}

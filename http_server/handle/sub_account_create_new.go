@@ -170,6 +170,7 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, 
 	}
 
 	var listSmtRecord []tables.TableSmtRecordInfo
+	var listKeyValue []tables.MintSignInfoKeyValue
 	tree := smt.NewSparseMerkleTree(nil)
 	for _, v := range req.SubAccountList {
 		subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
@@ -223,18 +224,24 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, 
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt update err")
 			return nil, nil, fmt.Errorf("tree.Update err: %s", err.Error())
 		}
+		listKeyValue = append(listKeyValue, tables.MintSignInfoKeyValue{
+			Key:   subAccountId,
+			Value: common.Bytes2Hex(registerArgs),
+		})
 	}
 	root, err := tree.Root()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt root err")
 		return nil, nil, fmt.Errorf("tree.Root err: %s", err.Error())
 	}
+	keyValueStr, _ := json.Marshal(&listKeyValue)
 	minSignInfo := tables.TableMintSignInfo{
 		SmtRoot:    common.Bytes2Hex(root),
 		ExpiredAt:  expiredAt,
 		MintSignId: "",
 		Signature:  "",
 		Timestamp:  uint64(time.Now().UnixNano() / 1e6),
+		KeyValue:   string(keyValueStr),
 	}
 	minSignInfo.InitMintSignId(parentAccountId)
 	for i, _ := range listSmtRecord {
