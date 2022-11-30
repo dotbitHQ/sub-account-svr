@@ -166,11 +166,15 @@ func (t *SmtTask) doUpdateDistribution() error {
 	for i, v := range list {
 		mapSmtRecordList[v.ParentAccountId] = append(mapSmtRecordList[v.ParentAccountId], list[i])
 	}
-	timestamp := time.Now().Add(-time.Minute*3).UnixNano() / 1e6
+	// todo distribution time
+	timestamp := time.Now().Add(-time.Minute).UnixNano() / 1e6
 	for k, v := range mapSmtRecordList {
 		if timestamp < v[0].Timestamp && len(v) < config.Cfg.Das.MaxCreateCount {
 			delete(mapSmtRecordList, k)
 		}
+	}
+	if len(mapSmtRecordList) == 0 {
+		return nil
 	}
 	// distribution
 	var taskList []tables.TableTaskInfo

@@ -28,20 +28,21 @@ func TestSubAccountCreateNew(t *testing.T) {
 	}
 
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
-	for i := 0; i < 1; i++ {
-		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test01-%d.20221130.bit", i),
-			RegisterYears: 1,
-			ChainTypeAddress: core.ChainTypeAddress{
-				Type: "blockchain",
-				KeyInfo: core.KeyInfo{
-					CoinType: "60",
-					ChainId:  "5",
-					Key:      addr,
-				},
+	//for i := 0; i < 1; i++ {
+	//
+	//}
+	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+		Account:       "test01-0.20221130.bit",
+		RegisterYears: 1,
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      addr,
 			},
-		})
-	}
+		},
+	})
 
 	var data handle.RespSubAccountCreate
 

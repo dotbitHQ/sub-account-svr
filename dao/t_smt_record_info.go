@@ -29,6 +29,9 @@ func (d *DbDao) GetNeedDoDistributionRecordListNew(svrName string, action common
 }
 
 func (d *DbDao) UpdateTaskDistribution(taskList []tables.TableTaskInfo, idsList [][]uint64) error {
+	if len(taskList) == 0 {
+		return nil
+	}
 	if len(taskList) != len(idsList) {
 		return fmt.Errorf("len diff")
 	}
