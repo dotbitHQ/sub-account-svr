@@ -151,14 +151,15 @@ func runServer(ctx *cli.Context) error {
 	}
 	smtTask.RunTaskCheckTx()
 	smtTask.RunTaskConfirmOtherTx()
-	//smtTask.RunCheckError()
 	smtTask.RunTaskRollback()
-	//smtTask.RunTaskDistribution()
-	//smtTask.RunMintTaskDistribution()
 	smtTask.RunUpdateSubAccountTaskDistribution()
-	//smtTask.RunEditSubAccountTask()
-	//smtTask.RunCreateSubAccountTask()
 	smtTask.RunUpdateSubAccountTask()
+
+	smtTask.RunCheckError()
+	smtTask.RunTaskDistribution()
+	smtTask.RunMintTaskDistribution()
+	smtTask.RunEditSubAccountTask()
+	smtTask.RunCreateSubAccountTask()
 	log.Infof("task ok")
 
 	// http
