@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+const (
+	addr       = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
+	privateKey = "bfb23b0d4cbcc78b3849c04b551bcc88910f47338ee223beebbfb72856e25efa"
+)
+
 func TestSubAccountCreateNew(t *testing.T) {
 	url := ApiUrl + "/new/sub/account/create"
 	req := handle.ReqSubAccountCreate{
@@ -15,7 +20,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 			KeyInfo: core.KeyInfo{
 				CoinType: "60",
 				ChainId:  "5",
-				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+				Key:      addr,
 			},
 		},
 		Account:        "20221130.bit",
@@ -32,7 +37,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 				KeyInfo: core.KeyInfo{
 					CoinType: "60",
 					ChainId:  "5",
-					Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+					Key:      addr,
 				},
 			},
 		})
@@ -44,13 +49,24 @@ func TestSubAccountCreateNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//if err := doSign(data.SignInfoList, ""); err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if err := doTransactionSend(handle.ReqTransactionSend{
-	//	SignInfoList: data.SignInfoList,
-	//}); err != nil {
-	//	t.Fatal(err)
-	//}
+	if err := doSign(data.SignInfoList, privateKey); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func doTransactionSendNew(req handle.ReqTransactionSend) error {
+	url := ApiUrl + "/new/transaction/send"
+
+	var data handle.RespTransactionSend
+
+	if err := doReq(url, req, &data); err != nil {
+		return fmt.Errorf("doReq err: %s", err.Error())
+	}
+	return nil
 }
