@@ -302,6 +302,12 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err := txBuilder.BuildTransaction(&txParams); err != nil {
 		return nil, fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
+	// header deps
+	subTx, err := s.DasCore.Client().GetTransaction(s.Ctx, p.SubAccountOutpoint.TxHash)
+	if err != nil {
+		return nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+	}
+	txBuilder.Transaction.HeaderDeps = append(txBuilder.Transaction.HeaderDeps, *subTx.TxStatus.BlockHash)
 
 	// note: change fee
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
