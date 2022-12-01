@@ -269,6 +269,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		p.BaseInfo.TimeCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
+		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
 		soEd25519.ToCellDep(),
 		soEth.ToCellDep(),
 		soTron.ToCellDep(),
