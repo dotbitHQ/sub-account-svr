@@ -214,6 +214,7 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 		Timestamp:       time.Now().UnixNano() / 1e6,
 		SubAction:       common.SubActionEdit,
 		MintSignId:      "",
+		ExpiredAt:       dataCache.ExpiredAt,
 	}
 
 	if err := dataCache.ConvertEditValue(h.DasCore.Daf(), subAcc, &smtRecord); err != nil {

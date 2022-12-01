@@ -77,6 +77,7 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 		EditKey:         req.EditKey,
 		EditValue:       req.EditValue,
 		OldSignMsg:      "",
+		ExpiredAt:       0,
 	}
 	_, subAcc, err := dataCache.EditCheck(h.DbDao, apiResp)
 	if err != nil {
@@ -90,6 +91,19 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 	if _, ok := config.Cfg.SuspendMap[subAcc.ParentAccountId]; ok {
 		apiResp.ApiRespErr(api_code.ApiCodeSuspendOperation, "suspend operation")
 		return nil
+	}
+	// ExpiredAt
+	acc, err := h.DbDao.GetAccountInfoByAccountId(subAcc.ParentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "get account err")
+		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	}
+	dataCache.ExpiredAt = uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
+	if dataCache.ExpiredAt > acc.ExpiredAt {
+		dataCache.ExpiredAt = acc.ExpiredAt
+	}
+	if dataCache.ExpiredAt > subAcc.ExpiredAt {
+		dataCache.ExpiredAt = subAcc.ExpiredAt
 	}
 
 	// sign info
@@ -129,6 +143,7 @@ type UpdateSubAccountCache struct {
 	SubAction       common.SubAction `json:"sub_action"`
 	EditKey         common.EditKey   `json:"edit_key"`
 	EditValue       EditInfo         `json:"edit_value"`
+	ExpiredAt       uint64           `json:"expired_at"`
 
 	OldSignMsg    string                      `json:"old_sign_msg"`
 	MinSignInfo   tables.TableMintSignInfo    `json:"min_sign_info"`
@@ -288,7 +303,13 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 	_ = binary.Write(nonceByte, binary.LittleEndian, nonce)
 	data = append(data, nonceByte.Bytes()...)
 
-	// todo sign_expired_at
+	// sign_expired_at
+	expiredAtBys := bytes.NewBuffer([]byte{})
+	if err := binary.Write(expiredAtBys, binary.LittleEndian, u.ExpiredAt); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
+		return
+	}
+	data = append(data, expiredAtBys.Bytes()...)
 
 	// sig msg
 	if signData.SignType == common.DasAlgorithmIdEth712 {
@@ -297,6 +318,7 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 
 	bys, _ := blake2b.Blake256(data)
 	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+	log.Info("GetEditSignData:", u.ExpiredAt, signData.SignMsg)
 	return
 }
 
