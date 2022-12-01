@@ -31,7 +31,7 @@ func (t *SmtTask) doConfirmOtherTx() error {
 					log.Info("confirmOtherTx: cache.ErrDistributedLockPreemption:", err.Error())
 					break
 				} else if err == errBlockNotSync {
-					log.Info("confirmOtherTx: errBlockNotSync:", err.Error())
+					log.Warn("confirmOtherTx: errBlockNotSync:", err.Error())
 					break
 				} else {
 					return fmt.Errorf("confirmOtherTx err: %s", err.Error())
