@@ -40,7 +40,7 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 	sams := witness.SubAccountMintSign{
 		Version:            witness.SubAccountMintSignVersion1,
 		Signature:          common.Hex2Bytes(t.Signature),
-		SignRole:           common.Hex2Bytes(common.ParamOwner),
+		SignRole:           common.Hex2Bytes(common.ParamManager),
 		ExpiredAt:          t.ExpiredAt,
 		AccountListSmtRoot: common.Hex2Bytes(t.SmtRoot),
 	}

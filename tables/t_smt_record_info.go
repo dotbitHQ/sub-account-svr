@@ -178,9 +178,9 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 				currentSubAccount.Records = records
 				subAccountNew.SignRole = common.Hex2Bytes(common.ParamManager)
 				subAccountNew.EditRecords = records
-			case common.EditKeyExpiredAt:
-				currentSubAccount.ExpiredAt += 31536000 * t.RegisterYears
-				subAccountNew.RenewExpiredAt = currentSubAccount.ExpiredAt
+			//case common.EditKeyExpiredAt:
+			//	currentSubAccount.ExpiredAt += 31536000 * t.RegisterYears
+			//	subAccountNew.RenewExpiredAt = currentSubAccount.ExpiredAt
 			default:
 				return nil, nil, fmt.Errorf("not supported edit key[%s]", t.Action)
 			}
