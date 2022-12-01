@@ -17,7 +17,7 @@ func TestSubAccountEditNew(t *testing.T) {
 	url := ApiUrl + "/new/sub/account/edit"
 	var list = []string{
 		"test1.20221130.bit",
-		"test2.20221130.bit",
+		//"test2.20221130.bit",
 		//"test3.20221130.bit",
 		//"test4.20221130.bit",
 	}

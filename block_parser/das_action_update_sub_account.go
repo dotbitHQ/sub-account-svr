@@ -135,6 +135,7 @@ func getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleRe
 			Timestamp:       req.BlockTimestamp,
 			SubAction:       v.Action,
 			MintSignId:      "", // todo
+			ExpiredAt:       v.SignExpiredAt,
 		}
 		switch v.Action {
 		case common.SubActionCreate:
