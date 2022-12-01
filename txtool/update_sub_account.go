@@ -201,7 +201,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub account
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
-	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].CurrentRoot
+	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
 	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
@@ -274,7 +274,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// note: change fee
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-	changeCapacity += p.CommonFee - sizeInBlock - 5000
+	changeCapacity = changeCapacity - sizeInBlock - 5000
 	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
 
 	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
