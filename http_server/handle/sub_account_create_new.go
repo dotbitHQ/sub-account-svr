@@ -114,9 +114,10 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 	}
 
 	// todo check balance
+	// acc.Manager, acc.ManagerChainType
 
 	// get mint sign info
-	minSignInfo, listSmtRecord, err := h.doMinSignInfo(parentAccountId, acc.ExpiredAt, req, apiResp)
+	minSignInfo, listSmtRecord, err := h.doMinSignInfo(parentAccountId, acc, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doMinSignInfo err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -162,9 +163,9 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 	return nil
 }
 
-func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) (*tables.TableMintSignInfo, []tables.TableSmtRecordInfo, error) {
+func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAccountInfo, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) (*tables.TableMintSignInfo, []tables.TableSmtRecordInfo, error) {
 	expiredAt := uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
-	if expiredAt > accExpiredAt {
+	if expiredAt > acc.ExpiredAt {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "expires soon")
 		return nil, nil, fmt.Errorf("expires soon")
 	}
@@ -242,6 +243,8 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, accExpiredAt uint64, 
 		Signature:  "",
 		Timestamp:  uint64(time.Now().UnixNano() / 1e6),
 		KeyValue:   string(keyValueStr),
+		ChainType:  acc.ManagerChainType,
+		Address:    acc.Manager,
 	}
 	minSignInfo.InitMintSignId(parentAccountId)
 	for i, _ := range listSmtRecord {

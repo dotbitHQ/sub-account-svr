@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
@@ -39,29 +40,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var txParams txbuilder.BuildTransactionParams
 	var res ResultBuildUpdateSubAccountTx
 
-	// get balance cell
-	totalYears := uint64(0)
-	for _, v := range p.SmtRecordInfoList {
-		if v.SubAction == common.SubActionCreate {
-			totalYears += v.RegisterYears
-		}
-	}
-	registerCapacity := p.NewSubAccountPrice * totalYears
-	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
-		taskInfo:     p.TaskInfo,
-		dasLock:      p.BalanceDasLock,
-		dasType:      p.BalanceDasType,
-		needCapacity: p.CommonFee + registerCapacity,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
-	}
-
-	// update smt status
-	if err := s.DbDao.UpdateSmtStatus(p.TaskInfo.TaskId, tables.SmtStatusWriting); err != nil {
-		return nil, fmt.Errorf("UpdateSmtStatus err: %s", err.Error())
-	}
-
+	balanceDasLock := p.BalanceDasLock
+	balanceDasType := p.BalanceDasType
 	// get mint sign info
 	var witnessMintSignInfo []byte
 	mintSignTree := smt.NewSparseMerkleTree(nil)
@@ -87,8 +67,41 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 					return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
 				}
 			}
+			balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+				DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
+				AddressHex:     mintSignInfo.Address,
+				IsMulti:        false,
+				ChainType:      mintSignInfo.ChainType,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
+			}
+
 			break
 		}
+	}
+
+	// get balance cell
+	totalYears := uint64(0)
+	for _, v := range p.SmtRecordInfoList {
+		if v.SubAction == common.SubActionCreate {
+			totalYears += v.RegisterYears
+		}
+	}
+	registerCapacity := p.NewSubAccountPrice * totalYears
+	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
+		taskInfo:     p.TaskInfo,
+		dasLock:      balanceDasLock,
+		dasType:      balanceDasType,
+		needCapacity: p.CommonFee + registerCapacity,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+	}
+
+	// update smt status
+	if err := s.DbDao.UpdateSmtStatus(p.TaskInfo.TaskId, tables.SmtStatusWriting); err != nil {
+		return nil, fmt.Errorf("UpdateSmtStatus err: %s", err.Error())
 	}
 
 	// smt record
@@ -190,8 +203,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// change
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: change,
-		Lock:     p.BalanceDasLock,
-		Type:     p.BalanceDasType,
+		Lock:     balanceDasType,
+		Type:     balanceDasType,
 	})
 	txParams.OutputsData = append(txParams.OutputsData, []byte{})
 
