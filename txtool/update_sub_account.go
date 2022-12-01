@@ -10,6 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
+	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
@@ -264,7 +265,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	// note: change fee
-	log.Info("BuildCreateSubAccountTx:", txBuilder, txBuilder.Transaction)
+	txStr, err := rpc.TransactionString(txBuilder.Transaction)
+	log.Info("BuildCreateSubAccountTx:", txStr, err)
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 	changeCapacity += p.CommonFee - sizeInBlock - 5000
