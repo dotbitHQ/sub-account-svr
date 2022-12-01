@@ -264,6 +264,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	// note: change fee
+	log.Info("BuildCreateSubAccountTx:", txBuilder, txBuilder.Transaction)
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 	changeCapacity += p.CommonFee - sizeInBlock - 5000
