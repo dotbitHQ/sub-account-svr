@@ -44,7 +44,7 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 		ExpiredAt:          t.ExpiredAt,
 		AccountListSmtRoot: common.Hex2Bytes(t.SmtRoot),
 	}
-	return sams.GenSubAccountMintSignBytes()
+	return sams.GenWitness()
 }
 
 // === KeyValue ===
