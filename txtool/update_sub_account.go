@@ -10,7 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
-	"github.com/nervosnetwork/ckb-sdk-go/rpc"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 )
 
@@ -90,14 +90,19 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 	registerCapacity := p.NewSubAccountPrice * totalYears
-	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
-		taskInfo:     p.TaskInfo,
-		dasLock:      balanceDasLock,
-		dasType:      balanceDasType,
-		needCapacity: p.CommonFee + registerCapacity,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+	var change uint64
+	var balanceLiveCells []*indexer.LiveCell
+	var err error
+	if registerCapacity > 0 {
+		change, balanceLiveCells, err = s.getBalanceCell(&paramBalance{
+			taskInfo:     p.TaskInfo,
+			dasLock:      balanceDasLock,
+			dasType:      balanceDasType,
+			needCapacity: p.CommonFee + registerCapacity,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+		}
 	}
 
 	// update smt status
@@ -202,12 +207,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
 	// change
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: change,
-		Lock:     balanceDasType,
-		Type:     balanceDasType,
-	})
-	txParams.OutputsData = append(txParams.OutputsData, []byte{})
+	if change > 0 {
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: change,
+			Lock:     balanceDasType,
+			Type:     balanceDasType,
+		})
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+	}
 
 	// witness
 	actionWitness, err := witness.GenActionDataWitnessV2(common.DasActionUpdateSubAccount, nil, "")
@@ -265,8 +272,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	// note: change fee
-	txStr, err := rpc.TransactionString(txBuilder.Transaction)
-	log.Info("BuildCreateSubAccountTx:", txStr, err)
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 	changeCapacity += p.CommonFee - sizeInBlock - 5000
