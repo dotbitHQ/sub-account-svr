@@ -322,7 +322,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	res.DasTxBuilder = txBuilder
 	subAccountOutpoint := &types.OutPoint{
 		TxHash: hash,
-		Index:  1,
+		Index:  0,
 	}
 
 	// update smt status
