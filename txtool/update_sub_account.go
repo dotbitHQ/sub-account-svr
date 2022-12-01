@@ -253,6 +253,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
 	txParams.CellDeps = append(txParams.CellDeps,
+		&types.CellDep{
+			OutPoint: p.AccountOutPoint,
+			DepType:  types.DepTypeCode,
+		},
 		p.BaseInfo.ContractDas.ToCellDep(),
 		p.BaseInfo.ContractAcc.ToCellDep(),
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
