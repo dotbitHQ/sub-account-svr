@@ -127,6 +127,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 	var currentSubAccount witness.SubAccountData
 	var subAccountNew witness.SubAccountNew
 	subAccountNew.Version = witness.SubAccountNewVersion2
+	subAccountNew.Action = t.SubAction
 
 	if contractDas == nil {
 		return nil, nil, fmt.Errorf("contractDas is nil")
