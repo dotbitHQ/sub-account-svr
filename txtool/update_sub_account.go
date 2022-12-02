@@ -103,6 +103,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
+		change += p.CommonFee
 	}
 
 	// update smt status
