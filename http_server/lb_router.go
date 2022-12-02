@@ -29,13 +29,13 @@ func (h *LbHttpServer) initRouter() {
 		v1.POST("/sub/account/init", h.H.LBProxy) // enable_sub_account
 		v1.POST("/custom/script/set", h.H.LBProxy)
 		v1.POST("/profit/withdraw", h.H.LBProxy)
-		//v1.POST("/sub/account/edit", h.H.LBProxy)
+		v1.POST("/sub/account/edit", h.H.LBProxy)
 
-		//v1.POST("/sub/account/create", h.H.LBSubAccountCreate) // create_sub_account
+		v1.POST("/sub/account/create", h.H.LBSubAccountCreate) // create_sub_account
 		v1.POST("/transaction/send", h.H.LBTransactionSend)
 
-		v1.POST("/new/sub/account/create", h.H.LBSubAccountCreate)
-		v1.POST("/new/sub/account/edit", h.H.LBProxy)
-		v1.POST("/new/transaction/send", h.H.LBTransactionSend)
+		//v1.POST("/new/sub/account/create", h.H.LBSubAccountCreate)
+		//v1.POST("/new/sub/account/edit", h.H.LBProxy)
+		//v1.POST("/new/transaction/send", h.H.LBTransactionSend)
 	}
 }

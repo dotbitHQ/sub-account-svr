@@ -16,8 +16,8 @@ const (
 func TestSubAccountEditNew(t *testing.T) {
 	url := ApiUrl + "/new/sub/account/edit"
 	var list = []string{
-		"test1.20221130.bit",
-		//"test2.20221130.bit",
+		"test02-1.20221130.bit",
+		"test02-2.20221130.bit",
 		//"test3.20221130.bit",
 		//"test4.20221130.bit",
 	}
@@ -55,7 +55,7 @@ func TestSubAccountEditNew(t *testing.T) {
 						Key:   "twitter",
 						Type:  "profile",
 						Label: "",
-						Value: "111",
+						Value: "222",
 						TTL:   "",
 					},
 				},
@@ -98,7 +98,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
 	for i := 1; i < 3; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test02-%d.20221130.bit", i),
+			Account:       fmt.Sprintf("test03-%d.20221130.bit", i),
 			RegisterYears: 1,
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
