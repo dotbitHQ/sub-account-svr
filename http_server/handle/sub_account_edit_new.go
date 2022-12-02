@@ -341,6 +341,7 @@ func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, 
 	}
 	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
 
+	log.Info("GetCreateSignData:", signData.SignMsg, u.MinSignInfo.ExpiredAt, u.MinSignInfo.SmtRoot)
 	// sig msg
 	signData.SignType = acc.ManagerAlgorithmId
 	if signData.SignType == common.DasAlgorithmIdEth712 {
