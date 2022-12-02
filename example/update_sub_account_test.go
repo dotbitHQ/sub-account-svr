@@ -81,7 +81,7 @@ func TestSubAccountEditNew(t *testing.T) {
 }
 
 func TestSubAccountCreateNew(t *testing.T) {
-	url := ApiUrl + "/new/sub/account/create"
+	url := ApiUrl + "/sub/account/create"
 	req := handle.ReqSubAccountCreate{
 		ChainTypeAddress: core.ChainTypeAddress{
 			Type: "blockchain",
@@ -96,20 +96,32 @@ func TestSubAccountCreateNew(t *testing.T) {
 	}
 
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
-	for i := 1; i < 3; i++ {
-		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test03-%d.20221130.bit", i),
-			RegisterYears: 1,
-			ChainTypeAddress: core.ChainTypeAddress{
-				Type: "blockchain",
-				KeyInfo: core.KeyInfo{
-					CoinType: "60",
-					ChainId:  "5",
-					Key:      addr,
-				},
+	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+		Account:       "test04.20221130.bit",
+		RegisterYears: 1,
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "60",
+				ChainId:  "5",
+				Key:      addr,
 			},
-		})
-	}
+		},
+	})
+	//for i := 1; i < 3; i++ {
+	//	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+	//		Account:       fmt.Sprintf("test03-%d.20221130.bit", i),
+	//		RegisterYears: 1,
+	//		ChainTypeAddress: core.ChainTypeAddress{
+	//			Type: "blockchain",
+	//			KeyInfo: core.KeyInfo{
+	//				CoinType: "60",
+	//				ChainId:  "5",
+	//				Key:      addr,
+	//			},
+	//		},
+	//	})
+	//}
 
 	var data handle.RespSubAccountCreate
 
@@ -129,7 +141,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 }
 
 func doTransactionSendNew(req handle.ReqTransactionSend) error {
-	url := ApiUrl + "/new/transaction/send"
+	url := ApiUrl + "/transaction/send"
 
 	var data handle.RespTransactionSend
 

@@ -186,7 +186,7 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if err := doSignCheck(signData, signMsg, signAddress, apiResp); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, signAddress, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -245,7 +245,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if err := doSignCheck(signData, signMsg, acc.Manager, apiResp); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -260,7 +260,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 	return nil
 }
 
-func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiResp *api_code.ApiResp) error {
+func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiResp *api_code.ApiResp) (string, error) {
 	signOk := false
 	var err error
 	switch signData.SignType {
@@ -269,24 +269,24 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 		signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
-			return fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
+			return "", fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
 		}
 	case common.DasAlgorithmIdTron:
 		signMsg = fixSignature(signMsg)
 		if signAddress, err = common.TronHexToBase58(signAddress); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "TronHexToBase58 error")
-			return fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
+			return "", fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
 		}
 		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
 	case common.DasAlgorithmIdEd25519:
 		signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
-		return nil
+		return "", nil
 	}
 
 	if !signOk {
 		apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 	}
-	return nil
+	return signMsg, nil
 }
