@@ -210,7 +210,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if change > 0 {
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 			Capacity: change,
-			Lock:     balanceDasType,
+			Lock:     balanceDasLock,
 			Type:     balanceDasType,
 		})
 		txParams.OutputsData = append(txParams.OutputsData, []byte{})
