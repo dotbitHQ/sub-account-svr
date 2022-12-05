@@ -62,6 +62,15 @@ func (r *PriceApiDefault) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	switch p.Action {
 	case common.DasActionCreateSubAccount:
 		res.ActionTotalPrice = res.New * p.RegisterYears
+	case common.DasActionUpdateSubAccount:
+		switch p.SubAction {
+		case common.SubActionCreate:
+			res.ActionTotalPrice = res.New * p.RegisterYears
+		default:
+			return nil, fmt.Errorf("unkonw sub-action[%s]", p.SubAction)
+		}
+	default:
+		return nil, fmt.Errorf("unkonw action[%s]", p.Action)
 	}
 
 	return &res, nil
