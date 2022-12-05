@@ -23,16 +23,13 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 	if p.needCapacity == 0 {
 		return 0, nil, nil
 	}
-	needCapacity := p.needCapacity
-	if p.taskInfo.TaskType == tables.TaskTypeDelegate {
-		balanceLock.Lock()
-		defer balanceLock.Unlock()
-		needCapacity += 400 * common.OneCkb
-	}
+	balanceLock.Lock()
+	defer balanceLock.Unlock()
+
 	liveCells, total, err := s.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 		DasCache:          s.DasCache,
 		LockScript:        p.dasLock,
-		CapacityNeed:      needCapacity,
+		CapacityNeed:      p.needCapacity,
 		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
 		SearchOrder:       indexer.SearchOrderAsc,
 	})
@@ -40,13 +37,11 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 		return 0, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
 	}
 
-	//if p.taskInfo.TaskType == tables.TaskTypeDelegate {
 	var outpoints []string
 	for _, v := range liveCells {
 		outpoints = append(outpoints, common.OutPointStruct2String(v.OutPoint))
 	}
 	s.DasCache.AddOutPoint(outpoints)
-	//}
 
 	return total - p.needCapacity, liveCells, nil
 }
