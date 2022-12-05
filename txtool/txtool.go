@@ -177,6 +177,80 @@ func (s *SubAccountTxTool) BuildTxs(p *ParamBuildTxs) (*ResultBuildTxs, error) {
 	return &res, nil
 }
 
+func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*ResultBuildTxs, error) {
+	var res ResultBuildTxs
+
+	newSubAccountPrice, _ := molecule.Bytes2GoU64(p.BaseInfo.ConfigCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	commonFee, _ := molecule.Bytes2GoU64(p.BaseInfo.ConfigCellBuilder.ConfigCellSubAccount.CommonFee().RawData())
+
+	// outpoint
+	accountOutPoint := common.String2OutPointStruct(p.Account.Outpoint)
+	subAccountOutpoint := p.SubAccountLiveCell.OutPoint
+
+	// account
+	res.IsCustomScript = s.isCustomScript(p.SubAccountLiveCell.OutputData)
+	subAccountCellOutput := p.SubAccountLiveCell.Output
+	subAccountOutputsData := p.SubAccountLiveCell.OutputData
+	// build txs
+	for i, task := range p.TaskList {
+		records, ok := p.TaskMap[task.TaskId]
+		if !ok {
+			continue
+		}
+		switch task.Action {
+		case common.DasActionUpdateSubAccount:
+			var resUpdate *ResultBuildUpdateSubAccountTx
+			var err error
+			if res.IsCustomScript {
+				resUpdate, err = s.BuildUpdateSubAccountTxForCustomScript(&ParamBuildUpdateSubAccountTx{
+					TaskInfo:              &p.TaskList[i],
+					Account:               p.Account,
+					AccountOutPoint:       accountOutPoint,
+					SubAccountOutpoint:    subAccountOutpoint,
+					SmtRecordInfoList:     records,
+					Tree:                  p.Tree,
+					BaseInfo:              p.BaseInfo,
+					SubAccountBuilderMap:  p.SubAccountBuilderMap,
+					NewSubAccountPrice:    newSubAccountPrice,
+					BalanceDasLock:        p.BalanceDasLock,
+					BalanceDasType:        p.BalanceDasType,
+					CommonFee:             commonFee,
+					SubAccountCellOutput:  subAccountCellOutput,
+					SubAccountOutputsData: subAccountOutputsData,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("BuildCreateSubAccountTx err: %s", err.Error())
+				}
+			} else {
+				resUpdate, err = s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
+					TaskInfo:              &p.TaskList[i],
+					Account:               p.Account,
+					AccountOutPoint:       accountOutPoint,
+					SubAccountOutpoint:    subAccountOutpoint,
+					SmtRecordInfoList:     records,
+					Tree:                  p.Tree,
+					BaseInfo:              p.BaseInfo,
+					SubAccountBuilderMap:  p.SubAccountBuilderMap,
+					NewSubAccountPrice:    newSubAccountPrice,
+					BalanceDasLock:        p.BalanceDasLock,
+					BalanceDasType:        p.BalanceDasType,
+					CommonFee:             commonFee,
+					SubAccountCellOutput:  subAccountCellOutput,
+					SubAccountOutputsData: subAccountOutputsData,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("BuildUpdateSubAccountTx err: %s", err.Error())
+				}
+			}
+			res.DasTxBuilderList = append(res.DasTxBuilderList, resUpdate.DasTxBuilder)
+		default:
+			return nil, fmt.Errorf("not exist action [%s]", task.Action)
+		}
+	}
+
+	return &res, nil
+}
+
 func (s *SubAccountTxTool) RollbackSmtRecords(tree *smt.SparseMerkleTree, subAccountIds []string, subAccountValueMap map[string]string) error {
 	// rollback
 	for _, v := range subAccountIds {

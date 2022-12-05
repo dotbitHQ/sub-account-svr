@@ -202,6 +202,7 @@ func getRecordListNew(daf *core.DasAddressFormat, req *ReqSubAccountCreate, pare
 			Timestamp:       time.Now().UnixNano() / 1e6,
 			SubAction:       common.SubActionCreate,
 			MintSignId:      "",
+			ExpiredAt:       0,
 		}
 		recordList = append(recordList, smtRecord)
 	}

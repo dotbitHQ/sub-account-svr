@@ -231,7 +231,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	}
 
 	// build tx
-	res, err := t.TxTool.BuildTxs(&txtool.ParamBuildTxs{
+	res, err := t.TxTool.BuildTxsForUpdateSubAccount(&txtool.ParamBuildTxs{
 		TaskList:             p.taskList,
 		TaskMap:              p.taskMap,
 		Account:              p.account,
@@ -290,13 +290,6 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 			continue
 		}
 
-		//var signMsg []byte
-		//switch action {
-		//case common.DasActionEditSubAccount:
-		//	signMsg = []byte(signData.SignMsg)
-		//default:
-		//	signMsg = common.Hex2Bytes(signData.SignMsg)
-		//}
 		signMsg := common.Hex2Bytes(signData.SignMsg)
 
 		switch signData.SignType {

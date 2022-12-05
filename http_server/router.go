@@ -59,7 +59,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/update", h.H.SmtUpdate)
 
 		//internalV1.POST("/internal/sub/account/create", h.H.InternalSubAccountCreate)
-		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMint)
+		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
 	}
 }
 
