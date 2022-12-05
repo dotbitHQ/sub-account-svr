@@ -139,7 +139,8 @@ func (h *HttpHandle) doSubAccountCheckCustomScriptNew(acc *tables.TableAccountIn
 	minDasCKb := uint64(0)
 	for _, v := range req.SubAccountList {
 		resPrice, err := priceApi.GetPrice(&txtool.ParamGetPrice{
-			Action:         common.DasActionCreateSubAccount,
+			Action:         common.DasActionUpdateSubAccount,
+			SubAction:      common.SubActionCreate,
 			SubAccount:     v.Account,
 			RegisterYears:  v.RegisterYears,
 			AccountCharStr: v.AccountCharStr,

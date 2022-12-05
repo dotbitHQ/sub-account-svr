@@ -19,6 +19,7 @@ type PriceApi interface {
 
 type ParamGetPrice struct {
 	Action         common.DasAction
+	SubAction      common.SubAction
 	SubAccount     string
 	RegisterYears  uint64
 	AccountCharStr []common.AccountCharSet
@@ -113,6 +114,15 @@ func (r *PriceApiConfig) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	switch p.Action {
 	case common.DasActionCreateSubAccount:
 		res.ActionTotalPrice = res.New * p.RegisterYears
+	case common.DasActionUpdateSubAccount:
+		switch p.SubAction {
+		case common.SubActionCreate:
+			res.ActionTotalPrice = res.New * p.RegisterYears
+		default:
+			return nil, fmt.Errorf("unkonw sub-action[%s]", p.SubAction)
+		}
+	default:
+		return nil, fmt.Errorf("unkonw action[%s]", p.Action)
 	}
 
 	return &res, nil
@@ -141,6 +151,7 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 
 		resPrice, err := p.PriceApi.GetPrice(&ParamGetPrice{
 			Action:         p.Action,
+			SubAction:      v.SubAction,
 			SubAccount:     v.Account,
 			RegisterYears:  v.RegisterYears,
 			AccountCharStr: accountCharSet,

@@ -377,7 +377,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 
 	//newRate := uint32(2000)
 	resPrice, err := GetCustomScriptMintTotalCapacity(&ParamCustomScriptMintTotalCapacity{
-		Action: common.DasActionCreateSubAccount,
+		Action: p.TaskInfo.Action,
 		//PriceApi:                              &PriceApiDefault{},
 		PriceApi: &PriceApiConfig{
 			DasCore: s.DasCore,
