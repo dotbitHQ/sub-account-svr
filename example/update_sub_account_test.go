@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const (
+var (
 	addr       = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
 	privateKey = ""
 )

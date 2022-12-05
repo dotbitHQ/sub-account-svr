@@ -14,8 +14,7 @@ import (
 )
 
 func TestCustomScript(t *testing.T) {
-	privateKey := ""
-
+	privateKey = ""
 	args := common.Bytes2Hex(make([]byte, 33))
 	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
@@ -29,10 +28,10 @@ func TestCustomScript(t *testing.T) {
 				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
 			},
 		},
-		Account:          "00acc2022042902.bit",
+		Account:          "20221130.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
-			5: {300000, 300000},
+			5: {3000000, 3000000},
 		},
 	}
 	var data handle.RespCustomScript
@@ -53,7 +52,7 @@ func TestCustomScript(t *testing.T) {
 
 func TestCustomScriptInfo(t *testing.T) {
 	url := ApiUrl + "/custom/script/info"
-	req := handle.ReqCustomScriptInfo{Account: "00acc2022042902.bit"}
+	req := handle.ReqCustomScriptInfo{Account: "20221130.bit"}
 	var data handle.RespCustomScriptInfo
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -62,7 +61,7 @@ func TestCustomScriptInfo(t *testing.T) {
 
 func TestSubAccountMintPrice(t *testing.T) {
 	url := ApiUrl + "/custom/script/price"
-	req := handle.ReqCustomScriptPrice{SubAccount: "tzh001.tzh2022070601.bit"}
+	req := handle.ReqCustomScriptPrice{SubAccount: "test0.20221130.bit"}
 	var data handle.RespCustomScriptPrice
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -72,14 +71,6 @@ func TestSubAccountMintPrice(t *testing.T) {
 func TestConvertSubAccountCellOutputData(t *testing.T) {
 	d := witness.ConvertSubAccountCellOutputData(common.Hex2Bytes("0x9c7d8e41528b34bae45e271e7fa38466c1a4dcc807d30a42093398edc593146d00a3e111000000000000000000000000"))
 	fmt.Println(d.CustomScriptArgs, d.OwnerProfit, d.DasProfit, d.SmtRoot)
-}
-
-func TestPrice(t *testing.T) {
-	// 0.02 $
-	fmt.Println((60000 / 10770) * common.OneCkb)
-	fmt.Println(100000 * common.OneCkb / 3720)
-	fmt.Println((26600000000 / 10000) * 2000)
-	fmt.Println(common.OneCkb)
 }
 
 func TestCustomScriptPrice(t *testing.T) {
