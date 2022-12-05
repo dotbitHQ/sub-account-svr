@@ -551,6 +551,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
 		p.BaseInfo.HeightCell.ToCellDep(),
 		p.BaseInfo.TimeCell.ToCellDep(),
+		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
