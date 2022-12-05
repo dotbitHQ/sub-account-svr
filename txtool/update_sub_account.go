@@ -532,6 +532,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
 	// cell deps
+	// so
+	soEd25519, _ := core.GetDasSoScript(common.SoScriptTypeEd25519)
+	soEth, _ := core.GetDasSoScript(common.SoScriptTypeEth)
+	soTron, _ := core.GetDasSoScript(common.SoScriptTypeTron)
+
 	txParams.CellDeps = append(txParams.CellDeps,
 		&types.CellDep{
 			OutPoint: p.AccountOutPoint,
@@ -549,6 +554,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
+		soEd25519.ToCellDep(),
+		soEth.ToCellDep(),
+		soTron.ToCellDep(),
 	)
 	for k, _ := range accountCharTypeMap {
 		switch k {
