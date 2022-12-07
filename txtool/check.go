@@ -10,24 +10,6 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 )
 
-func (s *SubAccountTxTool) DoCheckCustomScriptHash(action common.DasAction, subAccountLiveCell *indexer.LiveCell, taskList []tables.TableTaskInfo) (string, bool) {
-	if action != common.DasActionCreateSubAccount {
-		return "", true
-	}
-	// check custom script hash
-	subAccDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
-	customScripHash := ""
-	if subAccDetail.HasCustomScriptArgs() {
-		customScripHash = subAccDetail.ArgsAndConfigHash()
-	}
-	for _, v := range taskList {
-		if v.CustomScripHash != customScripHash {
-			return v.TaskId, false
-		}
-	}
-	return "", true
-}
-
 func (s *SubAccountTxTool) DoCheckCustomScriptHashNew(subAccountLiveCell *indexer.LiveCell, taskList []tables.TableTaskInfo) (string, bool) {
 	// check custom script hash
 	subAccDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)

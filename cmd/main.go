@@ -155,11 +155,6 @@ func runServer(ctx *cli.Context) error {
 	smtTask.RunUpdateSubAccountTaskDistribution()
 	smtTask.RunUpdateSubAccountTask()
 
-	smtTask.RunCheckError()
-	smtTask.RunTaskDistribution()
-	smtTask.RunMintTaskDistribution()
-	smtTask.RunEditSubAccountTask()
-	smtTask.RunCreateSubAccountTask()
 	log.Infof("task ok")
 
 	// http
