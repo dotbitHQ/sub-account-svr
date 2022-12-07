@@ -14,7 +14,6 @@ import (
 )
 
 func TestCustomScript(t *testing.T) {
-	privateKey = ""
 	args := common.Bytes2Hex(make([]byte, 33))
 	args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
@@ -31,7 +30,7 @@ func TestCustomScript(t *testing.T) {
 		Account:          "20221130.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
-			5: {3000000, 3000000},
+			5: {100000, 100000},
 		},
 	}
 	var data handle.RespCustomScript

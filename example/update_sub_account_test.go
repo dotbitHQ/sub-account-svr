@@ -14,7 +14,7 @@ var (
 )
 
 func TestSubAccountEditNew(t *testing.T) {
-	url := ApiUrl + "/new/sub/account/edit"
+	url := ApiUrl + "/sub/account/edit"
 	var list = []string{
 		"test02-1.20221130.bit",
 		"test02-2.20221130.bit",
@@ -55,7 +55,7 @@ func TestSubAccountEditNew(t *testing.T) {
 						Key:   "twitter",
 						Type:  "profile",
 						Label: "",
-						Value: "222",
+						Value: "444",
 						TTL:   "",
 					},
 				},

@@ -34,12 +34,8 @@ func (h *HttpServer) initRouter() {
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)
-		if config.Cfg.Server.RunMode == "normal" {
-			v1.POST("/sub/account/create", api_code.DoMonitorLog("account_create"), h.H.SubAccountCreateNew) // create_sub_account
-			v1.POST("/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEditNew)       // edit_sub_account
-			//v1.POST("/new/sub/account/create", api_code.DoMonitorLog("account_create"), h.H.SubAccountCreateNew) // create_sub_account
-			//v1.POST("/new/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEditNew)       // edit_sub_account
-		}
+		v1.POST("/sub/account/create", api_code.DoMonitorLog("account_create"), h.H.SubAccountCreateNew) // create_sub_account
+		v1.POST("/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEditNew)       // edit_sub_account
 		v1.POST("/owner/profit", api_code.DoMonitorLog("owner_profit"), h.H.OwnerProfit)
 		v1.POST("/profit/withdraw", api_code.DoMonitorLog("profit_withdraw"), h.H.ProfitWithdraw)
 		v1.POST("/custom/script/set", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)

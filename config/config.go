@@ -57,7 +57,6 @@ type CfgServer struct {
 	Server struct {
 		IsUpdate               bool              `json:"is_update" yaml:"is_update"`
 		Net                    common.DasNetType `json:"net" yaml:"net"`
-		RunMode                string            `json:"run_mode" yaml:"run_mode"`
 		HttpServerAddr         string            `json:"http_server_addr" yaml:"http_server_addr"`
 		HttpServerInternalAddr string            `json:"http_server_internal_addr" yaml:"http_server_internal_addr"`
 		ParserUrl              string            `json:"parser_url" yaml:"parser_url"`
