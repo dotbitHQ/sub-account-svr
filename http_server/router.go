@@ -42,11 +42,6 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
 		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
-		//v1.POST("/new/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
-
-		// recycle_expired_account_by_keeper, del smt info
-		// renew_sub_account( need to renew by self(single) or renew by register server(multi) )
-		// recycle_sub_account(0,0->taskId,taskIndex)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

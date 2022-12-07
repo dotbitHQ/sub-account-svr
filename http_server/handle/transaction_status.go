@@ -18,6 +18,7 @@ type ReqTransactionStatus struct {
 	chainType common.ChainType
 	address   string
 	Action    common.DasAction `json:"action"`
+	SubAction common.SubAction `json:"sub_action"`
 	Account   string           `json:"account"`
 }
 
@@ -107,32 +108,38 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				return nil
 			}
 		}
-	case common.DasActionEditSubAccount:
-		record, err := h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
-			return fmt.Errorf("GetLatestSmtRecordByAccountIdAction: %s", err.Error())
-		} else if record.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
-			return nil
-		} else if record.TaskId == "" {
-			resp.Status = TxStatusUnSend
-		} else {
-			task, err := h.DbDao.GetTaskByTaskId(record.TaskId)
+	case common.DasActionUpdateSubAccount:
+		switch req.SubAction {
+		case common.SubActionCreate, common.SubActionEdit:
+			record, err := h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action, req.SubAction)
 			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to task record")
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
 				return fmt.Errorf("GetLatestSmtRecordByAccountIdAction: %s", err.Error())
+			} else if record.Id == 0 {
+				apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
+				return nil
+			} else if record.TaskId == "" {
+				resp.Status = TxStatusUnSend
 			} else {
-				switch task.TxStatus {
-				case tables.TxStatusUnSend:
-					resp.Status = TxStatusUnSend
-				case tables.TxStatusPending:
-					resp.Status = TxStatusPending
-				default:
-					apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
-					return nil
+				task, err := h.DbDao.GetTaskByTaskId(record.TaskId)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to task record")
+					return fmt.Errorf("GetLatestSmtRecordByAccountIdAction: %s", err.Error())
+				} else {
+					switch task.TxStatus {
+					case tables.TxStatusUnSend:
+						resp.Status = TxStatusUnSend
+					case tables.TxStatusPending:
+						resp.Status = TxStatusPending
+					default:
+						apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
+						return nil
+					}
 				}
 			}
+		default:
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist sub-action[%s]", req.SubAction))
+			return nil
 		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist action[%s]", req.Action))

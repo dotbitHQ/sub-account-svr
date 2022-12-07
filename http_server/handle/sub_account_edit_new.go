@@ -198,6 +198,7 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 
 	// resp
 	resp.Action = common.DasActionUpdateSubAccount
+	resp.SubAction = common.SubActionEdit
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		//SignKey: "",

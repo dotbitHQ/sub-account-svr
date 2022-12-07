@@ -38,9 +38,10 @@ type SignInfo struct {
 }
 
 type SignInfoList struct {
-	Action  string     `json:"action"`
-	SignKey string     `json:"sign_key"`
-	List    []SignInfo `json:"list"`
+	Action    common.DasAction `json:"action"`
+	SubAction common.SubAction `json:"sub_action"`
+	SignKey   string           `json:"sign_key"`
+	List      []SignInfo       `json:"list"`
 }
 
 // =========

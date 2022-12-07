@@ -173,6 +173,7 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 
 	// resp
 	resp.Action = common.DasActionUpdateSubAccount
+	resp.SubAction = common.SubActionCreate
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		//SignKey: "",
