@@ -69,6 +69,13 @@ func (d *DbDao) GetSelfSmtRecordListByAccountIds(accountIds []string) (list []ta
 	return
 }
 
+func (d *DbDao) GetLatestSmtRecordByParentAccountIdAction(accountId, action, subAction string) (record tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND action=? AND sub_action=? AND record_type=?",
+		accountId, action, subAction, tables.RecordTypeDefault).
+		Order("nonce DESC").Limit(1).Find(&record).Error
+	return
+}
+
 func (d *DbDao) GetLatestSmtRecordByAccountIdAction(accountId, action, subAction string) (record tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("account_id=? AND action=? AND sub_action=? AND record_type=?",
 		accountId, action, subAction, tables.RecordTypeDefault).
