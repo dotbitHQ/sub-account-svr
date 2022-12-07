@@ -20,6 +20,28 @@ import (
 	"time"
 )
 
+type ReqSubAccountCreate struct {
+	core.ChainTypeAddress
+	chainType      common.ChainType
+	address        string
+	Account        string             `json:"account"`
+	SubAccountList []CreateSubAccount `json:"sub_account_list"`
+}
+
+type CreateSubAccount struct {
+	Account        string                  `json:"account"`
+	MintForAccount string                  `json:"mint_for_account"`
+	AccountCharStr []common.AccountCharSet `json:"account_char_str"`
+	RegisterYears  uint64                  `json:"register_years"`
+	core.ChainTypeAddress
+	chainType common.ChainType
+	address   string
+}
+
+type RespSubAccountCreate struct {
+	SignInfoList
+}
+
 func (h *HttpHandle) SubAccountCreateNew(ctx *gin.Context) {
 	var (
 		funcName = "SubAccountCreateNew"

@@ -60,9 +60,6 @@ type CfgServer struct {
 		HttpServerAddr         string            `json:"http_server_addr" yaml:"http_server_addr"`
 		HttpServerInternalAddr string            `json:"http_server_internal_addr" yaml:"http_server_internal_addr"`
 		ParserUrl              string            `json:"parser_url" yaml:"parser_url"`
-		ManagerChainType       common.ChainType  `json:"manager_chain_type" yaml:"manager_chain_type"`
-		ManagerAddress         string            `json:"manager_address" yaml:"manager_address"`
-		ManagerPrivateKey      string            `json:"manager_private_key" yaml:"manager_private_key"`
 		ServerAddress          string            `json:"server_address" yaml:"server_address"`
 		ServerPrivateKey       string            `json:"server_private_key" yaml:"server_private_key"`
 		RemoteSignApiUrl       string            `json:"remote_sign_api_url" yaml:"remote_sign_api_url"`
@@ -70,13 +67,9 @@ type CfgServer struct {
 		PushLogIndex           string            `json:"push_log_index" yaml:"push_log_index"`
 	} `json:"server" yaml:"server"`
 	Das struct {
-		MaxRegisterYears   uint64 `json:"max_register_years" yaml:"max_register_years"`
-		MaxCreateCount     int    `json:"max_create_count" yaml:"max_create_count"`
-		MaxEditCount       int    `json:"max_edit_count" yaml:"max_edit_count"`
-		MaxEditTaskCount   int    `json:"max_edit_task_count" yaml:"max_edit_task_count"`
-		MaxRetry           int    `json:"max_retry" yaml:"max_retry"`
-		IsEditTaskClosed   bool   `json:"is_edit_task_closed" yaml:"is_edit_task_closed"`
-		IsCreateTaskClosed bool   `json:"is_create_task_closed" yaml:"is_create_task_closed"`
+		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
+		MaxCreateCount   int    `json:"max_create_count" yaml:"max_create_count"`
+		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {

@@ -17,6 +17,14 @@ import (
 	"time"
 )
 
+type ReqTransactionSend struct {
+	SignInfoList
+}
+
+type RespTransactionSend struct {
+	HashList []string `json:"hash_list"`
+}
+
 func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 	var (
 		funcName = "TransactionSendNew"
@@ -289,4 +297,14 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 		apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 	}
 	return signMsg, nil
+}
+
+func fixSignature(signMsg string) string {
+	if len(signMsg) >= 132 && signMsg[130:132] == "1b" {
+		signMsg = signMsg[0:130] + "00" + signMsg[132:]
+	}
+	if len(signMsg) >= 132 && signMsg[130:132] == "1c" {
+		signMsg = signMsg[0:130] + "01" + signMsg[132:]
+	}
+	return signMsg
 }

@@ -18,11 +18,87 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type ReqSubAccountEdit struct {
+	core.ChainTypeAddress
+	chainType common.ChainType
+	address   string
+	Account   string   `json:"account"`
+	EditKey   string   `json:"edit_key"`
+	EditValue EditInfo `json:"edit_value"`
+}
+
+type RespSubAccountEdit struct {
+	SignInfoList
+}
+
+func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_code.ApiResp) {
+	// check params
+	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+		return
+	}
+	r.chainType, r.address = addrHex.ChainType, addrHex.AddressHex
+
+	// check edit value
+	switch r.EditKey {
+	case common.EditKeyOwner:
+		addrHex, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			return
+		}
+		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = addrHex.ChainType, addrHex.AddressHex
+	case common.EditKeyManager:
+		addrHex, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			return
+		}
+		r.EditValue.ManagerChainType, r.EditValue.ManagerAddress = addrHex.ChainType, addrHex.AddressHex
+	case common.EditKeyRecords:
+		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsRecordNamespace)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
+		log.Info("ConfigCellRecordKeys:", builder.ConfigCellRecordKeys)
+		var mapRecordKey = make(map[string]struct{})
+		for _, v := range builder.ConfigCellRecordKeys {
+			mapRecordKey[v] = struct{}{}
+		}
+		for i, v := range r.EditValue.Records {
+			r.EditValue.Records[i].Index = i
+			record := fmt.Sprintf("%s.%s", v.Type, v.Key)
+			if v.Type == "custom_key" { // (^[0-9a-z_]+$)
+				if ok, _ := regexp.MatchString("^[0-9a-z_]+$", v.Key); !ok {
+					apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
+					return
+				}
+			} else if v.Type == "address" {
+				if ok, _ := regexp.MatchString("^(0|[1-9][0-9]*)$", v.Key); !ok {
+					if _, ok2 := mapRecordKey[record]; !ok2 {
+						apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
+						return
+					}
+				}
+			} else if _, ok := mapRecordKey[record]; !ok {
+				apiResp.ApiRespErr(api_code.ApiCodeRecordInvalid, fmt.Sprintf("record [%s] is invalid", record))
+				return
+			}
+		}
+	default:
+		apiResp.ApiRespErr(api_code.ApiCodeNotExistEditKey, fmt.Sprintf("not exist edit key [%s]", r.EditKey))
+		return
+	}
+}
 
 func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 	var (
@@ -52,7 +128,7 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 	resp.List = make([]SignInfo, 0)
 
 	// check params
-	h.CheckReqSubAccountEdit(req, apiResp)
+	h.checkReqSubAccountEdit(req, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

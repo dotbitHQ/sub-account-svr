@@ -14,7 +14,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
-	"github.com/scorpiotzh/toolib"
 	"time"
 )
 
@@ -95,23 +94,6 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	})
 	if err != nil {
 		return fmt.Errorf("BuildTxsForUpdateSubAccount err: %s", err.Error())
-	}
-
-	// do sign
-	if p.action == common.DasActionCreateSubAccount {
-		for i, _ := range res.DasTxBuilderList {
-			signList, err := res.DasTxBuilderList[i].GenerateDigestListFromTx([]int{})
-			if err != nil {
-				return fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
-			}
-			log.Info("GenerateDigestListFromTx:", toolib.JsonString(signList))
-			if err := DoSign("", signList, config.Cfg.Server.ManagerPrivateKey); err != nil {
-				return fmt.Errorf("DoSign err: %s", err.Error())
-			}
-			if err := res.DasTxBuilderList[i].AddSignatureForTx(signList); err != nil {
-				return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
-			}
-		}
 	}
 
 	// send txs
