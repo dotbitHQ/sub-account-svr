@@ -245,7 +245,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 		SubAccountBuilderMap: subAccountBuilderMap,
 	})
 	if err != nil {
-		return fmt.Errorf("BuildTxs err: %s", err.Error())
+		return fmt.Errorf("BuildTxsForUpdateSubAccount err: %s", err.Error())
 	}
 
 	// do sign

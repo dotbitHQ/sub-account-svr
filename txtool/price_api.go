@@ -115,7 +115,7 @@ func (r *PriceApiConfig) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	}
 	price, err := customScriptConfig.GetPrice(accLen)
 	if err != nil {
-		return nil, fmt.Errorf("price err: %s", err.Error())
+		return nil, fmt.Errorf("price err: %s [%d]", err.Error(), accLen)
 	}
 	res.New, res.Renew = price.New, price.Renew
 

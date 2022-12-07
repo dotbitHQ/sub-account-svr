@@ -219,7 +219,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 					SubAccountOutputsData: subAccountOutputsData,
 				})
 				if err != nil {
-					return nil, fmt.Errorf("BuildCreateSubAccountTx err: %s", err.Error())
+					return nil, fmt.Errorf("BuildUpdateSubAccountTxForCustomScript err: %s", err.Error())
 				}
 			} else {
 				resUpdate, err = s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
