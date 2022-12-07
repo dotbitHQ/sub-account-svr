@@ -60,8 +60,6 @@ func (r *PriceApiDefault) GetPrice(p *ParamGetPrice) (*ResGetPrice, error) {
 	log.Info("PriceApiDefault:", p.Action, p.RegisterYears, res.New, res.Renew)
 
 	switch p.Action {
-	case common.DasActionCreateSubAccount:
-		res.ActionTotalPrice = res.New * p.RegisterYears
 	case common.DasActionUpdateSubAccount:
 		switch p.SubAction {
 		case common.SubActionCreate:

@@ -121,7 +121,7 @@ func (h *HttpHandle) doSubAccountCheckAccount(account string, apiResp *api_code.
 		return nil, nil
 	}
 	switch action {
-	case common.DasActionCreateSubAccount, common.DasActionEditSubAccount, common.DasActionUpdateSubAccount:
+	case common.DasActionUpdateSubAccount:
 		if acc.EnableSubAccount != tables.AccountEnableStatusOn {
 			apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub account uninitialized")
 			return nil, nil
@@ -131,6 +131,9 @@ func (h *HttpHandle) doSubAccountCheckAccount(account string, apiResp *api_code.
 			apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOn, "sub account already initialized")
 			return nil, nil
 		}
+	default:
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("unknow action[%s]", action))
+		return nil, nil
 	}
 	return &acc, nil
 }

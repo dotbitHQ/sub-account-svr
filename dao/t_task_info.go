@@ -239,20 +239,6 @@ func (d *DbDao) CreateTask(task *tables.TableTaskInfo) error {
 	return d.db.Create(&task).Error
 }
 
-func (d *DbDao) CreateTaskWithRecords(task *tables.TableTaskInfo, list []tables.TableSmtRecordInfo) error {
-	return d.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&task).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-		if err := tx.Create(&list).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-		return nil
-	})
-}
-
 func (d *DbDao) GetTaskByTaskId(taskId string) (task tables.TableTaskInfo, err error) {
 	err = d.db.Where("task_id=?", taskId).Find(&task).Error
 	return
