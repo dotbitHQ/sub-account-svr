@@ -68,7 +68,7 @@ func (h *HttpHandle) doSubAccountCheck(req *ReqSubAccountCreate, apiResp *api_co
 	}
 
 	// check account
-	_, err := h.doSubAccountCheckAccount(req.Account, apiResp, common.DasActionCreateSubAccount)
+	_, err := h.doSubAccountCheckAccount(req.Account, apiResp, common.DasActionUpdateSubAccount)
 	if err != nil {
 		return fmt.Errorf("doSubAccountCheckAccount err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
