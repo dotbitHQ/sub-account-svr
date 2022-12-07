@@ -151,6 +151,9 @@ func GetCustomScriptMintTotalCapacity(p *ParamCustomScriptMintTotalCapacity) (*R
 	totalCKB := uint64(0)
 	minDasCKb := uint64(0)
 	for _, v := range p.MintList {
+		if v.SubAction != common.SubActionCreate {
+			continue
+		}
 		var accountCharSet []common.AccountCharSet
 		if v.Content != "" {
 			if err := json.Unmarshal([]byte(v.Content), &accountCharSet); err != nil {
