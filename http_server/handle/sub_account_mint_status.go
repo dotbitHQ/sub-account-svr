@@ -18,6 +18,13 @@ type ReqSubAccountMintStatus struct {
 type RespSubAccountMintStatus struct {
 	Status TaskStatus `json:"status"`
 }
+type TaskStatus int
+
+const (
+	TaskStatusPending TaskStatus = 0
+	TaskStatusOk      TaskStatus = 1
+	TaskStatusFail    TaskStatus = 2
+)
 
 func (h *HttpHandle) SubAccountMintStatus(ctx *gin.Context) {
 	var (
@@ -52,7 +59,7 @@ func (h *HttpHandle) doSubAccountMintStatus(req *ReqSubAccountMintStatus, apiRes
 	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
 
-	record, err := h.DbDao.GetLatestMintRecord(accountId, common.DasActionCreateSubAccount)
+	record, err := h.DbDao.GetLatestMintRecord(accountId, common.DasActionUpdateSubAccount, common.SubActionCreate)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "get mint record err")
 		return fmt.Errorf("GetLatestMintRecord err: %s", err.Error())

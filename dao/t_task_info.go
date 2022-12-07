@@ -291,8 +291,3 @@ func (d *DbDao) GetLatestTaskByParentAccountId(parentAccountId string, limit int
 		Order("id DESC").Limit(limit).Find(&list).Error
 	return
 }
-
-func (d *DbDao) GetTaskByHash(hash string) (task tables.TableTaskInfo, err error) {
-	err = d.db.Where("outpoint LIKE ?", hash+"%").Order("id DESC").Limit(1).Find(&task).Error
-	return
-}

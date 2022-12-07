@@ -122,18 +122,3 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 
 	return &res, nil
 }
-
-func (s *SubAccountTxTool) RollbackSmtRecords(tree *smt.SparseMerkleTree, subAccountIds []string, subAccountValueMap map[string]string) error {
-	// rollback
-	for _, v := range subAccountIds {
-		key := smt.AccountIdToSmtH256(v)
-		value := smt.H256Zero()
-		if subAccountValue, ok := subAccountValueMap[v]; ok {
-			value = common.Hex2Bytes(subAccountValue)
-		}
-		if err := tree.Update(key, value); err != nil {
-			return fmt.Errorf("tree.Update err: %s", err.Error())
-		}
-	}
-	return nil
-}

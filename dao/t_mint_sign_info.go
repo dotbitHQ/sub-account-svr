@@ -6,8 +6,3 @@ func (d *DbDao) GetMinSignInfo(mintSignId string) (info tables.TableMintSignInfo
 	err = d.db.Where("mint_sign_id=?", mintSignId).Find(&info).Limit(1).Error
 	return
 }
-
-func (d *DbDao) GetSmtRecordListByMintSignId(mintSignId string) (list []tables.TableSmtRecordInfo, err error) {
-	err = d.db.Where("mint_sign_id=?", mintSignId).Find(&list).Error
-	return
-}

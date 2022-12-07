@@ -83,8 +83,8 @@ func (d *DbDao) GetLatestSmtRecordByAccountIdAction(accountId, action, subAction
 	return
 }
 
-func (d *DbDao) GetLatestMintRecord(accountId, action string) (record tables.TableSmtRecordInfo, err error) {
-	err = d.db.Where("account_id=? AND action=?", accountId, action).
+func (d *DbDao) GetLatestMintRecord(accountId, action, subAction string) (record tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND action=? AND sub_action=?", accountId, action, subAction).
 		Order("id DESC").Limit(1).Find(&record).Error
 	return
 }
