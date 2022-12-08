@@ -50,7 +50,7 @@ func TestInternalSubAccountMint(t *testing.T) {
 		},
 	}
 
-	var data handle.RespInternalSubAccountMint
+	var data handle.RespInternalSubAccountMintNew
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
 	}
