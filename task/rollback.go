@@ -74,11 +74,11 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 	tree := smt.NewSparseMerkleTree(mongoStore)
 
 	// update
-	for _, v := range subAccountIds {
+	for i, v := range subAccountIds {
 		key := smt.AccountIdToSmtH256(v)
 		value := smt.H256Zero()
 
-		log.Info("rollback:", v)
+		log.Info("rollback:", v, len(subAccountIds), "-", i)
 		//log.Info("rollback key:", common.Bytes2Hex(key))
 		//log.Info("rollback value:", common.Bytes2Hex(value))
 

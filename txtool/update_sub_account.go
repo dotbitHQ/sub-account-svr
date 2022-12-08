@@ -117,7 +117,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
-		log.Info("BuildUpdateSubAccountTx:", v.TaskId, v.AccountId, v.SubAction)
+		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
 		if v.SubAction == common.SubActionCreate {
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
@@ -413,7 +413,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
 	for i, v := range p.SmtRecordInfoList {
-		log.Info("BuildUpdateSubAccountTxForCustomScript:", v.TaskId, v.AccountId, v.SubAction)
+		log.Info("BuildUpdateSubAccountTxForCustomScript:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
 		if v.SubAction == common.SubActionCreate {
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()

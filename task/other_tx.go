@@ -96,11 +96,11 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	tree := smt.NewSparseMerkleTree(mongoStore)
 
 	// update
-	for _, smtInfo := range smtInfoList {
+	for i, smtInfo := range smtInfoList {
 		key := smt.AccountIdToSmtH256(smtInfo.AccountId)
 		value := common.Hex2Bytes(smtInfo.LeafDataHash)
 
-		log.Info("confirmOtherTx:", smtInfo.AccountId)
+		log.Info("confirmOtherTx:", smtInfo.ParentAccountId, len(smtInfoList), "-", i)
 		//log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
 		//log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
 
