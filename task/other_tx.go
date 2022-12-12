@@ -1,7 +1,6 @@
 package task
 
 import (
-	"bytes"
 	"context"
 	"das_sub_account/cache"
 	"das_sub_account/config"
@@ -9,9 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/smt"
-	"github.com/dotbitHQ/das-lib/witness"
 )
 
 func (t *SmtTask) doConfirmOtherTx() error {
@@ -99,23 +96,24 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	tree := smt.NewSparseMerkleTree(mongoStore)
 
 	// check root diff
-	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
-	if err != nil {
-		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
-	}
-	subAccountLiveCell, err := t.TxTool.CheckSubAccountLiveCellForConfirm(contractSubAcc, parentAccountId)
-	if err != nil {
-		log.Warn("confirmOtherTx CheckSubAccountLiveCellForConfirm err:", err.Error())
-	}
 	isUpdate := true
-	if subAccountLiveCell != nil {
-		currentRoot, _ := tree.Root()
-		subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
-		log.Warn("confirmOtherTx Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
-		if bytes.Compare(currentRoot, subDataDetail.SmtRoot) == 0 {
-			isUpdate = false
-		}
-	}
+	//contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+	//if err != nil {
+	//	return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+	//}
+	//subAccountLiveCell, err := t.TxTool.CheckSubAccountLiveCellForConfirm(contractSubAcc, parentAccountId)
+	//if err != nil {
+	//	log.Warn("confirmOtherTx CheckSubAccountLiveCellForConfirm err:", err.Error())
+	//}
+	//
+	//if subAccountLiveCell != nil {
+	//	currentRoot, _ := tree.Root()
+	//	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+	//	log.Warn("confirmOtherTx Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+	//	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) == 0 {
+	//		isUpdate = false
+	//	}
+	//}
 
 	// update
 	if isUpdate {
