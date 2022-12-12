@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"context"
 	"das_sub_account/cache"
 	"das_sub_account/config"
@@ -8,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/dotbitHQ/das-lib/witness"
 )
 
 func (t *SmtTask) doConfirmOtherTx() error {
@@ -95,25 +98,46 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	mongoStore := smt.NewMongoStore(t.Ctx, t.Mongo, config.Cfg.DB.Mongo.SmtDatabase, parentAccountId)
 	tree := smt.NewSparseMerkleTree(mongoStore)
 
-	// update
-	for i, smtInfo := range smtInfoList {
-		key := smt.AccountIdToSmtH256(smtInfo.AccountId)
-		value := common.Hex2Bytes(smtInfo.LeafDataHash)
-
-		log.Info("confirmOtherTx:", smtInfo.ParentAccountId, len(smtInfoList), "-", i)
-		//log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
-		//log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
-
-		err = tree.Update(key, value)
-		if err != nil {
-			return fmt.Errorf("tree.Update err: %s", err.Error())
+	// check root diff
+	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+	if err != nil {
+		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+	}
+	subAccountLiveCell, err := t.TxTool.CheckSubAccountLiveCell(contractSubAcc, parentAccountId)
+	if err != nil {
+		log.Warn("confirmOtherTx CheckSubAccountLiveCell err:", err.Error())
+	}
+	isUpdate := true
+	if subAccountLiveCell != nil {
+		currentRoot, _ := tree.Root()
+		subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+		log.Warn("confirmOtherTx Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
+		if bytes.Compare(currentRoot, subDataDetail.SmtRoot) == 0 {
+			isUpdate = false
 		}
 	}
 
-	if _, err = tree.Root(); err != nil {
+	// update
+	if isUpdate {
+		for i, smtInfo := range smtInfoList {
+			key := smt.AccountIdToSmtH256(smtInfo.AccountId)
+			value := common.Hex2Bytes(smtInfo.LeafDataHash)
+
+			log.Info("confirmOtherTx:", smtInfo.ParentAccountId, len(smtInfoList), "-", i)
+			//log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
+			//log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
+
+			err = tree.Update(key, value)
+			if err != nil {
+				return fmt.Errorf("tree.Update err: %s", err.Error())
+			}
+		}
+	}
+
+	if root, err := tree.Root(); err != nil {
 		return fmt.Errorf("tree.Root err: %s", err.Error())
 	} else {
-		//log.Info("confirmOtherTx CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
+		log.Info("confirmOtherTx tree.Root():", task.ParentAccountId, common.Bytes2Hex(root))
 	}
 
 	// 0,2 -> 2,2
