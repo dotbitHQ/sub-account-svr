@@ -40,8 +40,14 @@ func (s *SubAccountTxTool) GetOldSubAccount(subAccountIds []string, action commo
 		if err != nil {
 			return nil, nil, fmt.Errorf("SubAccountBuilderMapFromTx err: %s", err.Error())
 		}
-		for k, _ := range builderMap {
-			subAccountBuilderMap[k] = builderMap[k]
+		for k, bu := range builderMap {
+			if item, ok := subAccountBuilderMap[k]; ok {
+				if item.CurrentSubAccountData.Nonce < bu.CurrentSubAccountData.Nonce {
+					subAccountBuilderMap[k] = builderMap[k]
+				}
+			} else {
+				subAccountBuilderMap[k] = builderMap[k]
+			}
 		}
 	}
 	return valueMap, subAccountBuilderMap, nil
