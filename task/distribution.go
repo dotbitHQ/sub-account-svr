@@ -60,9 +60,6 @@ func (t *SmtTask) doUpdateDistribution() error {
 			} else if lastMintSignId != "" && smtRecord.MintSignId != "" && lastMintSignId != smtRecord.MintSignId {
 				addTask = true
 				count = 0
-			} else if (lastMintSignId != "" && smtRecord.MintSignId == "") || (lastMintSignId == "" && smtRecord.MintSignId != "") {
-				addTask = true
-				count = 0
 			}
 			if smtRecord.MintSignId != "" {
 				lastMintSignId = smtRecord.MintSignId
