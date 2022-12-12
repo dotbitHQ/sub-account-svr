@@ -103,9 +103,9 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	if err != nil {
 		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
-	subAccountLiveCell, err := t.TxTool.CheckSubAccountLiveCell(contractSubAcc, parentAccountId)
+	subAccountLiveCell, err := t.TxTool.CheckSubAccountLiveCellForConfirm(contractSubAcc, parentAccountId)
 	if err != nil {
-		log.Warn("confirmOtherTx CheckSubAccountLiveCell err:", err.Error())
+		log.Warn("confirmOtherTx CheckSubAccountLiveCellForConfirm err:", err.Error())
 	}
 	isUpdate := true
 	if subAccountLiveCell != nil {

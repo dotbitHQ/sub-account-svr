@@ -228,3 +228,29 @@ func (s *SubAccountTxTool) CheckSubAccountLiveCell(contractSubAcc *core.DasContr
 	}
 	return subAccLiveCells.Objects[0], nil
 }
+
+func (s *SubAccountTxTool) CheckSubAccountLiveCellForConfirm(contractSubAcc *core.DasContractInfo, parentAccountId string) (*indexer.LiveCell, error) {
+	searchKey := indexer.SearchKey{
+		Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
+		ScriptType: indexer.ScriptTypeType,
+		ArgsLen:    0,
+		Filter:     nil,
+	}
+	subAccLiveCells, err := s.DasCore.Client().GetCells(s.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
+	if err != nil {
+		return nil, fmt.Errorf("GetCells err: %s", err.Error())
+	}
+	if subLen := len(subAccLiveCells.Objects); subLen != 1 {
+		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
+	}
+
+	outpoint := common.OutPointStruct2String(subAccLiveCells.Objects[0].OutPoint)
+	task, err := s.DbDao.GetTaskByOutpointWithParentAccountIdForConfirm(parentAccountId, outpoint)
+	if err != nil {
+		return nil, fmt.Errorf("GetTaskByOutpointWithParentAccountIdForConfirm err: %s", err.Error())
+	} else if task.Id == 0 {
+		log.Warn("not exist outpoint:", outpoint)
+		return nil, ErrTaskInProgress
+	}
+	return subAccLiveCells.Objects[0], nil
+}

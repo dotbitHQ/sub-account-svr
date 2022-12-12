@@ -269,6 +269,12 @@ func (d *DbDao) GetTaskByOutpointWithParentAccountId(parentAccountId, outpoint s
 	return
 }
 
+func (d *DbDao) GetTaskByOutpointWithParentAccountIdForConfirm(parentAccountId, outpoint string) (task tables.TableTaskInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND outpoint=? AND task_type=? AND smt_status=? AND tx_status=?",
+		parentAccountId, outpoint, tables.TaskTypeChain, tables.SmtStatusNeedToWrite, tables.TxStatusCommitted).Find(&task).Error
+	return
+}
+
 func (d *DbDao) UpdateTaskStatusToRollback(ids []uint64) error {
 	return d.db.Model(tables.TableTaskInfo{}).
 		Where("id IN(?) AND smt_status=? AND tx_status=?", ids, tables.SmtStatusWriting, tables.TxStatusUnSend).
