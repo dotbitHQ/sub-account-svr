@@ -26,7 +26,7 @@ func (d *DbDao) UpdateTaskDistribution(taskList []tables.TableTaskInfo, idsList 
 		return nil
 	}
 	if len(taskList) != len(idsList) {
-		return fmt.Errorf("len diff")
+		return fmt.Errorf("len diff [%d] [%d]", len(taskList), len(idsList))
 	}
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&taskList).Error; err != nil {
