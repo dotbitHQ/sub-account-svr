@@ -53,6 +53,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 		count := 0
 		lastMintSignId := ""
 		addTask := true
+		ids = make([]uint64, 0)
 		for _, smtRecord := range smtRecordList {
 			if count == config.Cfg.Das.MaxCreateCount {
 				addTask = true
