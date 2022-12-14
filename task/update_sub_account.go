@@ -20,7 +20,7 @@ func (t *SmtTask) doBatchUpdateSubAccountTask(action common.DasAction) error {
 	mapTaskList, mapTaskIdList := t.groupByParentAccountIdNew(list)
 
 	// batch do update_sub_account tx
-	var chanParentAccountId = make(chan string, 5)
+	var chanParentAccountId = make(chan string, 10)
 	var wgTask sync.WaitGroup
 	go func() {
 		wgTask.Add(1)
@@ -32,7 +32,7 @@ func (t *SmtTask) doBatchUpdateSubAccountTask(action common.DasAction) error {
 		close(chanParentAccountId)
 	}()
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		wgTask.Add(1)
 		go func() {
 			for {
