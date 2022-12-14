@@ -129,7 +129,7 @@ func (t *SmtTask) RunUpdateSubAccountTask() {
 			select {
 			case <-ticker.C:
 				log.Info("RunUpdateSubAccountTask start ...")
-				if err := t.doUpdateSubAccountTask(common.DasActionUpdateSubAccount); err != nil {
+				if err := t.doBatchUpdateSubAccountTask(common.DasActionUpdateSubAccount); err != nil {
 					log.Error("RunUpdateSubAccountTask err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunUpdateSubAccountTask", err.Error())
 				}
