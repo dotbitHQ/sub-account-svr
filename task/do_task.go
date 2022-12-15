@@ -14,7 +14,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
-	"time"
 )
 
 func (t *SmtTask) getTaskMap(taskIdList []string) (map[string][]tables.TableSmtRecordInfo, []string, error) {
@@ -98,6 +97,8 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 
 	// send txs
 	for i, _ := range p.taskList {
+		txBys, _ := res.DasTxBuilderList[i].Transaction.Serialize()
+		log.Info("doTaskDetail:", len(txBys))
 		if hash, err := res.DasTxBuilderList[i].SendTransaction(); err != nil {
 			return fmt.Errorf("SendTransaction err: %s", err.Error())
 		} else {
@@ -106,7 +107,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 				log.Error("UpdateTaskTxStatusToPending err: %s", err.Error())
 			}
 		}
-		time.Sleep(time.Second)
+		//time.Sleep(time.Second)
 	}
 	return nil
 }
