@@ -38,7 +38,7 @@ func TestCustomScript(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, privateKey); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 

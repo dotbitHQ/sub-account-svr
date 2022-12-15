@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	addr       = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
-	privateKey = ""
+	addr = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
+
+//	privateKey = ""
 )
 
 func TestSubAccountEditNew(t *testing.T) {
@@ -68,7 +69,7 @@ func TestSubAccountEditNew(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := doSign(data.SignInfoList, privateKey); err != nil {
+		if err := doSign(data.SignInfoList, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -96,32 +97,32 @@ func TestSubAccountCreateNew(t *testing.T) {
 	}
 
 	req.SubAccountList = make([]handle.CreateSubAccount, 0)
-	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-		Account:       "test04.20221130.bit",
-		RegisterYears: 1,
-		ChainTypeAddress: core.ChainTypeAddress{
-			Type: "blockchain",
-			KeyInfo: core.KeyInfo{
-				CoinType: "60",
-				ChainId:  "5",
-				Key:      addr,
-			},
-		},
-	})
-	//for i := 1; i < 3; i++ {
-	//	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-	//		Account:       fmt.Sprintf("test03-%d.20221130.bit", i),
-	//		RegisterYears: 1,
-	//		ChainTypeAddress: core.ChainTypeAddress{
-	//			Type: "blockchain",
-	//			KeyInfo: core.KeyInfo{
-	//				CoinType: "60",
-	//				ChainId:  "5",
-	//				Key:      addr,
-	//			},
+	//req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+	//	Account:       "test04.20221130.bit",
+	//	RegisterYears: 1,
+	//	ChainTypeAddress: core.ChainTypeAddress{
+	//		Type: "blockchain",
+	//		KeyInfo: core.KeyInfo{
+	//			CoinType: "60",
+	//			ChainId:  "5",
+	//			Key:      addr,
 	//		},
-	//	})
-	//}
+	//	},
+	//})
+	for i := 0; i < 200; i++ {
+		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+			Account:       fmt.Sprintf("test8-%d.20221130.bit", i),
+			RegisterYears: 1,
+			ChainTypeAddress: core.ChainTypeAddress{
+				Type: "blockchain",
+				KeyInfo: core.KeyInfo{
+					CoinType: "60",
+					ChainId:  "5",
+					Key:      addr,
+				},
+			},
+		})
+	}
 
 	var data handle.RespSubAccountCreate
 
@@ -129,7 +130,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, privateKey); err != nil {
+	if err := doSign(data.SignInfoList, ""); err != nil {
 		t.Fatal(err)
 	}
 

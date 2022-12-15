@@ -66,7 +66,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 				lastMintSignId = smtRecord.MintSignId
 			}
 			count++
-			log.Info("doUpdateDistribution:", smtRecord.Id, count, lastMintSignId)
+			//log.Info("doUpdateDistribution:", smtRecord.Id, count, lastMintSignId)
 			if addTask {
 				taskInfo := tables.TableTaskInfo{
 					Id:              0,
