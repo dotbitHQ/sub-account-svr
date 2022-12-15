@@ -11,11 +11,11 @@ require (
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/scorpiotzh/mylog v1.0.10
-	github.com/scorpiotzh/toolib v1.1.3
+	github.com/scorpiotzh/toolib v1.1.5
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.mongodb.org/mongo-driver v1.9.1
-	gorm.io/gorm v1.22.1
+	gorm.io/gorm v1.23.6
 	moul.io/http2curl v1.0.0 // indirect
 )
 
