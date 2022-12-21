@@ -11,7 +11,7 @@ import (
 var (
 	addr = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
 
-//	privateKey = ""
+	privateKey = ""
 )
 
 func TestSubAccountEditNew(t *testing.T) {
@@ -92,7 +92,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 				Key:      addr,
 			},
 		},
-		Account:        "20221130.bit",
+		Account:        "20221221.bit",
 		SubAccountList: nil,
 	}
 
@@ -109,9 +109,9 @@ func TestSubAccountCreateNew(t *testing.T) {
 	//		},
 	//	},
 	//})
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 100; i++ {
 		req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
-			Account:       fmt.Sprintf("test8-%d.20221130.bit", i),
+			Account:       fmt.Sprintf("test1-%d.20221221.bit", i),
 			RegisterYears: 1,
 			ChainTypeAddress: core.ChainTypeAddress{
 				Type: "blockchain",
@@ -130,7 +130,7 @@ func TestSubAccountCreateNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, ""); err != nil {
+	if err := doSign(data.SignInfoList, privateKey); err != nil {
 		t.Fatal(err)
 	}
 
