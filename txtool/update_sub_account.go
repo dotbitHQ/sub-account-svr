@@ -260,6 +260,15 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	soEth, _ := core.GetDasSoScript(common.SoScriptTypeEth)
 	soTron, _ := core.GetDasSoScript(common.SoScriptTypeTron)
 
+	timeCell, err := s.DasCore.GetTimeCell()
+	if err != nil {
+		return nil, fmt.Errorf("GetTimeCell err: %s", err.Error())
+	}
+	heightCell, err := s.DasCore.GetHeightCell()
+	if err != nil {
+		return nil, fmt.Errorf("GetTimeCell err: %s", err.Error())
+	}
+
 	txParams.CellDeps = append(txParams.CellDeps,
 		&types.CellDep{
 			OutPoint: p.AccountOutPoint,
@@ -268,8 +277,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		p.BaseInfo.ContractDas.ToCellDep(),
 		p.BaseInfo.ContractAcc.ToCellDep(),
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
-		p.BaseInfo.HeightCell.ToCellDep(),
-		p.BaseInfo.TimeCell.ToCellDep(),
+		//p.BaseInfo.HeightCell.ToCellDep(),
+		//p.BaseInfo.TimeCell.ToCellDep(),
+		timeCell.ToCellDep(),
+		heightCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),

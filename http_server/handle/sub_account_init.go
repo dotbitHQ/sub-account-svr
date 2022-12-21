@@ -153,11 +153,11 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		return fmt.Errorf("buildSubAccountInitSubAccountTx err: %s", err.Error())
 	}
 
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
-	if err := txBuilder.BuildTransaction(txParams); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "BuildTransaction err: "+err.Error())
-		return fmt.Errorf("BuildTransaction err: %s", err.Error())
-	}
+	//txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
+	//if err := txBuilder.BuildTransaction(txParams); err != nil {
+	//	apiResp.ApiRespErr(api_code.ApiCodeError500, "BuildTransaction err: "+err.Error())
+	//	return fmt.Errorf("BuildTransaction err: %s", err.Error())
+	//}
 
 	signKey, signList, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
