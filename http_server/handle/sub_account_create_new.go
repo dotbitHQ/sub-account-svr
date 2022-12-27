@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -135,8 +137,28 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 		return nil
 	}
 
-	// todo check balance
-	// acc.Manager, acc.ManagerChainType
+	// check balance
+	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "get config cell err")
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	newSubAccountPrice, _ := molecule.Bytes2GoU64(configCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	totalCapacity := uint64(0)
+	for _, v := range req.SubAccountList {
+		totalCapacity += v.RegisterYears
+	}
+	totalCapacity = totalCapacity * newSubAccountPrice
+	_, _, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          nil,
+		LockScript:        balanceDasLock,
+		CapacityNeed:      totalCapacity,
+		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
+	if err != nil {
+		return doDasBalanceError(err, apiResp)
+	}
 
 	// get mint sign info
 	minSignInfo, listSmtRecord, err := h.doMinSignInfo(parentAccountId, acc, req, apiResp)
