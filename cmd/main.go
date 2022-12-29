@@ -130,6 +130,7 @@ func runServer(ctx *cli.Context) error {
 			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
 			Mongo:              mongoClient,
 			Ctx:                ctxServer,
+			Cancel:             cancel,
 			Wg:                 &wgServer,
 		}
 		if err := blockParser.Run(); err != nil {
