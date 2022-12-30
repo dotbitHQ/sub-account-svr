@@ -65,6 +65,7 @@ type CfgServer struct {
 		RemoteSignApiUrl       string            `json:"remote_sign_api_url" yaml:"remote_sign_api_url"`
 		PushLogUrl             string            `json:"push_log_url" yaml:"push_log_url"`
 		PushLogIndex           string            `json:"push_log_index" yaml:"push_log_index"`
+		NotExit                bool              `json:"not_exit" yaml:"not_exit"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
