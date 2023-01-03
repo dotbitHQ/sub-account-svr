@@ -24,9 +24,13 @@ func (t *SmtTask) doUpdateDistribution() error {
 		mapSmtRecordList[v.ParentAccountId] = append(mapSmtRecordList[v.ParentAccountId], list[i])
 	}
 	// distribution time
+	maxUpdateCount := 100
+	if config.Cfg.Das.MaxUpdateCount > 0 {
+		maxUpdateCount = config.Cfg.Das.MaxUpdateCount
+	}
 	timestamp := time.Now().Add(-time.Minute).UnixNano() / 1e6
 	for k, v := range mapSmtRecordList {
-		if timestamp < v[0].Timestamp && len(v) < config.Cfg.Das.MaxCreateCount {
+		if timestamp < v[0].Timestamp && len(v) < maxUpdateCount {
 			delete(mapSmtRecordList, k)
 		}
 	}
@@ -55,7 +59,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 		addTask := true
 		ids = make([]uint64, 0)
 		for _, smtRecord := range smtRecordList {
-			if count == config.Cfg.Das.MaxCreateCount {
+			if count == maxUpdateCount {
 				addTask = true
 				count = 0
 			} else if lastMintSignId != "" && smtRecord.MintSignId != "" && lastMintSignId != smtRecord.MintSignId {

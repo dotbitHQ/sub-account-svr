@@ -70,6 +70,7 @@ type CfgServer struct {
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
 		MaxCreateCount   int    `json:"max_create_count" yaml:"max_create_count"`
+		MaxUpdateCount   int    `json:"max_update_count" yaml:"max_update_count"`
 		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
