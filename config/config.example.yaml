@@ -9,6 +9,7 @@ server:
 das:
   max_register_years: 20
   max_create_count: 100
+  max_update_count: 100
   max_retry: 10
 origins:
   - ""
