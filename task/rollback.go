@@ -69,11 +69,9 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 	}()
 	t.RC.DoLockExpire(ctx, parentAccountId)
 
-	// tree
-	mongoStore := smt.NewMongoStore(t.Ctx, t.Mongo, config.Cfg.DB.Mongo.SmtDatabase, parentAccountId)
-	tree := smt.NewSparseMerkleTree(mongoStore)
-
+	tree := smt.NewSmtSrv(t.SmtServerUrl, parentAccountId)
 	// update
+	var smtKv []smt.SmtKv
 	for i, v := range subAccountIds {
 		key := smt.AccountIdToSmtH256(v)
 		value := smt.H256Zero()
@@ -85,15 +83,22 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 		if subAccountValue, ok := subAccountValueMap[v]; ok {
 			value = common.Hex2Bytes(subAccountValue)
 		}
-		if err := tree.Update(key, value); err != nil {
-			return fmt.Errorf("tree.Update err: %s", err.Error())
-		}
+		smtKv = append(smtKv, smt.SmtKv{
+			key,
+			value,
+		})
 	}
-	if _, err = tree.Root(); err != nil {
-		return fmt.Errorf("tree.Root err: %s", err.Error())
-	} else {
-		//log.Info("rollback CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
+	opt := smt.SmtOpt{GetProof: false, GetRoot: false}
+	_, err = tree.UpdateSmt(smtKv, opt)
+	if err != nil {
+		return fmt.Errorf("tree.Update err: %s", err.Error())
 	}
+
+	//if _, err = tree.Root(); err != nil {
+	//	return fmt.Errorf("tree.Root err: %s", err.Error())
+	//} else {
+	//	//log.Info("rollback CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
+	//}
 
 	if task.TaskType == tables.TaskTypeDelegate && task.Retry < t.MaxRetry {
 		if err := t.DbDao.UpdateSmtRecordToNeedToWrite(task.TaskId, task.Retry+1); err != nil {

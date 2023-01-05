@@ -66,6 +66,7 @@ type CfgServer struct {
 		PushLogUrl             string            `json:"push_log_url" yaml:"push_log_url"`
 		PushLogIndex           string            `json:"push_log_index" yaml:"push_log_index"`
 		NotExit                bool              `json:"not_exit" yaml:"not_exit"`
+		SmtServer              string            `json:"smt_server" yaml:"smt_server"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`

@@ -1,7 +1,6 @@
 package handle
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/smt"
@@ -44,11 +43,8 @@ func (h *HttpHandle) SmtInfo(ctx *gin.Context) {
 
 func (h *HttpHandle) doSmtInfo(req *ReqSmtInfo, apiResp *api_code.ApiResp) error {
 	var resp RespSmtInfo
-
-	mongoStore := smt.NewMongoStore(h.Ctx, h.Mongo, config.Cfg.DB.Mongo.SmtDatabase, req.ParentAccountId)
-	tree := smt.NewSparseMerkleTree(mongoStore)
-
-	root, err := tree.Root()
+	tree := smt.NewSmtSrv(*h.SmtServerUrl, req.ParentAccountId)
+	root, err := tree.GetSmtRoot()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("tree.Root() err: %s", err.Error())

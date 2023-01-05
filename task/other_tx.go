@@ -95,9 +95,7 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	t.RC.DoLockExpire(ctx, parentAccountId)
 
 	// tree
-	mongoStore := smt.NewMongoStore(t.Ctx, t.Mongo, config.Cfg.DB.Mongo.SmtDatabase, parentAccountId)
-	tree := smt.NewSparseMerkleTree(mongoStore)
-
+	tree := smt.NewSmtSrv(t.SmtServerUrl, parentAccountId)
 	// check root diff
 	isUpdate := true
 	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
@@ -110,7 +108,7 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	}
 
 	if subAccountLiveCell != nil {
-		currentRoot, _ := tree.Root()
+		currentRoot, _ := tree.GetSmtRoot()
 		subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
 		log.Warn("confirmOtherTx Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
 		if bytes.Compare(currentRoot, subDataDetail.SmtRoot) == 0 {
@@ -119,7 +117,9 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	}
 
 	// update
+	var smtKv []smt.SmtKv
 	if isUpdate {
+
 		for i, smtInfo := range smtInfoList {
 			key := smt.AccountIdToSmtH256(smtInfo.AccountId)
 			value := common.Hex2Bytes(smtInfo.LeafDataHash)
@@ -127,15 +127,23 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 			log.Info("confirmOtherTx:", task.TaskId, len(smtInfoList), "-", i)
 			//log.Info("confirmOtherTx key:", common.Bytes2Hex(key))
 			//log.Info("confirmOtherTx value:", common.Bytes2Hex(value))
+			smtKv = append(smtKv, smt.SmtKv{
+				key,
+				value,
+			})
 
-			err = tree.Update(key, value)
-			if err != nil {
-				return fmt.Errorf("tree.Update err: %s", err.Error())
-			}
 		}
 	}
+	if len(smtKv) > 0 {
+		opt := smt.SmtOpt{GetProof: false, GetRoot: false}
+		_, err := tree.UpdateSmt(smtKv, opt)
+		if err != nil {
+			return fmt.Errorf("tree.Update err: %s", err.Error())
+		}
 
-	if root, err := tree.Root(); err != nil {
+	}
+
+	if root, err := tree.GetSmtRoot(); err != nil {
 		return fmt.Errorf("tree.Root err: %s", err.Error())
 	} else {
 		log.Info("confirmOtherTx tree.Root():", task.ParentAccountId, common.Bytes2Hex(root))

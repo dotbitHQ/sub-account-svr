@@ -217,7 +217,9 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAcco
 
 	var listSmtRecord []tables.TableSmtRecordInfo
 	var listKeyValue []tables.MintSignInfoKeyValue
-	tree := smt.NewSparseMerkleTree(nil)
+
+	tree := smt.NewSmtSrv(*h.SmtServerUrl, "")
+	var smtKv []smt.SmtKv
 	for _, v := range req.SubAccountList {
 		subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
 		ownerHex := core.DasAddressHex{
@@ -266,16 +268,23 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAcco
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt value err")
 			return nil, nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
 		}
-		if err = tree.Update(smtKey, smtValue); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt update err")
-			return nil, nil, fmt.Errorf("tree.Update err: %s", err.Error())
-		}
+		smtKv = append(smtKv, smt.SmtKv{
+			smtKey,
+			smtValue,
+		})
+
 		listKeyValue = append(listKeyValue, tables.MintSignInfoKeyValue{
 			Key:   subAccountId,
 			Value: common.Bytes2Hex(registerArgs),
 		})
 	}
-	root, err := tree.Root()
+	opt := smt.SmtOpt{GetProof: false, GetRoot: true}
+	r, err := tree.UpdateSmt(smtKv, opt)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt update err")
+		return nil, nil, fmt.Errorf("tree.Update err: %s", err.Error())
+	}
+	root := r.Root
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt root err")
 		return nil, nil, fmt.Errorf("tree.Root err: %s", err.Error())

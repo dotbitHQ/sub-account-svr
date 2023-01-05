@@ -1,11 +1,12 @@
 server:
   is_update: false
-  net: 1 # 1 mainnet 2 testnet
+  net: 2 # 1 mainnet 2 testnet
   http_server_addr: ":8125"
   http_server_internal_addr: ":8126"
   parser_url: "http://127.0.0.1:8118/v1" # das-database
   server_address: ""
   server_private_key: ""
+  smt_server: "http://10.143.1.180:10000"
 das:
   max_register_years: 20
   max_create_count: 100
@@ -18,24 +19,32 @@ notify:
   lark_create_sub_account_key: ""
   discord_create_sub_account_key: ""
 chain:
-  ckb_url: "http://127.0.0.1:8114"
-  index_url: "http://127.0.0.1:8116"
+  ckb_url: "https://testnet.ckb.dev/"
+  index_url: "https://testnet.ckb.dev/indexer"
   current_block_number: 6900000 # mainnet 6900000, testnet2 4808730
   confirm_num: 4
   concurrency_num: 100
 db:
   mysql:
-    addr: "127.0.0.1:3306" # 172.17.0.1: docker 182.17.0.1: docker-compose
-    user: "root"
-    password: "123456"
-    db_name: "sub_account"
+    addr: "centre-wallet-main.mysql.polardb.rds.aliyuncs.com"
+    user: "test_user_iut2"
+    password: "4k92Qv3TDr"
+    db_name: "das2_db_test"
+#    addr: "127.0.0.1:3306"
+#    user: "root"
+#    password: "123456"
+#    db_name: "das_database"
     max_open_conn: 100
     max_idle_conn: 50
   parser_mysql:
-    addr: "127.0.0.1:3306" # 172.17.0.1: docker 182.17.0.1: docker-compose
-    user: "root"
-    password: "123456"
-    db_name: "das_database"
+    addr: "centre-wallet-main.mysql.polardb.rds.aliyuncs.com"
+    user: "test_user_iut2"
+    password: "4k92Qv3TDr"
+    db_name: "das_parser_test"
+#    addr: "127.0.0.1:3306"
+#    user: "root"
+#    password: "123456"
+#    db_name: "das_database"
     max_open_conn: 100
     max_idle_conn: 50
   mongo:

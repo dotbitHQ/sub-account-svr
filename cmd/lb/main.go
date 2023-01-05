@@ -16,8 +16,6 @@ import (
 	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"github.com/urfave/cli/v2"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"sync"
 	"time"
@@ -76,13 +74,6 @@ func runServer(ctx *cli.Context) error {
 	}
 	log.Infof("db ok")
 
-	// mongo
-	mongoClient, err := mongo.Connect(ctxServer, options.Client().ApplyURI(config.Cfg.DB.Mongo.Uri))
-	if err != nil {
-		return fmt.Errorf("mongo.Connect err:%s", err.Error())
-	}
-	log.Infof("mongo ok")
-
 	// lb
 	if len(config.Cfg.Slb.Servers) == 0 {
 		return fmt.Errorf("slb servers is nil")
@@ -97,7 +88,6 @@ func runServer(ctx *cli.Context) error {
 			DbDao:              dbDao,
 			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
 			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-			Mongo:              mongoClient,
 			Ctx:                ctxServer,
 			Wg:                 &wgServer,
 			Slb:                slb,

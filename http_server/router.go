@@ -47,6 +47,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/info", h.H.SmtInfo)
 		internalV1.POST("/internal/smt/check", h.H.SmtCheck)
 		internalV1.POST("/internal/smt/update", h.H.SmtUpdate)
+		internalV1.POST("/internal/smt/syncTree", h.H.SmtSync)
 
 		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
 	}

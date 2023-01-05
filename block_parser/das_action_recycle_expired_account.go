@@ -1,9 +1,9 @@
 package block_parser
 
 import (
-	"das_sub_account/config"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/witness"
 )
 
@@ -29,8 +29,10 @@ func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleRe
 		}
 	}
 	if builder != nil && builder.EnableSubAccount == 1 {
-		if err = b.Mongo.Database(config.Cfg.DB.Mongo.SmtDatabase).Collection(builder.AccountId).Drop(b.Ctx); err != nil {
-			resp.Err = fmt.Errorf("Mongo Drop err: %s ", err.Error())
+		tree := smt.NewSmtSrv(*b.SmtServerUrl, builder.AccountId)
+		res, err := tree.DeleteSmt()
+		if err != nil || !res {
+			resp.Err = fmt.Errorf("Smt Drop err: %s ", err.Error())
 			return
 		}
 	}

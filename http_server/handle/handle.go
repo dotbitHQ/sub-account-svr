@@ -15,7 +15,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/mylog"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net"
 	"strings"
 )
@@ -32,8 +31,8 @@ type HttpHandle struct {
 	DbDao         *dao.DbDao
 	RC            *cache.RedisCache
 	TxTool        *txtool.SubAccountTxTool
-	Mongo         *mongo.Client
 	LB            *lb.LoadBalancing
+	SmtServerUrl  *string
 }
 
 func GetClientIp(ctx *gin.Context) string {

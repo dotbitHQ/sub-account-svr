@@ -15,14 +15,12 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/mylog"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var log = mylog.NewLogger("txtool", mylog.LevelDebug)
 
 type SubAccountTxTool struct {
 	Ctx           context.Context
-	Mongo         *mongo.Client
 	DbDao         *dao.DbDao
 	DasCore       *core.DasCore
 	DasCache      *dascache.DasCache
@@ -35,7 +33,7 @@ type ParamBuildTxs struct {
 	TaskMap              map[string][]tables.TableSmtRecordInfo
 	Account              *tables.TableAccountInfo // parent account
 	SubAccountLiveCell   *indexer.LiveCell
-	Tree                 *smt.SparseMerkleTree
+	Tree                 *smt.SmtServer
 	BaseInfo             *BaseInfo
 	BalanceDasLock       *types.Script
 	BalanceDasType       *types.Script
