@@ -14,6 +14,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"time"
 )
 
 type ParamBuildUpdateSubAccountTx struct {
@@ -132,7 +133,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
-
+	time1 := time.Now()
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
@@ -196,7 +197,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		}
 	}
-
+	log.Info("SmtRecordInfoList spend:", time.Since(time1).Seconds())
 	// inputs
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 		PreviousOutput: p.SubAccountOutpoint,
