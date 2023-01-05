@@ -49,6 +49,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var witnessMintSignInfo []byte
 	mintSignTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
 	var smtKv []smt.SmtKv
+	var rsMemoryRep *smt.UpdateSmtOut
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
 			continue
@@ -89,12 +90,16 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			break
 		}
 	}
-	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
 
-	rsMemoryRep, er := mintSignTree.UpdateSmt(smtKv, opt)
-	if er != nil {
-		return nil, fmt.Errorf("mintSignTree.Update err: %s", er.Error())
+	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
+	if len(smtKv) > 0 {
+		var err error
+		rsMemoryRep, err = mintSignTree.UpdateSmt(smtKv, opt)
+		if err != nil {
+			return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
+		}
 	}
+
 	// get balance cell
 	totalYears := uint64(0)
 	for _, v := range p.SmtRecordInfoList {
