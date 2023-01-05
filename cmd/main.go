@@ -15,6 +15,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/dascache"
 	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
@@ -99,18 +100,15 @@ func runServer(ctx *cli.Context) error {
 		Red: red,
 	}
 
-	// mongo
-	//var mongoClient *mongo.Client
-	//mongoClient, err := mongo.Connect(ctxServer, options.Client().ApplyURI(config.Cfg.DB.Mongo.Uri))
-	//if err != nil {
-	//	return fmt.Errorf("mongo.Connect err:%s", err.Error())
-	//}
-	//log.Infof("mongo ok")
-
 	//smt server
 	smtServer := config.Cfg.Server.SmtServer
 	if smtServer == "" {
 		return fmt.Errorf("Smt service url can`t be empty")
+	}
+	tree := smt.NewSmtSrv(smtServer, common.Bytes2Hex(smt.Sha256("test")))
+	_, err = tree.GetSmtRoot()
+	if err != nil {
+		return fmt.Errorf("Smt service is not available, err: ", err.Error())
 	}
 
 	// tx tool

@@ -36,7 +36,7 @@ type RespSmtSync struct {
 
 func (h *HttpHandle) SmtSync(ctx *gin.Context) {
 	var (
-		funcName = "SmtUpdate"
+		funcName = "SmtSync"
 		clientIp = GetClientIp(ctx)
 		req      ReqSmtSync
 		apiResp  api_code.ApiResp
@@ -159,7 +159,6 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 		return fmt.Errorf("GetParentAccountIds  err: %s", err.Error())
 	}
 
-	log.Info("parent_account_ids: ", list)
 	var chanParentAccountId = make(chan string, 50)
 	var wgTask sync.WaitGroup
 	go func() {
@@ -260,6 +259,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 			}
 		}()
 	}
+
 	wgTask.Wait()
 	apiResp.ApiRespOK(resp)
 	if len(resp.SyncFaildAcc) > 0 {
