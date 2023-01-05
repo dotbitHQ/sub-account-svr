@@ -145,13 +145,14 @@ func runServer(ctx *cli.Context) error {
 
 	// task
 	smtTask := task.SmtTask{
-		Ctx:      ctxServer,
-		Wg:       &wgServer,
-		DbDao:    dbDao,
-		DasCore:  dasCore,
-		TxTool:   txTool,
-		RC:       rc,
-		MaxRetry: config.Cfg.Das.MaxRetry,
+		Ctx:          ctxServer,
+		Wg:           &wgServer,
+		DbDao:        dbDao,
+		DasCore:      dasCore,
+		TxTool:       txTool,
+		RC:           rc,
+		MaxRetry:     config.Cfg.Das.MaxRetry,
+		SmtServerUrl: smtServer,
 	}
 	smtTask.RunTaskCheckTx()
 	smtTask.RunTaskConfirmOtherTx()
