@@ -67,7 +67,11 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	// get smt tree
 	tree := smt.NewSmtSrv(t.SmtServerUrl, parentAccountId)
 	// check root
-	currentRoot, _ := tree.GetSmtRoot()
+	currentRoot, err := tree.GetSmtRoot()
+	if err != nil {
+		log.Warn("getSmtRoot error: ", err)
+		return fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+	}
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
 	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
