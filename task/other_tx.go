@@ -108,7 +108,10 @@ func (t *SmtTask) confirmOtherTx(task *tables.TableTaskInfo) error {
 	}
 
 	if subAccountLiveCell != nil {
-		currentRoot, _ := tree.GetSmtRoot()
+		currentRoot, err := tree.GetSmtRoot()
+		if err != nil {
+			return fmt.Errorf("tree.Root err: %s", err.Error())
+		}
 		subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
 		log.Warn("confirmOtherTx Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
 		if bytes.Compare(currentRoot, subDataDetail.SmtRoot) == 0 {

@@ -166,16 +166,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				subAccountNew.NewRoot = res.Root
 			}
 
-			/*	if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
-					return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
-				} else {
-					subAccountNew.Proof = *proof
-				}
-				if root, err := p.Tree.Root(); err != nil {
-					return nil, fmt.Errorf("tree.Root err: %s", err.Error())
-				} else {
-					subAccountNew.NewRoot = root
-				}*/
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		} else {
