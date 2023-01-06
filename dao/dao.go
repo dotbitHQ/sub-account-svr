@@ -31,6 +31,11 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 		); err != nil {
 			return nil, err
 		}
+
+		if err := db.Migrator().AlterColumn(&tables.TableMintSignInfo{}, "key_value"); err != nil {
+			return nil, fmt.Errorf("AlterColumn err: %s", err.Error())
+		}
+
 	}
 
 	parserDb, err := toolib.NewGormDB(parserMysql.Addr, parserMysql.User, parserMysql.Password, parserMysql.DbName, parserMysql.MaxOpenConn, parserMysql.MaxIdleConn)
