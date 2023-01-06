@@ -96,7 +96,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
-	log.Info("logformint-smtKv :", p.TaskInfo.TaskId, ":", len(smtKv))
 	if len(smtKv) > 0 {
 		var err error
 		rsMemoryRep, err = mintSignTree.UpdateSmt(smtKv, opt)
