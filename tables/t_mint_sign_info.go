@@ -15,7 +15,7 @@ type TableMintSignInfo struct {
 	SmtRoot    string           `json:"smt_root" gorm:"column:smt_root; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	ExpiredAt  uint64           `json:"expired_at" gorm:"column:expired_at; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
 	Timestamp  uint64           `json:"timestamp" gorm:"column:timestamp; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
-	KeyValue   string           `json:"key_value" gorm:"column:key_value; type:mediumtext NOT NULL COMMENT '';"`
+	KeyValue   string           `json:"key_value" gorm:"column:key_value; type:mediumText NOT NULL COMMENT '';"`
 	ChainType  common.ChainType `json:"chain_type" gorm:"column:chain_type; type:smallint(6) NOT NULL DEFAULT '0' COMMENT '';"`
 	Address    string           `json:"address" gorm:"column:address; index:k_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	CreatedAt  time.Time        `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
