@@ -62,7 +62,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			witnessMintSignInfo = mintSignInfo.GenWitness()
 			var listKeyValue []tables.MintSignInfoKeyValue
-			_ = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+			err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+			if err != nil {
+				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string:", err.Error())
+			}
 			if len(smtKv) == 0 {
 				for _, kv := range listKeyValue {
 					smtKey := smt.AccountIdToSmtH256(kv.Key)
@@ -93,6 +96,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
+	log.Info("logformint-smtKv :", p.TaskInfo.TaskId, ":", len(smtKv))
 	if len(smtKv) > 0 {
 		var err error
 		rsMemoryRep, err = mintSignTree.UpdateSmt(smtKv, opt)
@@ -145,8 +149,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			if len(witnessMintSignInfo) > 0 {
 				smtKey := smt.AccountIdToSmtH256(v.AccountId)
+
 				if mintSignProof, ok := rsMemoryRep.Proofs[smtKey.String()]; !ok {
-					return nil, fmt.Errorf("mintSignTree.MerkleProof err: %s", err.Error())
+					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey)
 				} else {
 					subAccountNew.EditValue = common.Hex2Bytes(mintSignProof)
 				}
