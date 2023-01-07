@@ -136,6 +136,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
+	var smtKvTemp []smt.SmtKv
 	time1 := time.Now()
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
@@ -157,19 +158,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
-			var smtKvTemp []smt.SmtKv
+			//var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
 				key,
 				value,
 			})
-			if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
-				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-			} else if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
-				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
-			} else {
-				subAccountNew.Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
-				subAccountNew.NewRoot = res.Root
-			}
 
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
@@ -184,23 +177,33 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			} else {
 				key := smt.AccountIdToSmtH256(v.AccountId)
 				value := subAccountData.ToH256()
-				var smtKvTemp []smt.SmtKv
+				//var smtKvTemp []smt.SmtKv
 				smtKvTemp = append(smtKvTemp, smt.SmtKv{
 					key,
 					value,
 				})
-				if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
-					return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-				} else if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
-					return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
-				} else {
-					subAccountNew.Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
-					subAccountNew.NewRoot = res.Root
-				}
 			}
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		}
+
 	}
+
+	if res, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt); err != nil {
+		return nil, fmt.Errorf("tree.Update err: %s", err.Error())
+	} else {
+		for i, v := range p.SmtRecordInfoList {
+			key := smt.AccountIdToSmtH256(v.AccountId)
+			if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
+			}
+			if _, ok := res.Roots[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", res.Proofs)
+			}
+			subAccountNewList[i].Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
+			subAccountNewList[i].NewRoot = res.Roots[common.Bytes2Hex(key)]
+		}
+	}
+
 	log.Info("SmtRecordInfoList spend:", time.Since(time1).Seconds())
 	// inputs
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{

@@ -18,6 +18,11 @@ import (
 	"sync"
 )
 
+const (
+	//The kv limit number One of one rpc request to smt server,t's up to your smt service
+	SyncTreeLimit = 3000
+)
+
 type ReqSmtUpdate struct {
 	ParentAccountId string `json:"parent_account_id"`
 	SubAccountId    string `json:"sub_account_id"`
@@ -161,8 +166,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 
 	var chanParentAccountId = make(chan string, 50)
 	var wgTask sync.WaitGroup
+	wgTask.Add(1)
 	go func() {
-		wgTask.Add(1)
 		defer wgTask.Done()
 		for _, parentAccountId := range list {
 			chanParentAccountId <- parentAccountId.ParentAccountId
@@ -194,7 +199,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 					var smtKvTemp []smt.SmtKv
 					var currentRoot smt.H256
 					for j, _ := range smtInfo {
-						if len(smtKvTemp) == 2000 {
+						if len(smtKvTemp) == SyncTreeLimit {
 							res, err := tree.UpdateSmt(smtKvTemp, opt)
 							smtKvTemp = []smt.SmtKv{}
 							if err != nil {
