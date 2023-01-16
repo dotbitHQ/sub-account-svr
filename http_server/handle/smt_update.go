@@ -178,50 +178,25 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 	for i := 0; i < 10; i++ {
 		wgTask.Add(1)
 		go func() {
-			for {
-				select {
-				case parentAccountId, ok := <-chanParentAccountId:
-					if !ok {
-						wgTask.Done()
-						return
-					}
-					var opt smt.SmtOpt
-					opt.GetRoot = true
-					opt.GetProof = false
+			defer wgTask.Done()
+			for parentAccountId := range chanParentAccountId {
+				var opt smt.SmtOpt
+				opt.GetRoot = true
+				opt.GetProof = false
 
-					tree := smt.NewSmtSrv(*h.SmtServerUrl, parentAccountId)
-					smtInfo, err := h.DbDao.GetSmtInfoByParentId(parentAccountId)
-					if err != nil {
-						log.Warn("GetSmtInfoByParentId err: %s", err.Error())
-						return
-					}
+				tree := smt.NewSmtSrv(*h.SmtServerUrl, parentAccountId)
+				smtInfo, err := h.DbDao.GetSmtInfoByParentId(parentAccountId)
+				if err != nil {
+					log.Warn("GetSmtInfoByParentId err: %s", err.Error())
+					return
+				}
 
-					var smtKvTemp []smt.SmtKv
-					var currentRoot smt.H256
-					for j, _ := range smtInfo {
-						if len(smtKvTemp) == SyncTreeLimit {
-							res, err := tree.UpdateSmt(smtKvTemp, opt)
-							smtKvTemp = []smt.SmtKv{}
-							if err != nil {
-								log.Warn("tree.Update err: %s", err.Error())
-								return
-							}
-							currentRoot = res.Root
-						}
-
-						k := smtInfo[j].AccountId
-						v := smtInfo[j].LeafDataHash
-						k1 := smt.AccountIdToSmtH256(k)
-						var v1 smt.H256
-						v1 = common.Hex2Bytes(v)
-						smtKvTemp = append(smtKvTemp, smt.SmtKv{
-							Key:   k1,
-							Value: v1,
-						})
-					}
-
-					if len(smtKvTemp) > 0 {
+				var smtKvTemp []smt.SmtKv
+				var currentRoot smt.H256
+				for j, _ := range smtInfo {
+					if len(smtKvTemp) == SyncTreeLimit {
 						res, err := tree.UpdateSmt(smtKvTemp, opt)
+						smtKvTemp = []smt.SmtKv{}
 						if err != nil {
 							log.Warn("tree.Update err: %s", err.Error())
 							return
@@ -229,39 +204,59 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 						currentRoot = res.Root
 					}
 
-					log.Info("sync success : ", parentAccountId)
-					contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
-					if err != nil {
-						log.Warn("GetDasContractInfo err: %s", err.Error())
-						return
-					}
-					searchKey := indexer.SearchKey{
-						Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
-						ScriptType: indexer.ScriptTypeType,
-						ArgsLen:    0,
-						Filter:     nil,
-					}
-					subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
-					if err != nil {
-						log.Warn("GetCells err: %s", err.Error())
-						return
-					}
+					k := smtInfo[j].AccountId
+					v := smtInfo[j].LeafDataHash
+					k1 := smt.AccountIdToSmtH256(k)
+					var v1 smt.H256
+					v1 = common.Hex2Bytes(v)
+					smtKvTemp = append(smtKvTemp, smt.SmtKv{
+						Key:   k1,
+						Value: v1,
+					})
+				}
 
-					if subLen := len(subAccLiveCells.Objects); subLen != 1 {
-						log.Warn("sub account outpoint len: %d", subLen)
+				if len(smtKvTemp) > 0 {
+					res, err := tree.UpdateSmt(smtKvTemp, opt)
+					if err != nil {
+						log.Warn("tree.Update err: %s", err.Error())
 						return
 					}
+					currentRoot = res.Root
+				}
 
-					subAccountLiveCell := subAccLiveCells.Objects[0]
-					if subAccountLiveCell != nil {
-						subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
-						log.Info("Sync smt server Compare root, parent_id: ", parentAccountId, "t_smt_info root: ", common.Bytes2Hex(currentRoot), " sub_account_cell root: ", common.Bytes2Hex(subDataDetail.SmtRoot))
-						if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
-							resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
-						}
+				log.Info("sync success : ", parentAccountId)
+				contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+				if err != nil {
+					log.Warn("GetDasContractInfo err: %s", err.Error())
+					return
+				}
+				searchKey := indexer.SearchKey{
+					Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
+					ScriptType: indexer.ScriptTypeType,
+					ArgsLen:    0,
+					Filter:     nil,
+				}
+				subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
+				if err != nil {
+					log.Warn("GetCells err: %s", err.Error())
+					return
+				}
+
+				if subLen := len(subAccLiveCells.Objects); subLen != 1 {
+					log.Warn("sub account outpoint len: %d", subLen)
+					return
+				}
+
+				subAccountLiveCell := subAccLiveCells.Objects[0]
+				if subAccountLiveCell != nil {
+					subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
+					log.Info("Sync smt server Compare root, parent_id: ", parentAccountId, "t_smt_info root: ", common.Bytes2Hex(currentRoot), " sub_account_cell root: ", common.Bytes2Hex(subDataDetail.SmtRoot))
+					if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
+						resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
 					}
 				}
 			}
+
 		}()
 	}
 
