@@ -32,7 +32,7 @@ func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleRe
 		tree := smt.NewSmtSrv(*b.SmtServerUrl, builder.AccountId)
 		res, err := tree.DeleteSmt()
 		if err != nil || !res {
-			resp.Err = fmt.Errorf("Smt Drop err: %s ", err.Error())
+			resp.Err = fmt.Errorf("Smt Drop err: %s result %t", err.Error(), res)
 			return
 		}
 	}
