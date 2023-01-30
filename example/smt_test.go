@@ -116,3 +116,69 @@ func buildSmt(j int, tree *smt.SparseMerkleTree, buildNumStart, buildNumEnd int)
 	fmt.Println("buildSmt OK:", j)
 	return nil
 }
+
+var SmtRpcUrl = "http://127.0.0.1:10000"
+
+func TestSmtDel(t *testing.T) {
+	reverse1w := smt.NewSmtSrv(SmtRpcUrl, "reverse_1w")
+	root, err := reverse1w.GetSmtRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(root.String())
+	ok, err := reverse1w.DeleteSmt()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("del:", ok)
+	root, err = reverse1w.GetSmtRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(root.String())
+
+	// ps -ef |grep rpc
+	// top -p pid
+}
+
+func TestAddSmt(t *testing.T) {
+	reverse1w := smt.NewSmtSrv(SmtRpcUrl, "reverse_1w")
+	root, err := reverse1w.GetSmtRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(root.String())
+
+	//
+	var list []smt.SmtKv
+	for i := 0; i < 100000; i++ {
+		key := smt.AccountIdToSmtH256(fmt.Sprintf("%#x", i))
+		val := smt.H256Zero()
+		copy(val, fmt.Sprintf("jerry-test-%s", key.String()))
+
+		list = append(list, smt.SmtKv{
+			Key:   key,
+			Value: val,
+		})
+	}
+
+	base := 10000
+	for i, j := 0, base; i < len(list); i, j = j, j+base {
+		fmt.Println(i, j)
+		_, err = reverse1w.UpdateSmt(list[i:j], smt.SmtOpt{
+			GetProof: false,
+			GetRoot:  false,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	//
+	root, err = reverse1w.GetSmtRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(root.String())
+
+}
