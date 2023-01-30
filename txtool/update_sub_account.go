@@ -403,14 +403,19 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		return nil, fmt.Errorf("GetCustomScriptMintTotalCapacity err: %s", err.Error())
 	}
 	registerCapacity := resPrice.DasCapacity + resPrice.OwnerCapacity
-	change, balanceLiveCells, err := s.getBalanceCell(&paramBalance{
-		taskInfo:     p.TaskInfo,
-		dasLock:      p.BalanceDasLock,
-		dasType:      p.BalanceDasType,
-		needCapacity: p.CommonFee + registerCapacity,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+
+	var change uint64
+	var balanceLiveCells []*indexer.LiveCell
+	if registerCapacity > 0 {
+		change, balanceLiveCells, err = s.getBalanceCell(&paramBalance{
+			taskInfo:     p.TaskInfo,
+			dasLock:      p.BalanceDasLock,
+			dasType:      p.BalanceDasType,
+			needCapacity: p.CommonFee + registerCapacity,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+		}
 	}
 
 	// update smt status
