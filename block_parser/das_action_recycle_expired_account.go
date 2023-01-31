@@ -5,6 +5,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/witness"
+	"time"
 )
 
 func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -37,7 +38,7 @@ func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleRe
 
 	if builder != nil && builder.EnableSubAccount == 1 {
 		tree := smt.NewSmtSrv(*b.SmtServerUrl, builder.AccountId)
-		ok, err := tree.DeleteSmt()
+		ok, err := tree.DeleteSmtWithTimeOut(time.Minute * 5)
 		if err != nil {
 			resp.Err = fmt.Errorf("Smt Drop err: %s ", err.Error())
 			return
