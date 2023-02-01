@@ -10,6 +10,7 @@ Backend of .bit sub account service, including registration and management.
 * Mongo >= 4.2 (2 Cores, 4 GB, 200 G Disk Space)
 * [CKB Node](https://github.com/nervosnetwork/ckb)
 * [das-database](https://github.com/dotbitHQ/das-database)
+* [sub-account-store](https://github.com/dotbitHQ/sub-account-store)
 
 ## Install & Run
 

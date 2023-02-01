@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"das_sub_account/cache"
-	"das_sub_account/config"
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
 	"fmt"
@@ -66,14 +65,17 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	}
 
 	// get smt tree
-	mongoStore := smt.NewMongoStore(t.Ctx, t.Mongo, config.Cfg.DB.Mongo.SmtDatabase, parentAccountId)
-	tree := smt.NewSparseMerkleTree(mongoStore)
-
+	tree := smt.NewSmtSrv(t.SmtServerUrl, parentAccountId)
 	// check root
-	currentRoot, _ := tree.Root()
+	currentRoot, err := tree.GetSmtRoot()
+	if err != nil {
+		log.Warn("getSmtRoot error: ", err)
+		return fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+	}
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
 	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
+		log.Warn("currentRoot:", currentRoot, "chain_root: ", parentAccountId)
 		return fmt.Errorf("smt root diff: %s", parentAccountId)
 	}
 

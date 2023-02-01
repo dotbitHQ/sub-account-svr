@@ -14,6 +14,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"time"
 )
 
 type ParamBuildUpdateSubAccountTx struct {
@@ -22,7 +23,7 @@ type ParamBuildUpdateSubAccountTx struct {
 	AccountOutPoint       *types.OutPoint
 	SubAccountOutpoint    *types.OutPoint
 	SmtRecordInfoList     []tables.TableSmtRecordInfo
-	Tree                  *smt.SparseMerkleTree
+	Tree                  *smt.SmtServer
 	BaseInfo              *BaseInfo
 	SubAccountBuilderMap  map[string]*witness.SubAccountNew
 	NewSubAccountPrice    uint64
@@ -47,7 +48,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	balanceDasType := p.BalanceDasType
 	// get mint sign info
 	var witnessMintSignInfo []byte
-	mintSignTree := smt.NewSparseMerkleTree(nil)
+	mintSignTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
+	var smtKv []smt.SmtKv
+	var rsMemoryRep *smt.UpdateSmtOut
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
 			continue
@@ -59,17 +62,25 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			witnessMintSignInfo = mintSignInfo.GenWitness()
 			var listKeyValue []tables.MintSignInfoKeyValue
-			_ = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
-			for _, kv := range listKeyValue {
-				smtKey := smt.AccountIdToSmtH256(kv.Key)
-				smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
-				if err != nil {
-					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
-				}
-				if err = mintSignTree.Update(smtKey, smtValue); err != nil {
-					return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
+			err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+			if err != nil {
+				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string:", err.Error())
+			}
+			if len(smtKv) == 0 {
+				for _, kv := range listKeyValue {
+					smtKey := smt.AccountIdToSmtH256(kv.Key)
+					smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
+					if err != nil {
+						return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+					}
+					smtKv = append(smtKv, smt.SmtKv{
+						smtKey,
+						smtValue,
+					})
+
 				}
 			}
+
 			balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
 				DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
 				AddressHex:     mintSignInfo.Address,
@@ -81,6 +92,15 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 
 			break
+		}
+	}
+
+	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
+	if len(smtKv) > 0 {
+		var err error
+		rsMemoryRep, err = mintSignTree.UpdateSmt(smtKv, opt)
+		if err != nil {
+			return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
 		}
 	}
 
@@ -116,6 +136,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
+	var smtKvTemp []smt.SmtKv
+	time1 := time.Now()
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
@@ -127,31 +149,21 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			if len(witnessMintSignInfo) > 0 {
 				smtKey := smt.AccountIdToSmtH256(v.AccountId)
-				smtValue, err := blake2b.Blake256(common.Hex2Bytes(v.RegisterArgs))
-				if err != nil {
-					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+
+				if mintSignProof, ok := rsMemoryRep.Proofs[smtKey.String()]; !ok {
+					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey)
+				} else {
+					subAccountNew.EditValue = common.Hex2Bytes(mintSignProof)
 				}
-				mintSignProof, err := mintSignTree.MerkleProof([]smt.H256{smtKey}, []smt.H256{smtValue})
-				if err != nil {
-					return nil, fmt.Errorf("mintSignTree.MerkleProof err: %s", err.Error())
-				}
-				subAccountNew.EditValue = *mintSignProof
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
-			if err := p.Tree.Update(key, value); err != nil {
-				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-			}
-			if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
-				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
-			} else {
-				subAccountNew.Proof = *proof
-			}
-			if root, err := p.Tree.Root(); err != nil {
-				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
-			} else {
-				subAccountNew.NewRoot = root
-			}
+			//var smtKvTemp []smt.SmtKv
+			smtKvTemp = append(smtKvTemp, smt.SmtKv{
+				key,
+				value,
+			})
+
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		} else {
@@ -165,24 +177,34 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			} else {
 				key := smt.AccountIdToSmtH256(v.AccountId)
 				value := subAccountData.ToH256()
-				if err := p.Tree.Update(key, value); err != nil {
-					return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-				}
-				if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
-					return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
-				} else {
-					subAccountNew.Proof = *proof
-				}
-				if root, err := p.Tree.Root(); err != nil {
-					return nil, fmt.Errorf("tree.Root err: %s", err.Error())
-				} else {
-					subAccountNew.NewRoot = root
-				}
+				//var smtKvTemp []smt.SmtKv
+				smtKvTemp = append(smtKvTemp, smt.SmtKv{
+					key,
+					value,
+				})
 			}
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		}
+
 	}
 
+	if res, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt); err != nil {
+		return nil, fmt.Errorf("tree.Update err: %s", err.Error())
+	} else {
+		for i, v := range p.SmtRecordInfoList {
+			key := smt.AccountIdToSmtH256(v.AccountId)
+			if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
+			}
+			if _, ok := res.Roots[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", res.Proofs)
+			}
+			subAccountNewList[i].Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
+			subAccountNewList[i].NewRoot = res.Roots[common.Bytes2Hex(key)]
+		}
+	}
+
+	log.Info("SmtRecordInfoList spend:", time.Since(time1).Seconds())
 	// inputs
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 		PreviousOutput: p.SubAccountOutpoint,
@@ -426,6 +448,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
+	opt := smt.SmtOpt{true, true}
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTxForCustomScript:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
@@ -437,19 +460,20 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
-			if err := p.Tree.Update(key, value); err != nil {
+			var smtKvTemp []smt.SmtKv
+			smtKvTemp = append(smtKvTemp, smt.SmtKv{
+				key,
+				value,
+			})
+			if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
 				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-			}
-			if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
-				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
+			} else if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
 			} else {
-				subAccountNew.Proof = *proof
+				subAccountNew.Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
+				subAccountNew.NewRoot = res.Root
 			}
-			if root, err := p.Tree.Root(); err != nil {
-				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
-			} else {
-				subAccountNew.NewRoot = root
-			}
+
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		} else {
@@ -463,18 +487,18 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
-			if err := p.Tree.Update(key, value); err != nil {
+			var smtKvTemp []smt.SmtKv
+			smtKvTemp = append(smtKvTemp, smt.SmtKv{
+				key,
+				value,
+			})
+			if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
 				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-			}
-			if proof, err := p.Tree.MerkleProof([]smt.H256{key}, []smt.H256{value}); err != nil {
-				return nil, fmt.Errorf("tree.MerkleProof err: %s", err.Error())
+			} else if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
 			} else {
-				subAccountNew.Proof = *proof
-			}
-			if root, err := p.Tree.Root(); err != nil {
-				return nil, fmt.Errorf("tree.Root err: %s", err.Error())
-			} else {
-				subAccountNew.NewRoot = root
+				subAccountNew.Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
+				subAccountNew.NewRoot = res.Root
 			}
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		}

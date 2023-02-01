@@ -1,10 +1,11 @@
 package block_parser
 
 import (
-	"das_sub_account/config"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/witness"
+	"time"
 )
 
 func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -17,20 +18,32 @@ func (b *BlockParser) DasActionRecycleExpiredAccount(req FuncTransactionHandleRe
 	}
 	log.Info("DasActionRecycleExpiredAccount:", req.BlockNumber, req.TxHash)
 
-	builderMap, err := witness.AccountIdCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
+	builderMapOld, err := witness.AccountIdCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
+	if err != nil {
+		resp.Err = fmt.Errorf("AccountCellDataBuilderFromTx err: %s", err.Error())
+		return
+	}
+	builderMapNew, err := witness.AccountIdCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
 	if err != nil {
 		resp.Err = fmt.Errorf("AccountCellDataBuilderFromTx err: %s", err.Error())
 		return
 	}
 	var builder *witness.AccountCellDataBuilder
-	for _, v := range builderMap {
-		if v.Index == 1 {
-			builder = v
+	for k, _ := range builderMapOld {
+		if _, ok := builderMapNew[k]; !ok {
+			builder = builderMapOld[k]
+			break
 		}
 	}
+
 	if builder != nil && builder.EnableSubAccount == 1 {
-		if err = b.Mongo.Database(config.Cfg.DB.Mongo.SmtDatabase).Collection(builder.AccountId).Drop(b.Ctx); err != nil {
-			resp.Err = fmt.Errorf("Mongo Drop err: %s ", err.Error())
+		tree := smt.NewSmtSrv(*b.SmtServerUrl, builder.AccountId)
+		ok, err := tree.DeleteSmtWithTimeOut(time.Minute * 5)
+		if err != nil {
+			resp.Err = fmt.Errorf("Smt Drop err: %s ", err.Error())
+			return
+		} else if !ok {
+			resp.Err = fmt.Errorf("Smt Drop fail: %v ", ok)
 			return
 		}
 	}

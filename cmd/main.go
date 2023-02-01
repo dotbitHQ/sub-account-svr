@@ -15,6 +15,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/dascache"
 	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
@@ -22,8 +23,6 @@ import (
 	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"github.com/urfave/cli/v2"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"sync"
 	"time"
@@ -101,17 +100,20 @@ func runServer(ctx *cli.Context) error {
 		Red: red,
 	}
 
-	// mongo
-	mongoClient, err := mongo.Connect(ctxServer, options.Client().ApplyURI(config.Cfg.DB.Mongo.Uri))
-	if err != nil {
-		return fmt.Errorf("mongo.Connect err:%s", err.Error())
+	//smt server
+	smtServer := config.Cfg.Server.SmtServer
+	if smtServer == "" {
+		return fmt.Errorf("Smt service url can`t be empty")
 	}
-	log.Infof("mongo ok")
+	tree := smt.NewSmtSrv(smtServer, common.Bytes2Hex(smt.Sha256("test")))
+	_, err = tree.GetSmtRoot()
+	if err != nil {
+		return fmt.Errorf("Smt service is not available, err: ", err.Error())
+	}
 
 	// tx tool
 	txTool := &txtool.SubAccountTxTool{
 		Ctx:           ctxServer,
-		Mongo:         mongoClient,
 		DbDao:         dbDao,
 		DasCore:       dasCore,
 		DasCache:      dasCache,
@@ -128,10 +130,10 @@ func runServer(ctx *cli.Context) error {
 			DbDao:              dbDao,
 			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
 			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-			Mongo:              mongoClient,
 			Ctx:                ctxServer,
 			Cancel:             cancel,
 			Wg:                 &wgServer,
+			SmtServerUrl:       &smtServer,
 		}
 		if err := blockParser.Run(); err != nil {
 			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
@@ -141,14 +143,14 @@ func runServer(ctx *cli.Context) error {
 
 	// task
 	smtTask := task.SmtTask{
-		Ctx:      ctxServer,
-		Wg:       &wgServer,
-		DbDao:    dbDao,
-		DasCore:  dasCore,
-		Mongo:    mongoClient,
-		TxTool:   txTool,
-		RC:       rc,
-		MaxRetry: config.Cfg.Das.MaxRetry,
+		Ctx:          ctxServer,
+		Wg:           &wgServer,
+		DbDao:        dbDao,
+		DasCore:      dasCore,
+		TxTool:       txTool,
+		RC:           rc,
+		MaxRetry:     config.Cfg.Das.MaxRetry,
+		SmtServerUrl: smtServer,
 	}
 	smtTask.RunTaskCheckTx()
 	smtTask.RunTaskConfirmOtherTx()
@@ -171,7 +173,7 @@ func runServer(ctx *cli.Context) error {
 			DbDao:         dbDao,
 			RC:            rc,
 			TxTool:        txTool,
-			Mongo:         mongoClient,
+			SmtServerUrl:  &smtServer,
 		},
 	}
 	hs.Run()

@@ -12,12 +12,11 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"github.com/urfave/cli/v2"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"sync"
 	"time"
@@ -76,18 +75,22 @@ func runServer(ctx *cli.Context) error {
 	}
 	log.Infof("db ok")
 
-	// mongo
-	mongoClient, err := mongo.Connect(ctxServer, options.Client().ApplyURI(config.Cfg.DB.Mongo.Uri))
-	if err != nil {
-		return fmt.Errorf("mongo.Connect err:%s", err.Error())
-	}
-	log.Infof("mongo ok")
-
 	// lb
 	if len(config.Cfg.Slb.Servers) == 0 {
 		return fmt.Errorf("slb servers is nil")
 	}
 	slb := lb.NewLoadBalancing(config.Cfg.Slb.Servers)
+
+	//smt server
+	smtServer := config.Cfg.Server.SmtServer
+	if smtServer == "" {
+		return fmt.Errorf("smt service url can`t be empty")
+	}
+	tree := smt.NewSmtSrv(smtServer, common.Bytes2Hex(smt.Sha256("test")))
+	_, err = tree.GetSmtRoot()
+	if err != nil {
+		return fmt.Errorf("smt service is not available, err: %s", err.Error())
+	}
 
 	// block parser
 	if config.Cfg.Slb.SvrName == "" {
@@ -97,10 +100,10 @@ func runServer(ctx *cli.Context) error {
 			DbDao:              dbDao,
 			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
 			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-			Mongo:              mongoClient,
 			Ctx:                ctxServer,
 			Wg:                 &wgServer,
 			Slb:                slb,
+			SmtServerUrl:       &smtServer,
 		}
 		if err := blockParser.Run(); err != nil {
 			return fmt.Errorf("blockParser.Run() err: %s", err.Error())

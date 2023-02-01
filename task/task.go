@@ -10,7 +10,6 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/scorpiotzh/mylog"
-	"go.mongodb.org/mongo-driver/mongo"
 	"sync"
 	"time"
 )
@@ -18,14 +17,14 @@ import (
 var log = mylog.NewLogger("task", mylog.LevelDebug)
 
 type SmtTask struct {
-	Ctx      context.Context
-	Wg       *sync.WaitGroup
-	DbDao    *dao.DbDao
-	DasCore  *core.DasCore
-	Mongo    *mongo.Client
-	TxTool   *txtool.SubAccountTxTool
-	RC       *cache.RedisCache
-	MaxRetry int
+	Ctx          context.Context
+	Wg           *sync.WaitGroup
+	DbDao        *dao.DbDao
+	DasCore      *core.DasCore
+	TxTool       *txtool.SubAccountTxTool
+	RC           *cache.RedisCache
+	MaxRetry     int
+	SmtServerUrl string
 }
 
 // task_id='' -> task_id!=''
