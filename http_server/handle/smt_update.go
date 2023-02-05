@@ -179,6 +179,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 		wgTask.Add(1)
 		go func() {
 			defer wgTask.Done()
+		OutLoop:
 			for parentAccountId := range chanParentAccountId {
 				var opt smt.SmtOpt
 				opt.GetRoot = true
@@ -188,7 +189,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				smtInfo, err := h.DbDao.GetSmtInfoByParentId(parentAccountId)
 				if err != nil {
 					log.Warn("GetSmtInfoByParentId err: %s", err.Error())
-					return
+					continue
 				}
 
 				var smtKvTemp []smt.SmtKv
@@ -199,7 +200,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 						smtKvTemp = []smt.SmtKv{}
 						if err != nil {
 							log.Warn("tree.Update err: %s", err.Error())
-							return
+							resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+							continue OutLoop
 						}
 						currentRoot = res.Root
 					}
@@ -219,7 +221,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 					res, err := tree.UpdateSmt(smtKvTemp, opt)
 					if err != nil {
 						log.Warn("tree.Update err: %s", err.Error())
-						return
+						resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+						continue
 					}
 					currentRoot = res.Root
 				}
@@ -228,7 +231,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
 				if err != nil {
 					log.Warn("GetDasContractInfo err: %s", err.Error())
-					return
+					resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+					continue
 				}
 				searchKey := indexer.SearchKey{
 					Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
@@ -239,12 +243,14 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
 				if err != nil {
 					log.Warn("GetCells err: %s", err.Error())
-					return
+					resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+					continue
 				}
 
 				if subLen := len(subAccLiveCells.Objects); subLen != 1 {
 					log.Warn("sub account outpoint len: %d", subLen)
-					return
+					resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+					continue
 				}
 
 				subAccountLiveCell := subAccLiveCells.Objects[0]
