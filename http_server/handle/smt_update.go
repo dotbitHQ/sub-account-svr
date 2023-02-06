@@ -165,6 +165,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 	}
 
 	var chanParentAccountId = make(chan string, 50)
+	var faildAcc = sync.Map{}
 	var wgTask sync.WaitGroup
 	wgTask.Add(1)
 	go func() {
@@ -179,6 +180,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 		wgTask.Add(1)
 		go func() {
 			defer wgTask.Done()
+		OutLoop:
 			for parentAccountId := range chanParentAccountId {
 				var opt smt.SmtOpt
 				opt.GetRoot = true
@@ -188,7 +190,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				smtInfo, err := h.DbDao.GetSmtInfoByParentId(parentAccountId)
 				if err != nil {
 					log.Warn("GetSmtInfoByParentId err: %s", err.Error())
-					return
+					faildAcc.Store(parentAccountId, struct{}{})
+					continue
 				}
 
 				var smtKvTemp []smt.SmtKv
@@ -199,7 +202,9 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 						smtKvTemp = []smt.SmtKv{}
 						if err != nil {
 							log.Warn("tree.Update err: %s", err.Error())
-							return
+							//resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+							faildAcc.Store(parentAccountId, struct{}{})
+							continue OutLoop
 						}
 						currentRoot = res.Root
 					}
@@ -219,7 +224,9 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 					res, err := tree.UpdateSmt(smtKvTemp, opt)
 					if err != nil {
 						log.Warn("tree.Update err: %s", err.Error())
-						return
+						//resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+						faildAcc.Store(parentAccountId, struct{}{})
+						continue
 					}
 					currentRoot = res.Root
 				}
@@ -228,7 +235,8 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
 				if err != nil {
 					log.Warn("GetDasContractInfo err: %s", err.Error())
-					return
+					faildAcc.Store(parentAccountId, struct{}{})
+					continue
 				}
 				searchKey := indexer.SearchKey{
 					Script:     contractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
@@ -239,12 +247,14 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
 				if err != nil {
 					log.Warn("GetCells err: %s", err.Error())
-					return
+					faildAcc.Store(parentAccountId, struct{}{})
+					continue
 				}
 
 				if subLen := len(subAccLiveCells.Objects); subLen != 1 {
 					log.Warn("sub account outpoint len: %d", subLen)
-					return
+					faildAcc.Store(parentAccountId, struct{}{})
+					continue
 				}
 
 				subAccountLiveCell := subAccLiveCells.Objects[0]
@@ -252,15 +262,19 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 					subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
 					log.Info("Sync smt server Compare root, parent_id: ", parentAccountId, "t_smt_info root: ", common.Bytes2Hex(currentRoot), " sub_account_cell root: ", common.Bytes2Hex(subDataDetail.SmtRoot))
 					if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
-						resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
+						faildAcc.Store(parentAccountId, struct{}{})
 					}
 				}
 			}
 
 		}()
 	}
-
 	wgTask.Wait()
+
+	faildAcc.Range(func(k, v interface{}) bool {
+		resp.SyncFaildAcc = append(resp.SyncFaildAcc, fmt.Sprintf("%s", k))
+		return true
+	})
 	apiResp.ApiRespOK(resp)
 	if len(resp.SyncFaildAcc) > 0 {
 		return fmt.Errorf("sync faild accountId : %+v", resp.SyncFaildAcc)
