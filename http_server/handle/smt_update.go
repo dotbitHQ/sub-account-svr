@@ -202,7 +202,6 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 						smtKvTemp = []smt.SmtKv{}
 						if err != nil {
 							log.Warn("tree.Update err: %s", err.Error())
-							//resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
 							faildAcc.Store(parentAccountId, struct{}{})
 							continue OutLoop
 						}
@@ -224,7 +223,6 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 					res, err := tree.UpdateSmt(smtKvTemp, opt)
 					if err != nil {
 						log.Warn("tree.Update err: %s", err.Error())
-						//resp.SyncFaildAcc = append(resp.SyncFaildAcc, parentAccountId)
 						faildAcc.Store(parentAccountId, struct{}{})
 						continue
 					}
