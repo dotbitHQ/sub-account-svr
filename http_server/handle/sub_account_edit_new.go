@@ -173,6 +173,9 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "get account err")
 		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	} else if acc.IsExpired() {
+		apiResp.ApiRespErr(api_code.ApiCodeParentAccountExpired, "Parent account expired")
+		return nil
 	}
 	dataCache.ExpiredAt = uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
 	if dataCache.ExpiredAt > acc.ExpiredAt {
