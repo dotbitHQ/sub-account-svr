@@ -18,6 +18,7 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type ReqSubAccountInit struct {
@@ -131,22 +132,38 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		subsidize = true
 	}
 	log.Info("doSubAccountInit:", subsidize, req.Account, acc.AccountId, clientIp, remoteAddrIP)
-	// check balance
-	dasLock, dasType, err := h.DasCore.Daf().HexToScript(*addrHex)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
-		return fmt.Errorf("HexToScript err: %s", err.Error())
-	}
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
-	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        dasLock,
-		CapacityNeed:      capacityNeed,
-		CapacityForChange: capacityForChange,
-		SearchOrder:       indexer.SearchOrderAsc,
-	})
-	if err != nil {
-		return doDasBalanceError(err, apiResp)
+	var liveCells []*indexer.LiveCell
+	var change uint64
+	var feeDasLock, feeDasType *types.Script
+	if subsidize {
+		change, liveCells, err = h.getSvrBalance(paramBalance{
+			svrLock:           h.ServerScript,
+			capacityForNeed:   capacityNeed,
+			capacityForChange: capacityForChange,
+		})
+		if err != nil {
+			return doDasBalanceError(err, apiResp)
+		}
+		feeDasLock = h.ServerScript
+	} else {
+		feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
+			return fmt.Errorf("HexToScript err: %s", err.Error())
+		}
+		total := uint64(0)
+		liveCells, total, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+			DasCache:          h.DasCache,
+			LockScript:        feeDasLock,
+			CapacityNeed:      capacityNeed,
+			CapacityForChange: capacityForChange,
+			SearchOrder:       indexer.SearchOrderAsc,
+		})
+		if err != nil {
+			return doDasBalanceError(err, apiResp)
+		}
+		change = total - capacityNeed
 	}
 
 	// build tx
@@ -156,9 +173,9 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		liveCells:          liveCells,
 		subAccountCapacity: subAccountBasicCapacity + subAccountPreparedFeeCapacity,
 		txFee:              subAccountCommonFee,
-		change:             total - subAccountBasicCapacity - subAccountPreparedFeeCapacity - subAccountCommonFee,
-		feeDasLock:         dasLock,
-		feeDasType:         dasType,
+		change:             change,
+		feeDasLock:         feeDasLock,
+		feeDasType:         feeDasType,
 	}
 	txParams, err := h.buildSubAccountInitTx(&buildParams)
 	if err != nil {
@@ -337,3 +354,38 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 
 	return &txParams, nil
 }
+
+func (h *HttpHandle) getSvrBalance(p paramBalance) (uint64, []*indexer.LiveCell, error) {
+	if p.capacityForNeed == 0 {
+		return 0, nil, fmt.Errorf("needCapacity is nil")
+	}
+	svrBalanceLock.Lock()
+	defer svrBalanceLock.Unlock()
+
+	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        p.svrLock,
+		CapacityNeed:      p.capacityForNeed,
+		CapacityForChange: common.MinCellOccupiedCkb,
+		SearchOrder:       indexer.SearchOrderDesc,
+	})
+	if err != nil {
+		return 0, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
+	}
+
+	var outpoints []string
+	for _, v := range liveCells {
+		outpoints = append(outpoints, common.OutPointStruct2String(v.OutPoint))
+	}
+	h.DasCache.AddOutPoint(outpoints)
+
+	return total - p.capacityForNeed, liveCells, nil
+}
+
+type paramBalance struct {
+	svrLock           *types.Script
+	capacityForNeed   uint64
+	capacityForChange uint64
+}
+
+var svrBalanceLock sync.Mutex
