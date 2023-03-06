@@ -14,6 +14,7 @@ import (
 	"github.com/dotbitHQ/das-lib/dascache"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/mylog"
 	"net"
 	"strings"
@@ -33,6 +34,7 @@ type HttpHandle struct {
 	TxTool        *txtool.SubAccountTxTool
 	LB            *lb.LoadBalancing
 	SmtServerUrl  *string
+	ServerScript  *types.Script
 }
 
 func GetClientIp(ctx *gin.Context) (string, string) {
