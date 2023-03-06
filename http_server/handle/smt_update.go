@@ -41,11 +41,11 @@ type RespSmtSync struct {
 
 func (h *HttpHandle) SmtSync(ctx *gin.Context) {
 	var (
-		funcName = "SmtSync"
-		clientIp = GetClientIp(ctx)
-		req      ReqSmtSync
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SmtSync"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSmtSync
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 	if err := ctx.BindJSON(&req); err != nil {
 		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
@@ -53,7 +53,7 @@ func (h *HttpHandle) SmtSync(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 	if err = h.doSmtSync(&req, &apiResp); err != nil {
 		log.Error("doSmtSync err:", err.Error(), funcName, clientIp)
 	}
@@ -63,11 +63,11 @@ func (h *HttpHandle) SmtSync(ctx *gin.Context) {
 
 func (h *HttpHandle) SmtUpdate(ctx *gin.Context) {
 	var (
-		funcName = "SmtUpdate"
-		clientIp = GetClientIp(ctx)
-		req      ReqSmtUpdate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SmtUpdate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSmtUpdate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -76,7 +76,7 @@ func (h *HttpHandle) SmtUpdate(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSmtUpdate(&req, &apiResp); err != nil {
 		log.Error("doSmtUpdate err:", err.Error(), funcName, clientIp)

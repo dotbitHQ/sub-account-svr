@@ -32,11 +32,11 @@ type RespProfitWithdraw struct {
 
 func (h *HttpHandle) ProfitWithdraw(ctx *gin.Context) {
 	var (
-		funcName = "ProfitWithdraw"
-		clientIp = GetClientIp(ctx)
-		req      ReqProfitWithdraw
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "ProfitWithdraw"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqProfitWithdraw
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -45,7 +45,7 @@ func (h *HttpHandle) ProfitWithdraw(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doProfitWithdraw(&req, &apiResp); err != nil {
 		log.Error("doProfitWithdraw err:", err.Error(), funcName, clientIp)

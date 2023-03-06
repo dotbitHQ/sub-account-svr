@@ -46,11 +46,11 @@ type RespSubAccountCreate struct {
 
 func (h *HttpHandle) SubAccountCreateNew(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountCreateNew"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountCreate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SubAccountCreateNew"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountCreate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -59,7 +59,7 @@ func (h *HttpHandle) SubAccountCreateNew(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSubAccountCreateNew(&req, &apiResp); err != nil {
 		log.Error("doSubAccountCreateNew err:", err.Error(), funcName, clientIp)
