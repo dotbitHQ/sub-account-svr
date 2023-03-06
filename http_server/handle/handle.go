@@ -35,10 +35,10 @@ type HttpHandle struct {
 	SmtServerUrl  *string
 }
 
-func GetClientIp(ctx *gin.Context) string {
+func GetClientIp(ctx *gin.Context) (string, string) {
 	clientIP := fmt.Sprintf("%v", ctx.Request.Header.Get("X-Real-IP"))
 	remoteAddrIP, _, _ := net.SplitHostPort(ctx.Request.RemoteAddr)
-	return fmt.Sprintf("( %s )( %s )", clientIP, remoteAddrIP)
+	return clientIP, remoteAddrIP
 }
 
 func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {

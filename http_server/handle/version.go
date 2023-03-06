@@ -17,15 +17,15 @@ type RespVersion struct {
 
 func (h *HttpHandle) Version(ctx *gin.Context) {
 	var (
-		funcName = "Version"
-		clientIp = GetClientIp(ctx)
-		req      ReqVersion
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "Version"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqVersion
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return

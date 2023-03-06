@@ -29,11 +29,11 @@ type SmtCheckData struct {
 
 func (h *HttpHandle) SmtCheck(ctx *gin.Context) {
 	var (
-		funcName = "SmtCheck"
-		clientIp = GetClientIp(ctx)
-		req      ReqSmtCheck
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SmtCheck"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSmtCheck
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -42,7 +42,7 @@ func (h *HttpHandle) SmtCheck(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSmtCheck(&req, &apiResp); err != nil {
 		log.Error("doSmtCheck err:", err.Error(), funcName, clientIp)

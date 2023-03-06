@@ -46,11 +46,11 @@ type RecordData struct {
 
 func (h *HttpHandle) AccountDetail(ctx *gin.Context) {
 	var (
-		funcName = "AccountDetail"
-		clientIp = GetClientIp(ctx)
-		req      ReqAccountDetail
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "AccountDetail"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqAccountDetail
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -59,7 +59,7 @@ func (h *HttpHandle) AccountDetail(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doAccountDetail(&req, &apiResp); err != nil {
 		log.Error("doAccountDetail err:", err.Error(), funcName, clientIp)

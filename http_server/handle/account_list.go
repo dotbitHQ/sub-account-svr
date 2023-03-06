@@ -27,11 +27,11 @@ type RespAccountList struct {
 
 func (h *HttpHandle) AccountList(ctx *gin.Context) {
 	var (
-		funcName = "AccountList"
-		clientIp = GetClientIp(ctx)
-		req      ReqAccountList
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "AccountList"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqAccountList
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -40,7 +40,7 @@ func (h *HttpHandle) AccountList(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doAccountList(&req, &apiResp); err != nil {
 		log.Error("doAccountList err:", err.Error(), funcName, clientIp)

@@ -30,11 +30,11 @@ type RespSubAccountList struct {
 
 func (h *HttpHandle) SubAccountList(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountList"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountList
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SubAccountList"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountList
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -43,7 +43,7 @@ func (h *HttpHandle) SubAccountList(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSubAccountList(&req, &apiResp); err != nil {
 		log.Error("doSubAccountList err:", err.Error(), funcName, clientIp)

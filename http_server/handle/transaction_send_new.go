@@ -27,11 +27,11 @@ type RespTransactionSend struct {
 
 func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 	var (
-		funcName = "TransactionSendNew"
-		clientIp = GetClientIp(ctx)
-		req      ReqTransactionSend
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "TransactionSendNew"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqTransactionSend
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -41,7 +41,7 @@ func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 		return
 	}
 
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doTransactionSendNew(&req, &apiResp); err != nil {
 		log.Error("doTransactionSendNew err:", err.Error(), funcName, clientIp)

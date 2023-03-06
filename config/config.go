@@ -74,8 +74,9 @@ type CfgServer struct {
 		MaxUpdateCount   int    `json:"max_update_count" yaml:"max_update_count"`
 		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
 	} `json:"das" yaml:"das"`
-	Origins []string `json:"origins" yaml:"origins"`
-	Notify  struct {
+	Origins          []string            `json:"origins" yaml:"origins"`
+	SubsidyWhitelist map[string]struct{} `json:"subsidy_whitelist" yaml:"subsidy_whitelist"`
+	Notify           struct {
 		LarkErrorKey               string `json:"lark_error_key" yaml:"lark_error_key"`
 		LarkCreateSubAccountKey    string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
 		DiscordCreateSubAccountKey string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`

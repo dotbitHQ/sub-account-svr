@@ -33,11 +33,11 @@ type RespSubAccountInit struct {
 
 func (h *HttpHandle) SubAccountInit(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountInit"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountInit
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SubAccountInit"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountInit
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -46,9 +46,9 @@ func (h *HttpHandle) SubAccountInit(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
-	if err = h.doSubAccountInit(&req, &apiResp); err != nil {
+	if err = h.doSubAccountInit(&req, &apiResp, clientIp, remoteAddrIP); err != nil {
 		log.Error("doSubAccountInit err:", err.Error(), funcName, clientIp)
 		doApiError(err, &apiResp)
 	}
@@ -56,7 +56,7 @@ func (h *HttpHandle) SubAccountInit(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.ApiResp, clientIp, remoteAddrIP string) error {
 	var resp RespSubAccountInit
 	resp.List = make([]SignInfo, 0)
 
@@ -98,19 +98,23 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	}
 
 	// check white list
-	if builder.ConfigCellSubAccountWhiteListMap == nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "white list error")
-		return fmt.Errorf("ConfigCellSubAccountWhiteListMap is nil")
-	}
-	isAllOpen := false
-	if _, ok := builder.ConfigCellSubAccountWhiteListMap["0xd83bc404a35ee0c4c2055d5ac13a5c323aae494a"]; ok {
-		isAllOpen = true
-	}
-	log.Info("doSubAccountInit:", req.Account, isAllOpen)
-	if !isAllOpen {
-		if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; !ok {
-			apiResp.ApiRespErr(api_code.ApiCodeUnableInit, fmt.Sprintf("account [%s] unable init", req.Account))
-			return nil
+	_, accLen, err := common.GetDotBitAccountLength(req.Account)
+	log.Info("doSubAccountInit accLen:", req.Account, accLen)
+	if accLen < 8 {
+		if builder.ConfigCellSubAccountWhiteListMap == nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "white list error")
+			return fmt.Errorf("ConfigCellSubAccountWhiteListMap is nil")
+		}
+		isAllOpen := false
+		if _, ok := builder.ConfigCellSubAccountWhiteListMap["0xd83bc404a35ee0c4c2055d5ac13a5c323aae494a"]; ok {
+			isAllOpen = true
+		}
+		log.Info("doSubAccountInit:", req.Account, isAllOpen)
+		if !isAllOpen {
+			if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; !ok {
+				apiResp.ApiRespErr(api_code.ApiCodeUnableInit, fmt.Sprintf("account [%s] unable init", req.Account))
+				return nil
+			}
 		}
 	}
 
@@ -118,6 +122,15 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountPreparedFeeCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
+	// check SubsidyWhitelist
+	subsidize := false
+	if _, ok := config.Cfg.SubsidyWhitelist[clientIp]; ok {
+		subsidize = true
+	}
+	if _, ok := config.Cfg.SubsidyWhitelist[remoteAddrIP]; ok {
+		subsidize = true
+	}
+	log.Info("doSubAccountInit:", subsidize, req.Account, acc.AccountId, clientIp, remoteAddrIP)
 	// check balance
 	dasLock, dasType, err := h.DasCore.Daf().HexToScript(*addrHex)
 	if err != nil {

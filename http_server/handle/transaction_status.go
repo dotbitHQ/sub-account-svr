@@ -39,11 +39,11 @@ const (
 
 func (h *HttpHandle) TransactionStatus(ctx *gin.Context) {
 	var (
-		funcName = "TransactionStatus"
-		clientIp = GetClientIp(ctx)
-		req      ReqTransactionStatus
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "TransactionStatus"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqTransactionStatus
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -52,7 +52,7 @@ func (h *HttpHandle) TransactionStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doTransactionStatus(&req, &apiResp); err != nil {
 		log.Error("doTransactionStatus err:", err.Error(), funcName, clientIp)
