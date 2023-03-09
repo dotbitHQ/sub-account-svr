@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	addr = "0xc9f53b1d85356B60453F867610888D89a0B667Ad"
+	addr = "DMjVFBqbqZGAyTXgkt7fTuqihhCCVuLwZ6"
 
 	privateKey = ""
 )
@@ -150,4 +150,47 @@ func doTransactionSendNew(req handle.ReqTransactionSend) error {
 		return fmt.Errorf("doReq err: %s", err.Error())
 	}
 	return nil
+}
+
+func TestSubAccountCreateNew2(t *testing.T) {
+	url := ApiUrl + "/sub/account/create"
+	req := handle.ReqSubAccountCreate{
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "3",
+				Key:      addr,
+			},
+		},
+		Account:        "20230301.bit",
+		SubAccountList: nil,
+	}
+
+	req.SubAccountList = make([]handle.CreateSubAccount, 0)
+	req.SubAccountList = append(req.SubAccountList, handle.CreateSubAccount{
+		Account:       "test01.20230301.bit",
+		RegisterYears: 1,
+		ChainTypeAddress: core.ChainTypeAddress{
+			Type: "blockchain",
+			KeyInfo: core.KeyInfo{
+				CoinType: "3",
+				Key:      addr,
+			},
+		},
+	})
+	var data handle.RespSubAccountCreate
+
+	if err := doReq(url, req, &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doSign2(data.SignInfoList, privateKey, false); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
