@@ -15,7 +15,7 @@ import (
 
 func getClientTestnet2() (rpc.Client, error) {
 	ckbUrl := "https://testnet.ckb.dev/"
-	indexerUrl := "https://testnet.ckb.dev/indexer"
+	indexerUrl := "https://testnet.ckb.dev/"
 	return rpc.DialWithIndexer(ckbUrl, indexerUrl)
 }
 
@@ -27,6 +27,7 @@ func getNewDasCoreTestnet2() (*core.DasCore, error) {
 
 	env := core.InitEnvOpt(common.DasNetTypeTestnet2,
 		common.DasContractNameConfigCellType,
+		common.DasContractNameDispatchCellType,
 	)
 	var wg sync.WaitGroup
 	ops := []core.DasCoreOption{
