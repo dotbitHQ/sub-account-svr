@@ -288,6 +288,12 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
 	case common.DasAlgorithmIdEd25519:
 		signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
+	case common.DasAlgorithmIdDogeChain:
+		signOk, err = sign.VerifyDogeSignature(common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyDogeSignature error")
+			return "", fmt.Errorf("VerifyDogeSignature err: %s [%s]", err.Error(), signAddress)
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
 		return "", nil
