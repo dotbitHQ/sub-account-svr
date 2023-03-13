@@ -283,6 +283,14 @@ func (d *DbDao) UpdateTaskStatusToRollback(ids []uint64) error {
 		}).Error
 }
 
+func (d *DbDao) UpdateTaskStatusToRollbackWithBalanceErr(taskId string) error {
+	return d.db.Model(tables.TableTaskInfo{}).
+		Where("task_id=? AND smt_status=? AND tx_status=?", taskId, tables.SmtStatusNeedToWrite, tables.TxStatusUnSend).
+		Updates(map[string]interface{}{
+			"smt_status": tables.SmtStatusNeedToRollback,
+		}).Error
+}
+
 func (d *DbDao) GetTaskInfoByParentAccountIdWithAction(parentAccountId string, action common.DasAction) (task tables.TableTaskInfo, err error) {
 	taskType := []tables.TaskType{tables.TaskTypeNormal, tables.TaskTypeChain}
 	err = d.db.Where("parent_account_id=? AND action=? AND task_type IN(?)",

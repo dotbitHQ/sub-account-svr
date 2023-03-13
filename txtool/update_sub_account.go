@@ -123,6 +123,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			needCapacity: p.CommonFee + registerCapacity,
 		})
 		if err != nil {
+			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
 		change += p.CommonFee

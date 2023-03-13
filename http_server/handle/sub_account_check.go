@@ -200,7 +200,11 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 		}
 
 		accLen := len(req.SubAccountList[i].AccountCharStr)
-		if uint32(accLen) > maxLength {
+		if accLen <= 0 {
+			tmp.Status = CheckStatusFail
+			tmp.Message = fmt.Sprintf("account length is 0")
+			isOk = false
+		} else if uint32(accLen) > maxLength {
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
 			isOk = false
