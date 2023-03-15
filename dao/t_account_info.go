@@ -4,11 +4,15 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
+	"gorm.io/gorm"
 	"time"
 )
 
 func (d *DbDao) GetAccountInfoByAccountId(accountId string) (acc tables.TableAccountInfo, err error) {
 	err = d.parserDb.Where(" account_id=? ", accountId).Find(&acc).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
 	return
 }
 
@@ -184,5 +188,21 @@ func (d *DbDao) GetAccountListByAccountIds(accountIds []string) (list []tables.T
 		return
 	}
 	err = d.parserDb.Where("account_id IN(?)", accountIds).Find(&list).Error
+	return
+}
+
+func (d *DbDao) GetSubAccountNum(account string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", common.GetAccountIdByAccount(account)).Count(&num).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetSubAccountNumDistinct(account string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", common.GetAccountIdByAccount(account)).Distinct("owner").Count(&num).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
 	return
 }
