@@ -19,6 +19,8 @@ type TableSmtRecordInfo struct {
 	AccountId       string           `json:"account_id" gorm:"column:account_id;uniqueIndex:uk_account_nonce;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	Nonce           uint64           `json:"nonce" gorm:"column:nonce;uniqueIndex:uk_account_nonce;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RecordType      RecordType       `json:"record_type" gorm:"column:record_type;uniqueIndex:uk_account_nonce;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-normal 1-closed 2-chain'"`
+	MintType        MintType         `json:"mint_type" gorm:"column:mint_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '铸造类型（0：默认值，旧数据；1：手动mint；2：自定义价格；3：自定义脚本；4：自动mint）'"`
+	OrderID         string           `json:"order_id" gorm:"column:order_id;index:idx_order_id;type:varchar(255) NOT NULL DEFAULT '' COMMENT '自动分发订单号'"`
 	TaskId          string           `json:"task_id" gorm:"column:task_id;index:k_task_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	Action          string           `json:"action" gorm:"column:action;index:k_action;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	ParentAccountId string           `json:"parent_account_id" gorm:"column:parent_account_id;index:k_parent_account_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'smt tree'"`
@@ -49,10 +51,18 @@ func (t *TableSmtRecordInfo) TableName() string {
 
 type RecordType int
 
+type MintType uint32
+
 const (
 	RecordTypeDefault RecordType = 0
 	RecordTypeClosed  RecordType = 1
 	RecordTypeChain   RecordType = 2
+
+	MintTypeDefault      MintType = 0
+	MintTypeManual       MintType = 1
+	MintTypeCustomPrice  MintType = 2
+	MintTypeCustomScript MintType = 3
+	MintTypeAutoMint     MintType = 4
 )
 
 func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err error) {
