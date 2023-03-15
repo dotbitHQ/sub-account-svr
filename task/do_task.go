@@ -141,6 +141,7 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 			signRes = sign.Ed25519Signature(common.Hex2Bytes(privateKey), signMsg)
 			signRes = append(signRes, []byte{1}...)
 		case common.DasAlgorithmIdDogeChain:
+			signMsg = []byte(signData.SignMsg)
 			signRes, err = sign.DogeSignature(signMsg, privateKey, compress)
 			if err != nil {
 				return fmt.Errorf("sign.DogeSignature err: %s", err.Error())
