@@ -137,3 +137,11 @@ func (d *DbDao) CreateMinSignInfo(mintSignInfo tables.TableMintSignInfo, list []
 		return nil
 	})
 }
+
+func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintType tables.MintType, actions []string) (resp []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("parent_account_id=? and mint_type=? and action in (?)", parentAccountId, mintType, actions).Find(&resp).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}

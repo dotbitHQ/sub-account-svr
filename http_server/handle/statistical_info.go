@@ -3,11 +3,13 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
 	"golang.org/x/sync/errgroup"
 	"net/http"
@@ -70,8 +72,11 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	resp := RespStatisticalInfo{}
+	resp := RespStatisticalInfo{
+		IncomeInfo: []IncomeInfo{},
+	}
 	errG := &errgroup.Group{}
 
 	errG.Go(func() error {
@@ -94,8 +99,98 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		return nil
 	})
 
-	// TODO
+	errG.Go(func() error {
+		smtRecords, err := h.DbDao.FindSmtRecordInfoByMintType(accountId, tables.MintTypeAutoMint, []string{common.DasActionCreateSubAccount, common.DasActionRenewSubAccount})
+		if err != nil {
+			return err
+		}
 
+		type Income struct {
+			Type    string
+			Total   float64
+			Balance float64
+		}
+		paymentInfo := make(map[string]*Income)
+
+		for _, record := range smtRecords {
+			paymentsInfo, err := h.DbDao.FindPaymentInfoByOrderId(record.OrderID)
+			if err != nil {
+				return err
+			}
+			for _, payment := range paymentsInfo {
+				token, err := h.DbDao.GetTokenById(payment.TokenId)
+				if err != nil {
+					return err
+				}
+				p, ok := paymentInfo[token.TokenId]
+				if !ok {
+					p = &Income{
+						Type: token.Symbol,
+					}
+					paymentInfo[token.TokenId] = p
+				}
+				p.Total += payment.Amount
+			}
+		}
+
+		for k, v := range paymentInfo {
+			amount, err := h.DbDao.GetAutoPaymentAmount(accountId, k, tables.PaymentStatusSuccess)
+			if err != nil {
+				return err
+			}
+			v.Balance += amount
+		}
+
+		for _, v := range paymentInfo {
+			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
+				Type:    v.Type,
+				Total:   fmt.Sprintf("%f", v.Total),
+				Balance: fmt.Sprintf("%f", v.Total-v.Balance),
+			})
+		}
+		return nil
+	})
+
+	errG.Go(func() error {
+		acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
+			return fmt.Errorf("SearchAccount err: %s", err.Error())
+		}
+
+		daf := core.DasAddressFormat{DasNetType: config.Cfg.Server.Net}
+		addrHex, err := daf.NormalToHex(core.DasAddressNormal{
+			ChainType:     acc.OwnerChainType,
+			AddressNormal: acc.Owner,
+			Is712:         true,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("address NormalToHex err: %s", err.Error())
+		}
+		dasLock, _, err := h.DasCore.Daf().HexToScript(addrHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("HexToScript err: %s", err.Error())
+		}
+		_, totalCapacity, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+			DasCache:          h.DasCache,
+			LockScript:        dasLock,
+			CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+			SearchOrder:       indexer.SearchOrderDesc,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return fmt.Errorf("GetBalanceCells err: %s", err)
+		}
+		resp.CkbSpending.Balance = fmt.Sprintf("%d", totalCapacity)
+		// TODO 累计消耗CKB统计
+		return nil
+	})
+
+	if err := errG.Wait(); err != nil {
+		return err
+	}
 	apiResp.ApiRespOK(resp)
 	return nil
 }

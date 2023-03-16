@@ -4,11 +4,20 @@ import (
 	"time"
 )
 
+type PaymentStatus int
+
+const (
+	PaymentStatusDefault PaymentStatus = iota
+	PaymentStatusSuccess
+	PaymentStatusFail
+	PaymentStatusClosed
+)
+
 type AutoPaymentInfo struct {
 	Id            int64     `gorm:"column:id;type:bigint(20);primary_key;AUTO_INCREMENT" json:"id"`
-	AutoPaymentId string    `gorm:"column:auto_payment_id;type:varchar(255);comment:自动支付id;NOT NULL" json:"auto_payment_id"`
+	AutoPaymentId string    `gorm:"column:auto_payment_id;uniqueIndex:uk_auto_payment_id;type:varchar(255);comment:自动支付id;NOT NULL" json:"auto_payment_id"`
 	Account       string    `gorm:"column:account;type:varchar(255);NOT NULL" json:"account"`
-	AccountId     string    `gorm:"column:account_id;type:varchar(255);NOT NULL" json:"account_id"`
+	AccountId     string    `gorm:"column:account_id;index:idx_account_id;type:varchar(255);NOT NULL" json:"account_id"`
 	TokenId       string    `gorm:"column:token_id;type:varchar(255);comment:支付代币ID;NOT NULL" json:"token_id"`
 	Amount        float64   `gorm:"column:amount;type:decimal(60) unsigned;comment:付款金额;NOT NULL" json:"amount"`
 	Address       string    `gorm:"column:address;type:varchar(255);comment:打款地址;NOT NULL" json:"address"`
