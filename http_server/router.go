@@ -31,6 +31,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/transaction/status", api_code.DoMonitorLog("tx_status"), cacheHandleShort, h.H.TransactionStatus)
 		v1.POST("/sub/account/mint/status", api_code.DoMonitorLog("mint_status"), cacheHandleShort, h.H.SubAccountMintStatus)
 		v1.POST("/statistical/info", api_code.DoMonitorLog("statistical_info"), cacheHandleShort, h.H.StatisticalInfo)
+		v1.POST("/distribution/list", api_code.DoMonitorLog("distribution_list"), cacheHandleShort, h.H.DistributionList)
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)
@@ -42,6 +43,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
 		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
+		v1.POST("/mint/config/update", api_code.DoMonitorLog("mint_config_update"), h.H.MintConfigUpdate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

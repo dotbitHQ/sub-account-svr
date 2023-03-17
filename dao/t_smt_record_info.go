@@ -138,8 +138,20 @@ func (d *DbDao) CreateMinSignInfo(mintSignInfo tables.TableMintSignInfo, list []
 	})
 }
 
-func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintType tables.MintType, actions []string) (resp []tables.TableSmtRecordInfo, err error) {
-	err = d.db.Where("parent_account_id=? and mint_type=? and action in (?)", parentAccountId, mintType, actions).Find(&resp).Error
+func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintTypes tables.MintType, actions []string) (resp []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("parent_account_id=? and mint_type in (?) and action in (?)", parentAccountId, mintTypes, actions).Order("id desc").Find(&resp).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) FindSmtRecordInfoByMintTypeAndPaging(parentAccountId string, mintTypes []tables.MintType, actions []string, page, size int) (resp []tables.TableSmtRecordInfo, total int64, err error) {
+	db := d.db.Where("parent_account_id=? and mint_type in (?) and action in (?)", parentAccountId, mintTypes, actions).Order("id desc")
+	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return
+	}
+	err = db.Limit(size).Offset((page - 1) * size).Find(&resp).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
