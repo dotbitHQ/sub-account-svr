@@ -308,7 +308,21 @@ func (h *HttpHandle) doMintForAccountCheck(req *ReqSubAccountCreate, apiResp *ap
 			keyOwner := acc.Owner
 			if acc.OwnerAlgorithmId == common.DasAlgorithmIdTron {
 				coinType = common.CoinTypeTrx
-				keyOwner, _ = common.TronHexToBase58(acc.Owner)
+				keyOwner, err = common.TronHexToBase58(acc.Owner)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
+					return fmt.Errorf("TronHexToBase58 err: %s", err.Error())
+				}
+			} else if acc.OwnerAlgorithmId == common.DasAlgorithmIdDogeChain {
+				coinType = common.CoinTypeEth
+				keyOwner, err = common.Base58CheckEncode(acc.Owner, common.DogeCoinBase58Version)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
+					return fmt.Errorf("Base58CheckEncode err: %s", err.Error())
+				}
+			} else if acc.OwnerAlgorithmId != common.DasAlgorithmIdEth && acc.OwnerAlgorithmId != common.DasAlgorithmIdEth712 {
+				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
+				return nil
 			}
 			req.SubAccountList[i].ChainTypeAddress.Type = "blockchain"
 			req.SubAccountList[i].ChainTypeAddress.KeyInfo.CoinType = coinType
