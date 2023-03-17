@@ -314,7 +314,7 @@ func (h *HttpHandle) doMintForAccountCheck(req *ReqSubAccountCreate, apiResp *ap
 					return fmt.Errorf("TronHexToBase58 err: %s", err.Error())
 				}
 			} else if acc.OwnerAlgorithmId == common.DasAlgorithmIdDogeChain {
-				coinType = common.CoinTypeEth
+				coinType = common.CoinTypeDogeCoin
 				keyOwner, err = common.Base58CheckEncode(acc.Owner, common.DogeCoinBase58Version)
 				if err != nil {
 					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("mint for account [%s] invalid", req.SubAccountList[i].MintForAccount))
