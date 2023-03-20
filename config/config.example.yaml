@@ -12,6 +12,10 @@ das:
   max_create_count: 100
   max_update_count: 100
   max_retry: 10
+  support_payment_token:
+    - "eth_eth"
+    - "tron_trx"
+    - "bsc_bnb"
 origins:
   - ""
 notify:

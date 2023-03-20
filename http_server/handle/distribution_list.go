@@ -55,7 +55,7 @@ func (h *HttpHandle) DistributionList(ctx *gin.Context) {
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
 	if err = h.doDistributionList(&req, &apiResp); err != nil {
-		log.Error("doSubAccountList err:", err.Error(), funcName, clientIp)
+		log.Error("doDistributionList err:", err.Error(), funcName, clientIp)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

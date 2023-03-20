@@ -47,6 +47,7 @@ const (
 	ApiCodeNotExistCustomScriptConfigPrice ApiCode = 40017
 	ApiCodeCustomScriptSet                 ApiCode = 40018
 	ApiCodeProfitNotEnough                 ApiCode = 40019
+	ApiCodeNoSupportPaymentToken           ApiCode = 40020
 )
 
 const (

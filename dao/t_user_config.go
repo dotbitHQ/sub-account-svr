@@ -3,6 +3,7 @@ package dao
 import (
 	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
+	"gorm.io/gorm"
 )
 
 func (d *DbDao) UpdateMintConfig(account string, mintConfig tables.MintConfig) error {
@@ -21,4 +22,19 @@ func (d *DbDao) UpdatePaymentConfig(account string, paymentConfig tables.Payment
 		AccountId:     accountId,
 		PaymentConfig: paymentConfig,
 	}).Error
+}
+
+func (d *DbDao) GetUserPaymentConfig(accountId string) (paymentConfig tables.PaymentConfig, err error) {
+	userCfg := &tables.UserConfig{}
+	err = d.db.Where("account_id=?", accountId).First(userCfg).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+		return
+	}
+	if userCfg.PaymentConfig.CfgMap != nil {
+		paymentConfig = userCfg.PaymentConfig
+	} else {
+		paymentConfig.CfgMap = make(map[string]tables.PaymentConfigElement)
+	}
+	return
 }

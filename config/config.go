@@ -69,10 +69,11 @@ type CfgServer struct {
 		SmtServer              string            `json:"smt_server" yaml:"smt_server"`
 	} `json:"server" yaml:"server"`
 	Das struct {
-		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
-		MaxCreateCount   int    `json:"max_create_count" yaml:"max_create_count"`
-		MaxUpdateCount   int    `json:"max_update_count" yaml:"max_update_count"`
-		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
+		MaxRegisterYears uint64   `json:"max_register_years" yaml:"max_register_years"`
+		MaxCreateCount   int      `json:"max_create_count" yaml:"max_create_count"`
+		MaxUpdateCount   int      `json:"max_update_count" yaml:"max_update_count"`
+		MaxRetry         int      `json:"max_retry" yaml:"max_retry"`
+		SupportPaymentToken   []string `json:"support_payment_token" yaml:"support_payment_token"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {

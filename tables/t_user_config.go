@@ -28,10 +28,14 @@ type Link struct {
 	Link string `json:"link"`
 }
 
-type PaymentConfig map[string]PaymentConfigElement
+type PaymentConfig struct {
+	CfgMap map[string]PaymentConfigElement `json:"cfg_map"`
+}
 
 type PaymentConfigElement struct {
-	Enable bool `json:"enable"`
+	Enable     bool   `json:"enable"`
+	TokenID    string `json:"token_id,omitempty"`
+	HaveRecord bool   `json:"have_record,omitempty"`
 }
 
 func (m *UserConfig) TableName() string {

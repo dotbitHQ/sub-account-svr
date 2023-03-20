@@ -58,7 +58,7 @@ func (h *HttpHandle) StatisticalInfo(ctx *gin.Context) {
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
 	if err = h.doStatisticalInfo(&req, &apiResp); err != nil {
-		log.Error("doSubAccountMintStatus err:", err.Error(), funcName, clientIp)
+		log.Error("doStatisticalInfo err:", err.Error(), funcName, clientIp)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
