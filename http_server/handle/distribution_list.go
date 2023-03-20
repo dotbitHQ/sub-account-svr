@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"golang.org/x/sync/errgroup"
+	"math"
 	"net/http"
 	"strings"
 )
@@ -142,7 +143,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 						return errors.New("db error")
 					}
-					list[idx].Amount = fmt.Sprintf("%f %s", paymentInfo.Amount, token.Symbol)
+					list[idx].Amount = fmt.Sprintf("%f %s", paymentInfo.Amount/math.Pow10(token.Decimals), token.Symbol)
 				default:
 					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 					return errors.New("db error")

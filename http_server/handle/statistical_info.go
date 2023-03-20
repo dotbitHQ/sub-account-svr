@@ -19,7 +19,7 @@ import (
 
 type ReqStatisticalInfo struct {
 	core.ChainTypeAddress
-	Account string `json:"account"`
+	Account string `json:"account" binding:"required"`
 }
 
 type RespStatisticalInfo struct {
@@ -73,6 +73,12 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		return err
 	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+
+	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
+		return fmt.Errorf("SearchAccount err: %s", err.Error())
+	}
 
 	resp := RespStatisticalInfo{
 		IncomeInfo: []IncomeInfo{},
@@ -152,12 +158,6 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
-			return fmt.Errorf("SearchAccount err: %s", err.Error())
-		}
-
 		daf := core.DasAddressFormat{DasNetType: config.Cfg.Server.Net}
 		addrHex, err := daf.NormalToHex(core.DasAddressNormal{
 			ChainType:     acc.OwnerChainType,
@@ -184,7 +184,16 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
 		resp.CkbSpending.Balance = fmt.Sprintf("%d", totalCapacity)
-		// TODO 累计消耗CKB统计
+		return nil
+	})
+
+	errG.Go(func() error {
+		total, err := h.DbDao.GetSmtRecordManualMintYears(accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return err
+		}
+		resp.CkbSpending.Total = fmt.Sprintf("%d", total)
 		return nil
 	})
 

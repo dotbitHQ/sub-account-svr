@@ -32,6 +32,7 @@ type PaymentInfo struct {
 	OrderId      string       `gorm:"column:order_id;index:idx_order_id;type:varchar(255);comment:订单号;NOT NULL" json:"order_id"`
 	TokenId      string       `gorm:"column:token_id;type:varchar(255);comment:支付代币ID;NOT NULL" json:"token_id"`
 	Address      string       `gorm:"column:address;type:varchar(255);comment:付款地址;NOT NULL" json:"address"`
+	USDPrice     float64      `gorm:"column:usd_price;type:decimal(50,2);default:0.00;comment:美元价格;NOT NULL" json:"usd_price"`
 	Amount       float64      `gorm:"column:amount;type:decimal(60) unsigned;default:0;comment:付款金额;NOT NULL" json:"amount"`
 	PaymentTx    string       `gorm:"column:payment_tx;type:varchar(255);comment:支付交易;NOT NULL" json:"payment_tx"`
 	BlockNumber  int64        `gorm:"column:block_number;type:bigint(20);default:0;comment:支付交易区块高度;NOT NULL" json:"block_number"`

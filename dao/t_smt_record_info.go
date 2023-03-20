@@ -157,3 +157,15 @@ func (d *DbDao) FindSmtRecordInfoByMintTypeAndPaging(parentAccountId string, min
 	}
 	return
 }
+
+func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint64, err error) {
+	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("sum(register_years+renew_years)").
+		Where("parent_account_id=? and sub_action in (?) and mint_type in (?)",
+			parentAccountId, []common.SubAction{common.DasActionCreateSubAccount, common.DasActionRenewSubAccount},
+			[]tables.MintType{tables.MintTypeDefault, tables.MintTypeManual},
+		).Scan(&total).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
