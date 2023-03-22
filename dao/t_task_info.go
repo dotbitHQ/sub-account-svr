@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (d *DbDao) GetNeedDoCheckTxTaskList(svrName string) (list []tables.TableTaskInfo, err error) {
@@ -164,10 +165,14 @@ func (d *DbDao) CreateChainTask(task *tables.TableTaskInfo, list []tables.TableS
 				return err
 			}
 		}
-		if err := tx.Create(&task).Error; err != nil {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&task).Error; err != nil {
 			return err
 		}
-		if err := tx.Create(&list).Error; err != nil {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&list).Error; err != nil {
 			return err
 		}
 		return nil
