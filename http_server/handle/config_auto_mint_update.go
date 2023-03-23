@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,6 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
-	"strings"
 )
 
 type ReqConfigAutoMintUpdate struct {
@@ -25,7 +23,7 @@ type ReqConfigAutoMintUpdate struct {
 }
 
 type RespConfigAutoMintUpdate struct {
-	SignInfo
+	SignInfoList
 }
 
 func (h *HttpHandle) ConfigAutoMintUpdate(ctx *gin.Context) {
@@ -64,10 +62,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return err
 	}
-	address := res.AddressHex
-	if strings.HasPrefix(res.AddressHex, common.HexPreFix) {
-		address = strings.ToLower(res.AddressHex)
-	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
@@ -104,13 +99,29 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	txParams := &txbuilder.BuildTransactionParams{}
 	txParams.CellDeps = append(txParams.CellDeps,
 		baseInfo.ContractAcc.ToCellDep(),
-		baseInfo.ConfigCellSubAcc.ToCellDep(),
+		baseInfo.ContractSubAcc.ToCellDep(),
 		baseInfo.TimeCell.ToCellDep(),
 		baseInfo.HeightCell.ToCellDep(),
 		baseInfo.ConfigCellAcc.ToCellDep(),
 		baseInfo.ConfigCellSubAcc.ToCellDep(),
 	)
 
+	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
+		return err
+	}
+	balanceLiveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        dasLock,
+		CapacityNeed:      common.OneCkb,
+		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+		SearchOrder:       indexer.SearchOrderDesc,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		return fmt.Errorf("GetBalanceCells err: %s", err.Error())
+	}
 	txParams.Inputs = append(txParams.Inputs,
 		&types.CellInput{
 			PreviousOutput: accountCell.OutPoint,
@@ -119,6 +130,11 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 			PreviousOutput: subAccountCell.OutPoint,
 		},
 	)
+	for _, v := range balanceLiveCells {
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: v.OutPoint,
+		})
+	}
 
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: accountTx.Transaction.Outputs[accountCell.TxIndex].Capacity,
@@ -127,47 +143,69 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountCell.TxIndex])
 
-	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
+	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+		Capacity: subAccountTx.Transaction.Outputs[accountCell.TxIndex].Capacity,
+		Lock:     subAccountTx.Transaction.Outputs[accountCell.TxIndex].Lock,
+		Type:     subAccountTx.Transaction.Outputs[accountCell.TxIndex].Type,
+	})
+	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
+	if req.Enable {
+		subAccountCellDetail.DisableAutoDistribution = witness.DisableAutoDistributionDefault
+	} else {
+		subAccountCellDetail.DisableAutoDistribution = witness.DisableAutoDistributionEnable
+	}
+	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
+	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
+
+	for _, v := range balanceLiveCells {
+		txParams.Outputs = append(txParams.Outputs, v.Output)
+		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
+	}
+
+	// build tx
+	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
+	if err := txBuilder.BuildTransaction(txParams); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
 		return err
 	}
 
-	liveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        dasLock,
-		CapacityNeed:      feeCapacity,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
+	// TODO 是否单独记录ckb消耗
+	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
+	changeCapacity = changeCapacity - sizeInBlock - 5000
+	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
+
+	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
+
+	hash, err := txBuilder.Transaction.ComputeHash()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
+		return err
+	}
+	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), hash.String())
+
+	signKey, signList, err := h.buildTx(&paramBuildTx{
+		txParams:  txParams,
+		chainType: res.ChainType,
+		address:   res.AddressHex,
+		action:    common.DasActionConfigSubAccount,
+		account:   req.Account,
 	})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("GetBalanceCells err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
+		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
 
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: p.subAccountCapacity,
-		Lock:     contractAlwaysSuccess.ToScript(nil),
-		Type:     contractSubAccount.ToScript(common.Hex2Bytes(p.acc.AccountId)),
+	resp := RespConfigAutoMintUpdate{}
+	resp.Action = common.DasActionConfigSubAccount
+	resp.SignKey = signKey
+	resp.List = append(resp.List, SignInfo{
+		SignList: signList,
 	})
-	subDataDetail := witness.SubAccountCellDataDetail{
-		Action:           common.DasActionEnableSubAccount,
-		SmtRoot:          smt.H256Zero(),
-		DasProfit:        0,
-		OwnerProfit:      0,
-		CustomScriptArgs: nil,
-	}
-	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
-
-	subAccountCellData := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
-	if req.Enable {
-		subAccountCellData.CustomScriptConfig[0] = 255
-	} else {
-		subAccountCellData.CustomScriptConfig[0] = 0
-	}
-
-	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellData)
-	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
+	log.Info("doCustomScript:", toolib.JsonString(resp))
+	apiResp.ApiRespOK(resp)
+	return nil
 }
 
 func (h *HttpHandle) getAccountOrSubAccountCell(contract *core.DasContractInfo, parentAccountId string) (*indexer.LiveCell, error) {
