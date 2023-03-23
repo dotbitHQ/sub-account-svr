@@ -59,10 +59,7 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return err
 	}
-	address := res.AddressHex
-	if strings.HasPrefix(res.AddressHex, common.HexPreFix) {
-		address = strings.ToLower(res.AddressHex)
-	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}

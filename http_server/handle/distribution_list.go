@@ -14,7 +14,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"math"
 	"net/http"
-	"strings"
 )
 
 type ReqDistributionList struct {
@@ -73,10 +72,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return err
 	}
-	address := res.AddressHex
-	if strings.HasPrefix(res.AddressHex, common.HexPreFix) {
-		address = strings.ToLower(res.AddressHex)
-	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}
