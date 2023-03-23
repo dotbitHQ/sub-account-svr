@@ -45,6 +45,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
 		v1.POST("/mint/config/update", api_code.DoMonitorLog("mint_config_update"), h.H.MintConfigUpdate)
+		v1.POST("/config/auto_mint/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.ConfigAutoMintUpdate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

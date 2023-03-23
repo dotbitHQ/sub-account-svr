@@ -13,7 +13,6 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"golang.org/x/sync/errgroup"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -64,11 +63,15 @@ func (h *HttpHandle) StatisticalInfo(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_code.ApiResp) error {
-	res := checkReqKeyInfo(h.DasCore.Daf(), &req.ChainTypeAddress, apiResp)
-	if res == nil {
-		return nil
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return err
 	}
-	address := strings.ToLower(res.AddressHex)
+	address := res.AddressHex
+	if strings.HasPrefix(res.AddressHex, common.HexPreFix) {
+		address = strings.ToLower(res.AddressHex)
+	}
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}
@@ -222,60 +225,4 @@ func (h *HttpHandle) checkAuth(address, account string, apiResp *api_code.ApiRes
 		return err
 	}
 	return nil
-}
-
-// checkReqKeyInfo
-func checkReqKeyInfo(daf *core.DasAddressFormat, req *core.ChainTypeAddress, apiResp *api_code.ApiResp) *core.DasAddressHex {
-	if req.Type != "blockchain" {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("type [%s] is invalid", req.Type))
-		return nil
-	}
-	if req.KeyInfo.Key == "" {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "key is invalid")
-		return nil
-	}
-	dasChainType := common.FormatCoinTypeToDasChainType(req.KeyInfo.CoinType)
-	if dasChainType == -1 {
-		dasChainType = common.FormatChainIdToDasChainType(config.Cfg.Server.Net, req.KeyInfo.ChainId)
-	}
-	if dasChainType == -1 {
-		if !strings.HasPrefix(req.KeyInfo.Key, "0x") {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("coin_type [%s] and chain_id [%s] is invalid", req.KeyInfo.CoinType, req.KeyInfo.ChainId))
-			return nil
-		}
-
-		ok, err := regexp.MatchString("^0x[0-9a-fA-F]{40}$", req.KeyInfo.Key)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-			return nil
-		}
-
-		if ok {
-			dasChainType = common.ChainTypeEth
-		} else {
-			ok, err = regexp.MatchString("^0x[0-9a-fA-F]{64}$", req.KeyInfo.Key)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-				return nil
-			}
-			if !ok {
-				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "key is invalid")
-				return nil
-			}
-			dasChainType = common.ChainTypeMixin
-		}
-	}
-	addrHex, err := daf.NormalToHex(core.DasAddressNormal{
-		ChainType:     dasChainType,
-		AddressNormal: req.KeyInfo.Key,
-		Is712:         true,
-	})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-		return nil
-	}
-	if addrHex.DasAlgorithmId == common.DasAlgorithmIdEth712 {
-		addrHex.DasAlgorithmId = common.DasAlgorithmIdEth
-	}
-	return &addrHex
 }

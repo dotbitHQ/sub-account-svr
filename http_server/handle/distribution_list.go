@@ -68,15 +68,15 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
 		return fmt.Errorf("sync block number")
 	}
-	res := checkReqKeyInfo(h.DasCore.Daf(), &req.ChainTypeAddress, apiResp)
-	if res == nil {
-		return nil
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return err
 	}
-	if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		log.Error("checkReqKeyInfo:", apiResp.ErrMsg)
-		return nil
+	address := res.AddressHex
+	if strings.HasPrefix(res.AddressHex, common.HexPreFix) {
+		address = strings.ToLower(res.AddressHex)
 	}
-	address := strings.ToLower(res.AddressHex)
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}
