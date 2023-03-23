@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -204,6 +205,17 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		SignList: signList,
 	})
 	log.Info("doCustomScript:", toolib.JsonString(resp))
+
+	if err := h.DbDao.CreatePriceConfig(tables.PriceConfig{
+		Account:   req.Account,
+		AccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
+		Action:    tables.PriceConfigActionAutoMintSwitch,
+		TxHash:    hash.String(),
+	}); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return fmt.Errorf("CreatePriceConfig err: %s", err.Error())
+	}
+
 	apiResp.ApiRespOK(resp)
 	return nil
 }
