@@ -33,7 +33,6 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/statistical/info", api_code.DoMonitorLog("statistical_info"), cacheHandleShort, h.H.StatisticalInfo)
 		v1.POST("/distribution/list", api_code.DoMonitorLog("distribution_list"), cacheHandleShort, h.H.DistributionList)
 		v1.POST("/currency/list", api_code.DoMonitorLog("currency_list"), cacheHandleShort, h.H.CurrencyList)
-		v1.POST("/currency/list", api_code.DoMonitorLog("currency_list"), cacheHandleShort, h.H.CurrencyList)
 		v1.POST("/config/auto_mint/get", api_code.DoMonitorLog("config_auto_mint_get"), cacheHandleShort, h.H.ConfigAutoMintGet)
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
@@ -57,6 +56,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/syncTree", h.H.SmtSync)
 
 		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
+		internalV1.POST("/payment/report_export", h.H.PaymentReportExport)
 	}
 }
 
