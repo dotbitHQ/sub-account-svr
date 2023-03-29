@@ -6,7 +6,7 @@ import (
 
 // TTokenPriceInfo 代币价格信息表
 type TTokenPriceInfo struct {
-	Id            uint64    `gorm:"column:id;type:bigint(20) unsigned;primary_key;AUTO_INCREMENT;comment:自增主键" json:"id"`
+	Id            uint64    `gorm:"column:id;AUTO_INCREMENT;comment:自增主键" json:"id"`
 	TokenId       string    `gorm:"column:token_id;type:varchar(255);NOT NULL" json:"token_id"`
 	GeckoId       string    `gorm:"column:gecko_id;type:varchar(255);comment:the id from coingecko;NOT NULL" json:"gecko_id"`
 	ChainType     int       `gorm:"column:chain_type;type:smallint(6);default:0;NOT NULL" json:"chain_type"`

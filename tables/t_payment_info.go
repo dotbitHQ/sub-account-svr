@@ -28,7 +28,7 @@ const (
 )
 
 type PaymentInfo struct {
-	Id           int64        `gorm:"column:id;type:bigint(20);primary_key;AUTO_INCREMENT" json:"id"`
+	Id           int64        `gorm:"column:id;AUTO_INCREMENT" json:"id"`
 	OrderId      string       `gorm:"column:order_id;index:idx_order_id;type:varchar(255);comment:订单号;NOT NULL" json:"order_id"`
 	TokenId      string       `gorm:"column:token_id;type:varchar(255);comment:支付代币ID;NOT NULL" json:"token_id"`
 	Address      string       `gorm:"column:address;type:varchar(255);comment:付款地址;NOT NULL" json:"address"`

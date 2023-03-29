@@ -19,7 +19,7 @@ const (
 )
 
 type PriceConfig struct {
-	Id        int64               `gorm:"column:id;type:bigint(20);primary_key;AUTO_INCREMENT" json:"id"`
+	Id        int64               `gorm:"column:id;AUTO_INCREMENT" json:"id"`
 	Account   string              `gorm:"column:account;type:varchar(255);comment:账号;NOT NULL" json:"account"`
 	AccountId string              `gorm:"column:account_id;type:varchar(255);comment:账号id;NOT NULL" json:"account_id"`
 	Action    PriceConfigAction   `gorm:"column:action;type:varchar(20);comment:交易类型（price_rules，preserved_rules, auto_mint_switch）;NOT NULL" json:"action"`

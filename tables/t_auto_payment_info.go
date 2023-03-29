@@ -14,7 +14,7 @@ const (
 )
 
 type AutoPaymentInfo struct {
-	Id            int64     `gorm:"column:id;type:bigint(20);primary_key;AUTO_INCREMENT" json:"id"`
+	Id            int64     `gorm:"column:id;AUTO_INCREMENT" json:"id"`
 	AutoPaymentId string    `gorm:"column:auto_payment_id;uniqueIndex:uk_auto_payment_id;type:varchar(255);comment:自动支付id;NOT NULL" json:"auto_payment_id"`
 	Account       string    `gorm:"column:account;type:varchar(255);NOT NULL" json:"account"`
 	AccountId     string    `gorm:"column:account_id;index:idx_account_id;type:varchar(255);NOT NULL" json:"account_id"`
