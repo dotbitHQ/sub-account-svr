@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"strings"
 )
 
 type ReqCustomScriptInfo struct {
@@ -51,7 +52,7 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 	// custom-script
 	subAccLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		doGetSubAccountCellErr(err, apiResp)
 		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
 	detail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
@@ -85,4 +86,15 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 	}
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func doGetSubAccountCellErr(err error, apiResp *api_code.ApiResp) {
+	if err == nil || apiResp == nil {
+		return
+	}
+	if strings.Contains(err.Error(), "sub account cell len") {
+		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, err.Error())
+	} else {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+	}
 }
