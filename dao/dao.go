@@ -49,3 +49,7 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 	}
 	return &DbDao{db: db, parserDb: parserDb}, nil
 }
+
+func (d *DbDao) Transaction(fc func(tx *gorm.DB) error) error {
+	return d.db.Transaction(fc)
+}

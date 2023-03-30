@@ -2,18 +2,31 @@ package handle
 
 import (
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"encoding/csv"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"math"
 	"net/http"
 	"reverse-svr/http_server/handle"
+	"time"
 )
 
 type ReqPaymentReportExport struct {
 	Account string `json:"account"`
 	Begin   string `json:"begin" binding:"required"`
 	End     string `json:"end" binding:"required"`
+}
+
+type CsvRecord struct {
+	Account   string
+	AccountId string
+	TokenId   string
+	Decimals  int
+	Address   string
+	Amount    float64
+	Ids       []int64
 }
 
 func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
@@ -37,17 +50,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	ctx.Header("Content-Description", "File Transfer")
-	ctx.Header("Content-Disposition", "attachment; filename=payments.csv")
-	ctx.Header("Content-Type", "text/csv")
-
-	w := csv.NewWriter(ctx.Writer)
-	if err := w.Write([]string{"parent_account", "payment_address", "payment_type", "amount"}); err != nil {
-		log.Error(err)
-		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
+	records := make(map[string]CsvRecord)
 	for _, v := range list {
 		config, err := h.DbDao.GetUserPaymentConfig(v.AccountId)
 		if err != nil {
@@ -84,15 +87,66 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
+		csvRecord, ok := records[v.Account+v.TokenId]
+		if !ok {
+			csvRecord.Account = v.Account
+			csvRecord.AccountId = v.AccountId
+			csvRecord.TokenId = v.TokenId
+			csvRecord.Address = record.Value
+			csvRecord.Decimals = token.Decimals
+			csvRecord.Ids = make([]int64, 0)
+		}
+		csvRecord.Amount += v.Amount
+		csvRecord.Ids = append(csvRecord.Ids, v.Id)
+	}
 
-		amount := fmt.Sprintf(fmt.Sprintf("%%.%df", token.Decimals), v.Amount/math.Pow10(token.Decimals))
-		if err := w.Write([]string{v.Account, record.Value, v.TokenId, amount}); err != nil {
+	err = h.DbDao.Transaction(func(tx *gorm.DB) error {
+		for _, v := range records {
+			autoPaymentInfo := tables.AutoPaymentInfo{
+				Account:       v.Account,
+				AccountId:     v.AccountId,
+				TokenId:       v.TokenId,
+				Amount:        v.Amount,
+				Address:       v.Address,
+				PaymentDate:   time.Now(),
+				PaymentStatus: tables.PaymentStatusSuccess,
+			}
+			if err := autoPaymentInfo.GenAutoPaymentId(); err != nil {
+				return err
+			}
+			if err := tx.Create(autoPaymentInfo).Error; err != nil {
+				return err
+			}
+			if err := h.DbDao.UpdateAutoPaymentIdById(v.Ids, autoPaymentInfo.AutoPaymentId); err != nil {
+				return err
+			}
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err)
+		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Header("Content-Description", "File Transfer")
+	ctx.Header("Content-Disposition", "attachment; filename=payments.csv")
+	ctx.Header("Content-Type", "text/csv")
+
+	w := csv.NewWriter(ctx.Writer)
+	if err := w.Write([]string{"parent_account", "payment_address", "payment_type", "amount"}); err != nil {
+		log.Error(err)
+		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	for _, v := range records {
+		amount := fmt.Sprintf(fmt.Sprintf("%%.%df", v.Decimals), v.Amount/math.Pow10(v.Decimals))
+		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-
-		// TODO 更新打款記錄
 	}
 	w.Flush()
 	ctx.Status(http.StatusOK)

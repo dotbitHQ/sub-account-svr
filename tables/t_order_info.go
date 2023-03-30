@@ -16,7 +16,7 @@ const (
 
 type OrderInfo struct {
 	Id              int64     `gorm:"column:id;AUTO_INCREMENT" json:"id"`
-	OrderId         string    `gorm:"column:order_id;type:varchar(255);comment:订单号;NOT NULL" json:"order_id"`
+	OrderId         string    `gorm:"column:order_id;uniqueIndex:uk_order_id;type:varchar(255);comment:订单号;NOT NULL" json:"order_id"`
 	Account         string    `gorm:"column:account;type:varchar(255);comment:账号名;NOT NULL" json:"account"`
 	AccountId       string    `gorm:"column:account_id;index:idx_account_id;type:varchar(255);comment:账号id;NOT NULL" json:"account_id"`
 	Address         string    `gorm:"column:address;type:varchar(255);comment:下单地址;NOT NULL" json:"address"`

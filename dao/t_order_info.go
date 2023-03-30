@@ -6,11 +6,11 @@ import (
 )
 
 type OrderAndPaymentInfo struct {
-	Account        string  `gorm:"column:account" json:"account"`
-	AccountId      string  `gorm:"column:account_id" json:"account_id"`
-	ReceiveAddress string  `gorm:"column:receive_address" json:"receive_address"`
-	TokenId        string  `gorm:"column:token_id" json:"token_id"`
-	Amount         float64 `gorm:"column:amount" json:"amount"`
+	Id        int64   `gorm:"column:id" json:"id"`
+	Account   string  `gorm:"column:account" json:"account"`
+	AccountId string  `gorm:"column:account_id" json:"account_id"`
+	TokenId   string  `gorm:"column:token_id" json:"token_id"`
+	Amount    float64 `gorm:"column:amount" json:"amount"`
 }
 
 func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err error) {
@@ -23,7 +23,7 @@ func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err e
 
 func (d *DbDao) FindOrderPaymentInfo(begin, end string, account ...string) (list []OrderAndPaymentInfo, err error) {
 	db := d.db.Raw(`
-select t1.parent_account as account,t1.parent_account_id as account_id,,t1.token_id as token_id,sum(amount) as amount from (
+select t1.id as id,t1.parent_account as account,t1.parent_account_id as account_id,t1.token_id as token_id,t1.amount as amount from (
 SELECT t1.*,t2.token_id,t2.address as payment_address,t2.amount FROM
 		t_order_info as t1
 		LEFT JOIN (
@@ -37,7 +37,7 @@ SELECT t1.*,t2.token_id,t2.address as payment_address,t2.amount FROM
 	WHERE
 		t1.order_status = ?
 		AND t1.created_at >= ?
-		AND t1.created_at <= ?) as t1 GROUP BY parent_account,token_id`, tables.PayStatusSuccess, tables.OrderStatusSuccess, begin, end)
+		AND t1.created_at <= ?) as t1`, tables.PayStatusSuccess, tables.OrderStatusSuccess, begin, end)
 	if len(account) > 0 && account[0] != "" {
 		db = db.Where("account=?", account[0])
 	}
@@ -46,4 +46,13 @@ SELECT t1.*,t2.token_id,t2.address as payment_address,t2.amount FROM
 		err = nil
 	}
 	return
+}
+
+func (d *DbDao) UpdateAutoPaymentIdById(ids []int64, paymentId string) error {
+	if len(ids) <= 0 {
+		return nil
+	}
+	return d.db.Model(&tables.OrderInfo{}).Where("id in (?)", ids).Updates(map[string]interface{}{
+		"auto_payment_id": paymentId,
+	}).Error
 }
