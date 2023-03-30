@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/asaskevich/govalidator"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
@@ -136,27 +137,23 @@ type ExpressionEntity struct {
 }
 
 func (e *ExpressionEntity) ReturnType() ReturnType {
-	if e.Type == Operator || e.Type == Function {
+	if e.Type == Operator || e.Type == Function || e.Type == Value && e.ValueType == Bool {
 		return ReturnTypeBool
 	}
 
-	if e.Type == Value && e.ValueType == Bool {
-		return ReturnTypeBool
-	}
-
-	if e.Type == Value && (e.ValueType == Uint8 || e.ValueType == Uint16 || e.ValueType == Uint32 || e.ValueType == Uint64) {
+	if e.Type == Value && (e.ValueType == Uint8 || e.ValueType == Uint16 || e.ValueType == Uint32 || e.ValueType == Uint64) ||
+		e.Type == Variable && e.Name == AccountLength {
 		return ReturnTypeNumber
 	}
 
-	if e.Type == Variable && e.Name == AccountLength {
-		return ReturnTypeNumber
-	}
-
-	if e.Type == Value && e.ValueType == String || e.Type == Variable && e.Name == Account {
+	if e.Type == Value && e.ValueType == String ||
+		e.Type == Variable && e.Name == Account ||
+		e.Type == Value && e.ValueType == Binary {
 		return ReturnTypeString
 	}
-
-	if e.Type == Variable && e.Name == AccountChars || e.Type == Value && e.ValueType == StringArray {
+	if e.Type == Variable && e.Name == AccountChars ||
+		e.Type == Value && e.ValueType == StringArray ||
+		e.Type == Value && e.ValueType == BinaryArray {
 		return ReturnTypeStringArray
 	}
 	return ReturnTypeUnknown
@@ -324,7 +321,7 @@ func handleFunctionInList(exp *ExpressionEntity, checkHit bool, account string) 
 	}
 	value := exp.Arguments[1]
 	strArray := gconv.Strings(value.Value)
-	if len(strArray) == 0 || value.Type != Value || value.ValueType != BinaryArray {
+	if len(strArray) == 0 || value.Type != Value || (value.ValueType != BinaryArray && value.ValueType != StringArray) {
 		err = fmt.Errorf("function %s args[1] value must be []string and length must > 0", exp.Name)
 		return
 	}
@@ -333,10 +330,19 @@ func handleFunctionInList(exp *ExpressionEntity, checkHit bool, account string) 
 		return
 	}
 
+	accBinary := common.Bytes2Hex(common.Blake2b([]byte(account))[:20])
 	for _, v := range strArray {
-		if v == account {
-			hit = true
-			return
+		switch value.ValueType {
+		case StringArray:
+			if v == account {
+				hit = true
+				return
+			}
+		case BinaryArray:
+			if v == accBinary {
+				hit = true
+				return
+			}
 		}
 	}
 	return
