@@ -102,7 +102,7 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 	//	//log.Info("rollback CurrentRoot:", task.ParentAccountId, common.Bytes2Hex(root))
 	//}
 
-	if task.TaskType == tables.TaskTypeDelegate && task.Retry < t.MaxRetry {
+	if task.Action == common.DasActionUpdateSubAccount && task.TaskType == tables.TaskTypeDelegate && task.Retry < t.MaxRetry {
 		if err := t.DbDao.UpdateSmtRecordToNeedToWrite(task.TaskId, task.Retry+1); err != nil {
 			return fmt.Errorf("UpdateSmtRecordToNeedToWrite err: %s", err.Error())
 		}
