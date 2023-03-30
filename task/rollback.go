@@ -88,10 +88,12 @@ func (t *SmtTask) rollback(task *tables.TableTaskInfo) error {
 			value,
 		})
 	}
-	opt := smt.SmtOpt{GetProof: false, GetRoot: false}
-	_, err = tree.UpdateSmt(smtKv, opt)
-	if err != nil {
-		return fmt.Errorf("tree.Update err: %s", err.Error())
+	if len(smtKv) > 0 {
+		opt := smt.SmtOpt{GetProof: false, GetRoot: false}
+		_, err = tree.UpdateSmt(smtKv, opt)
+		if err != nil {
+			return fmt.Errorf("tree.Update err: %s", err.Error())
+		}
 	}
 
 	//if _, err = tree.Root(); err != nil {
