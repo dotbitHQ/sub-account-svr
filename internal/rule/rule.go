@@ -189,15 +189,15 @@ func NewSubAccountRule() *SubAccountRule {
 	return &SubAccountRule{}
 }
 
-func NewSubAccountRuleSlice() SubAccountRuleSlice {
-	return make(SubAccountRuleSlice, 0)
+func NewSubAccountRuleSlice() *SubAccountRuleSlice {
+	return &SubAccountRuleSlice{}
 }
 
-func (s SubAccountRuleSlice) Parser(data []byte) (err error) {
-	if err = json.Unmarshal(data, &s); err != nil {
+func (s *SubAccountRuleSlice) Parser(data []byte) (err error) {
+	if err = json.Unmarshal(data, s); err != nil {
 		return
 	}
-	for _, v := range s {
+	for _, v := range *s {
 		if v.Name == "" {
 			err = errors.New("name can't be empty")
 			return
@@ -213,10 +213,11 @@ func (s SubAccountRuleSlice) Parser(data []byte) (err error) {
 	return
 }
 
-func (s SubAccountRuleSlice) Hit(account string) (hit bool, err error) {
-	for _, v := range s {
+func (s *SubAccountRuleSlice) Hit(account string) (hit bool, index int, err error) {
+	for idx, v := range *s {
 		hit, err = v.Ast.Process(true, account)
 		if err != nil || hit {
+			index = idx
 			return
 		}
 	}
