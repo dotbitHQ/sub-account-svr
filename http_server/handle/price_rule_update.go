@@ -4,7 +4,6 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
-	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -17,21 +16,16 @@ import (
 	"net/http"
 )
 
-type ReqConfigAutoMintUpdate struct {
+type ReqPriceRuleUpdate struct {
 	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
-	Enable  bool   `json:"enable"`
 }
 
-type RespConfigAutoMintUpdate struct {
-	SignInfoList
-}
-
-func (h *HttpHandle) ConfigAutoMintUpdate(ctx *gin.Context) {
+func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 	var (
-		funcName = "ConfigAutoMintUpdate"
+		funcName = "PriceRuleUpdate"
 		clientIp = GetClientIp(ctx)
-		req      ReqConfigAutoMintUpdate
+		req      ReqPriceRuleUpdate
 		apiResp  api_code.ApiResp
 		err      error
 	)
@@ -44,13 +38,13 @@ func (h *HttpHandle) ConfigAutoMintUpdate(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doConfigAutoMintUpdate(&req, &apiResp); err != nil {
+	if err = h.doPriceRuleUpdate(&req, &apiResp); err != nil {
 		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -153,11 +147,10 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	})
 	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
-	if req.Enable {
-		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
-	} else {
-		subAccountCellDetail.AutoDistribution = witness.AutoDistributionDefault
-	}
+	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
+
+	// TODO PriceRulesHash/PreservedRulesHash
+
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
@@ -165,76 +158,5 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		txParams.Outputs = append(txParams.Outputs, v.Output)
 		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
 	}
-
-	// build tx
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
-	if err := txBuilder.BuildTransaction(txParams); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-
-	// TODO 是否单独记录ckb消耗
-	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-	changeCapacity = changeCapacity - sizeInBlock - 5000
-	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
-
-	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
-
-	hash, err := txBuilder.Transaction.ComputeHash()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), hash.String())
-
-	signKey, signList, err := h.buildTx(&paramBuildTx{
-		txParams:  txParams,
-		chainType: res.ChainType,
-		address:   res.AddressHex,
-		action:    common.DasActionConfigSubAccount,
-		account:   req.Account,
-	})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
-		return fmt.Errorf("buildTx err: %s", err.Error())
-	}
-
-	resp := RespConfigAutoMintUpdate{}
-	resp.Action = common.DasActionConfigSubAccount
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: signList,
-	})
-	log.Info("doCustomScript:", toolib.JsonString(resp))
-
-	if err := h.DbDao.CreatePriceConfig(tables.PriceConfig{
-		Account:   req.Account,
-		AccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
-		Action:    tables.PriceConfigActionAutoMintSwitch,
-		TxHash:    hash.String(),
-	}); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return fmt.Errorf("CreatePriceConfig err: %s", err.Error())
-	}
-
-	apiResp.ApiRespOK(resp)
 	return nil
-}
-
-func (h *HttpHandle) getAccountOrSubAccountCell(contract *core.DasContractInfo, parentAccountId string) (*indexer.LiveCell, error) {
-	searchKey := indexer.SearchKey{
-		Script:     contract.ToScript(common.Hex2Bytes(parentAccountId)),
-		ScriptType: indexer.ScriptTypeType,
-		ArgsLen:    0,
-		Filter:     nil,
-	}
-	liveCell, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
-	if err != nil {
-		return nil, fmt.Errorf("GetCells err: %s", err.Error())
-	}
-	if subLen := len(liveCell.Objects); subLen != 1 {
-		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
-	}
-	return liveCell.Objects[0], nil
 }

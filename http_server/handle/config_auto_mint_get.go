@@ -84,11 +84,11 @@ func (h *HttpHandle) doConfigAutoMintGet(req *ReqConfigAutoMintGet, apiResp *api
 	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 
 	resp := RespConfigAutoMintGet{
-		Enable: true,
+		Enable: false,
 	}
 	if subAccountCellDetail.Flag == witness.FlagTypeCustomRule &&
-		subAccountCellDetail.DisableAutoDistribution == witness.DisableAutoDistributionEnable {
-		resp.Enable = false
+		subAccountCellDetail.AutoDistribution == witness.AutoDistributionEnable {
+		resp.Enable = true
 	}
 	apiResp.ApiRespOK(resp)
 	return nil
