@@ -4,21 +4,55 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
+	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
+	"github.com/thoas/go-funk"
+	"math"
 	"net/http"
+	"strings"
 )
+
+type RuleType int
+
+const (
+	RuleTypeConditions RuleType = 1
+	RuleTypeWhitelist  RuleType = 2
+)
+
+var Ops = []string{"==", ">", ">=", "<", "<="}
+var Functions = []string{"include_chars", "only_include_charset"}
 
 type ReqPriceRuleUpdate struct {
 	core.ChainTypeAddress
-	Account string `json:"account" binding:"required"`
+	Account string   `json:"account" binding:"required"`
+	List    ReqRules `json:"list" binding:"required"`
+}
+
+type ReqRules []ReqRule
+
+type ReqRule struct {
+	Name       string         `json:"name" binding:"required"`
+	Note       string         `json:"note"`
+	Price      float64        `json:"price"`
+	Type       RuleType       `json:"type" binding:"required;oneof=1 2"`
+	Whitelist  []string       `json:"whitelist"`
+	Conditions []ReqCondition `json:"conditions"`
+}
+
+type ReqCondition struct {
+	VarName witness.VariableName `json:"var_name" binding:"required;oneof=account_chars account_length"`
+	Op      string               `json:"op" binding:"required;oneof=include_chars only_include_charset == > >= < <="`
+	Value   interface{}          `json:"value" binding:"required"`
 }
 
 func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
@@ -45,6 +79,11 @@ func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
+	// req params check
+	if err := h.reqCheck(req, apiResp); err != nil {
+		return err
+	}
+
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -149,7 +188,17 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
 	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 
-	// TODO PriceRulesHash/PreservedRulesHash
+	priceRuleWitnessData, err := req.ParseToSubAccountRule()
+	if err != nil {
+		return err
+	}
+	totalBytes := make([]byte, 0)
+	for i := 0; i < len(priceRuleWitnessData); i++ {
+		totalBytes = append(totalBytes, priceRuleWitnessData[i]...)
+		txParams.Witnesses = append(txParams.Witnesses, priceRuleWitnessData[i])
+	}
+	hash, _ := blake2b.Blake256(totalBytes)
+	subAccountCellDetail.PriceRulesHash = hash[:10]
 
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
@@ -158,5 +207,195 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		txParams.Outputs = append(txParams.Outputs, v.Output)
 		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
 	}
+
+	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+		if actionDataType == common.DasActionSubAccountPreservedRule {
+			txParams.Witnesses = append(txParams.Witnesses, dataBys)
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+
+	// build tx
+	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
+	if err := txBuilder.BuildTransaction(txParams); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
+		return err
+	}
+
+	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
+	changeCapacity = changeCapacity - sizeInBlock - 5000
+	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
+
+	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
+
+	txHash, err := txBuilder.Transaction.ComputeHash()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
+		return err
+	}
+	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), txHash.String())
+
+	signKey, signList, err := h.buildTx(&paramBuildTx{
+		txParams:  txParams,
+		chainType: res.ChainType,
+		address:   res.AddressHex,
+		action:    common.DasActionConfigSubAccount,
+		account:   req.Account,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
+		return fmt.Errorf("buildTx err: %s", err.Error())
+	}
+
+	resp := RespConfigAutoMintUpdate{}
+	resp.Action = common.DasActionConfigSubAccount
+	resp.SignKey = signKey
+	resp.List = append(resp.List, SignInfo{
+		SignList: signList,
+	})
+	log.Info("doCustomScript:", toolib.JsonString(resp))
+
+	if err := h.DbDao.CreatePriceConfig(tables.PriceConfig{
+		Account:   req.Account,
+		AccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
+		Action:    tables.PriceConfigActionAutoMintSwitch,
+		TxHash:    txHash.String(),
+	}); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return fmt.Errorf("CreatePriceConfig err: %s", err.Error())
+	}
+	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
+	for _, v := range req.List {
+		if v.Type == RuleTypeConditions && len(v.Conditions) == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("params invalid")
+		}
+
+		if v.Type == RuleTypeWhitelist && len(v.Whitelist) == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("params invalid")
+		}
+
+		if v.Price > 0 && float64(int(v.Price*100))/100 != v.Price {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("params invalid")
+		}
+
+		switch v.Type {
+		case RuleTypeConditions:
+			for _, vv := range v.Conditions {
+				if vv.VarName == witness.Account && vv.Op != string(witness.FunctionIncludeCharts) {
+					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+					return fmt.Errorf("params invalid")
+				}
+
+				if vv.Value == witness.AccountChars && vv.Op != string(witness.FunctionOnlyIncludeCharset) {
+					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+					return fmt.Errorf("params invalid")
+				}
+
+				if vv.Value == witness.AccountLength {
+					find := false
+					for _, op := range Ops {
+						if vv.Op == op {
+							find = true
+							break
+						}
+					}
+					if !find {
+						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+						return fmt.Errorf("params invalid")
+					}
+				}
+			}
+		case RuleTypeWhitelist:
+			if len(v.Whitelist) == 0 {
+				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+				return fmt.Errorf("params invalid")
+			}
+		}
+	}
+	return nil
+}
+
+func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
+	ruleEntity := witness.NewSubAccountRuleEntity(r.Account)
+	for i := 0; i < len(r.List); i++ {
+		ruleReq := r.List[i]
+		rule := witness.SubAccountRule{
+			Index: uint32(i),
+			Name:  ruleReq.Name,
+			Note:  ruleReq.Note,
+			Price: uint64(math.Pow10(6) * ruleReq.Price),
+		}
+		switch ruleReq.Type {
+		case RuleTypeConditions:
+			for _, v := range ruleReq.Conditions {
+				if funk.Contains(Functions, v.Op) {
+					rule.Ast.Type = witness.Function
+					rule.Ast.Name = v.Op
+					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+						Type: witness.Variable,
+						Name: string(v.VarName),
+					})
+
+					if v.Op == string(witness.FunctionIncludeCharts) {
+						rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+							Type:      witness.Value,
+							ValueType: witness.StringArray,
+							Value:     gconv.Strings(v.Value),
+						})
+					}
+					if v.Op == string(witness.FunctionOnlyIncludeCharset) {
+						rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+							Type:      witness.Value,
+							ValueType: witness.Charset,
+							Value:     gconv.String(v.Value),
+						})
+					}
+				} else {
+					rule.Ast.Type = witness.Operator
+					rule.Ast.Symbol = witness.SymbolType(v.Op)
+					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+						Type: witness.Variable,
+						Name: string(v.VarName),
+					})
+					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+						Type:      witness.Value,
+						ValueType: witness.Uint8,
+						Value:     gconv.Uint8(v.Value),
+					})
+				}
+			}
+		case RuleTypeWhitelist:
+			rule.Ast.Type = witness.Function
+			rule.Ast.Name = string(witness.FunctionInList)
+			rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+				Type: witness.Variable,
+				Name: string(witness.Account),
+			})
+
+			subAccountIds := make([]string, 0)
+			for _, v := range ruleReq.Whitelist {
+				subAccount := strings.Split(strings.TrimSpace(v), ".")[0]
+				subAccount = subAccount + "." + r.Account
+				subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(subAccount))
+				subAccountIds = append(subAccountIds, subAccountId)
+			}
+			rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+				Type:      witness.Value,
+				ValueType: witness.BinaryArray,
+				Value:     subAccountIds,
+			})
+		}
+		ruleEntity.Rules = append(ruleEntity.Rules, rule)
+	}
+	return ruleEntity.GenWitnessData(common.DasActionSubAccountPriceRule)
 }
