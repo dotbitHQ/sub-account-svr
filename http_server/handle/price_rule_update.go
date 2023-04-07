@@ -109,17 +109,23 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		return err
 	}
 
-	accountCell, err := h.getAccountOrSubAccountCell(baseInfo.ContractAcc, parentAccountId)
+	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
 		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
 	}
-	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountCell.OutPoint.TxHash)
+	if accountInfo.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
+		return fmt.Errorf("account no exist")
+	}
+	accountOutpoint := common.String2OutPointStruct(accountInfo.Outpoint)
+	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutpoint.TxHash)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
 		return err
 	}
-	subAccountCell, err := h.getAccountOrSubAccountCell(baseInfo.ContractAcc, parentAccountId)
+
+	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
@@ -158,7 +164,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	txParams.Inputs = append(txParams.Inputs,
 		&types.CellInput{
-			PreviousOutput: accountCell.OutPoint,
+			PreviousOutput: accountOutpoint,
 		},
 		&types.CellInput{
 			PreviousOutput: subAccountCell.OutPoint,
@@ -172,11 +178,11 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	// account cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: accountTx.Transaction.Outputs[accountCell.TxIndex].Capacity,
-		Lock:     accountTx.Transaction.Outputs[accountCell.TxIndex].Lock,
-		Type:     accountTx.Transaction.Outputs[accountCell.TxIndex].Type,
+		Capacity: accountTx.Transaction.Outputs[accountOutpoint.Index].Capacity,
+		Lock:     accountTx.Transaction.Outputs[accountOutpoint.Index].Lock,
+		Type:     accountTx.Transaction.Outputs[accountOutpoint.Index].Type,
 	})
-	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountCell.TxIndex])
+	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
 
 	// sub_account cell
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
