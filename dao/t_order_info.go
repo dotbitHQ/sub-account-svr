@@ -56,3 +56,11 @@ func (d *DbDao) UpdateAutoPaymentIdById(ids []int64, paymentId string) error {
 		"auto_payment_id": paymentId,
 	}).Error
 }
+
+func (d *DbDao) UpdateOrderStatusOk(orderId string) error {
+	return d.db.Model(tables.OrderInfo{}).
+		Where("order_id=? AND order_status=?", orderId, tables.OrderStatusDefault).
+		Updates(map[string]interface{}{
+			"order_status": tables.OrderStatusSuccess,
+		}).Error
+}

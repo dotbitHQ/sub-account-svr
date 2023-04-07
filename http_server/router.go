@@ -58,6 +58,7 @@ func (h *HttpServer) initRouter() {
 
 		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
 		internalV1.POST("/payment/report_export", h.H.PaymentReportExport)
+		internalV1.POST("/unipay/notice", h.H.UniPayNotice)
 	}
 }
 
