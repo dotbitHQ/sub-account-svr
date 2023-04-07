@@ -29,7 +29,7 @@ const (
 	RuleTypeWhitelist  RuleType = 2
 )
 
-var Ops = []string{"==", ">", ">=", "<", "<="}
+var Ops = []string{"==", ">", ">=", "<", "<=", "not"}
 var Functions = []string{"include_chars", "only_include_charset"}
 
 type ReqPriceRuleUpdate struct {
@@ -51,7 +51,7 @@ type ReqRule struct {
 
 type ReqCondition struct {
 	VarName witness.VariableName `json:"var_name" binding:"required;oneof=account_chars account_length"`
-	Op      string               `json:"op" binding:"required;oneof=include_chars only_include_charset == > >= < <="`
+	Op      string               `json:"op" binding:"required;oneof=include_chars only_include_charset == > >= < <= not"`
 	Value   interface{}          `json:"value" binding:"required"`
 }
 
@@ -197,7 +197,10 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		totalBytes = append(totalBytes, priceRuleWitnessData[i]...)
 		txParams.Witnesses = append(txParams.Witnesses, priceRuleWitnessData[i])
 	}
-	hash, _ := blake2b.Blake256(totalBytes)
+	hash, err := blake2b.Blake256(totalBytes)
+	if err != nil {
+		return err
+	}
 	subAccountCellDetail.PriceRulesHash = hash[:10]
 
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
