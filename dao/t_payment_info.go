@@ -3,6 +3,7 @@ package dao
 import (
 	"das_sub_account/tables"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (d *DbDao) FindPaymentInfoByOrderId(orderID string) (list []tables.PaymentInfo, err error) {
@@ -21,4 +22,11 @@ func (d *DbDao) GetPaymentInfoByOrderId(orderID string) (payment tables.PaymentI
 		err = nil
 	}
 	return
+}
+
+// =====
+func (d *DbDao) CreatePaymentInfo(info tables.PaymentInfo) error {
+	return d.db.Clauses(clause.Insert{
+		Modifier: "IGNORE",
+	}).Create(&info).Error
 }

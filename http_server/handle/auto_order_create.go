@@ -2,15 +2,25 @@ package handle
 
 import (
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 )
 
 type ReqAutoOrderCreate struct {
+	core.ChainTypeAddress
+	ActionType tables.ActionType `json:"action_type"`
+	SubAccount string            `json:"sub_account"`
+	TokenId    string            `json:"token_id"`
+	Years      int               `json:"years"`
 }
 
 type RespAutoOrderCreate struct {
+	OrderId        string `json:"order_id"`
+	PaymentAddress string `json:"payment_address"`
+	Amount         string `json:"amount"`
 }
 
 func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {

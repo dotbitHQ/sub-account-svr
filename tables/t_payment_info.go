@@ -48,7 +48,6 @@ type PaymentInfo struct {
 	Id            uint64        `json:"id" gorm:"column:id; primaryKey; type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '';"`
 	PayHash       string        `json:"pay_hash" gorm:"column:pay_hash; uniqueIndex:uk_pay_hash; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	OrderId       string        `json:"order_id" gorm:"column:order_id; index:idx_order_id; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
-	PayAddress    string        `json:"pay_address" gorm:"column:pay_address; index:idx_pay_address; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	PayHashStatus PayHashStatus `json:"pay_hash_status" gorm:"column:pay_hash_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-pending 1-confirmed 2-rejected';"`
 	RefundHash    string        `json:"refund_hash" gorm:"column:refund_hash; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	RefundStatus  RefundStatus  `json:"refund_status" gorm:"column:refund_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-default 1-unrefund 2-refunding 3-refunded';"`
