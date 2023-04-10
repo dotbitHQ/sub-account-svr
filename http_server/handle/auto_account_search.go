@@ -13,12 +13,12 @@ import (
 	"strings"
 )
 
-type ReqMintAccountSearch struct {
+type ReqAutoAccountSearch struct {
 	core.ChainTypeAddress
 	SubAccount string `json:"sub_account"`
 }
 
-type RespMintAccountSearch struct {
+type RespAutoAccountSearch struct {
 	Price   decimal.Decimal `json:"price"`
 	MaxYear int64           `json:"max_year"`
 	Status  AccStatus       `json:"status"`
@@ -33,11 +33,11 @@ const (
 	AccStatusRegistered   AccStatus = 2
 )
 
-func (h *HttpHandle) MintAccountSearch(ctx *gin.Context) {
+func (h *HttpHandle) AutoAccountSearch(ctx *gin.Context) {
 	var (
-		funcName = "MintAccountSearch"
+		funcName = "AutoAccountSearch"
 		clientIp = GetClientIp(ctx)
-		req      ReqMintAccountSearch
+		req      ReqAutoAccountSearch
 		apiResp  api_code.ApiResp
 		err      error
 	)
@@ -50,15 +50,15 @@ func (h *HttpHandle) MintAccountSearch(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doMintAccountSearch(&req, &apiResp); err != nil {
-		log.Error("doMintAccountSearch err:", err.Error(), funcName, clientIp)
+	if err = h.doAutoAccountSearch(&req, &apiResp); err != nil {
+		log.Error("doAutoAccountSearch err:", err.Error(), funcName, clientIp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doMintAccountSearch(req *ReqMintAccountSearch, apiResp *api_code.ApiResp) error {
-	var resp RespMintAccountSearch
+func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api_code.ApiResp) error {
+	var resp RespAutoAccountSearch
 	// check key info
 	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {

@@ -7,19 +7,17 @@ import (
 	"net/http"
 )
 
-type ReqVersion struct {
-	Version string `json:"version"`
+type ReqAutoOrderHash struct {
 }
 
-type RespVersion struct {
-	Version string `json:"version"`
+type RespAutoOrderHash struct {
 }
 
-func (h *HttpHandle) Version(ctx *gin.Context) {
+func (h *HttpHandle) AutoOrderHash(ctx *gin.Context) {
 	var (
-		funcName = "Version"
+		funcName = "AutoOrderHash"
 		clientIp = GetClientIp(ctx)
-		req      ReqVersion
+		req      ReqAutoOrderHash
 		apiResp  api_code.ApiResp
 		err      error
 	)
@@ -32,17 +30,16 @@ func (h *HttpHandle) Version(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doVersion(&req, &apiResp); err != nil {
-		log.Error("doVersion err:", err.Error(), funcName, clientIp)
+	if err = h.doAutoOrderHash(&req, &apiResp); err != nil {
+		log.Error("doAutoOrderHash err:", err.Error(), funcName, clientIp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doVersion(req *ReqVersion, apiResp *api_code.ApiResp) error {
-	var resp RespVersion
+func (h *HttpHandle) doAutoOrderHash(req *ReqAutoOrderHash, apiResp *api_code.ApiResp) error {
+	var resp RespAutoOrderHash
 
-	resp.Version = req.Version
 	apiResp.ApiRespOK(resp)
 	return nil
 }

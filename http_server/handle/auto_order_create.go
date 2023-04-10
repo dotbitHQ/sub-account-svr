@@ -7,19 +7,17 @@ import (
 	"net/http"
 )
 
-type ReqVersion struct {
-	Version string `json:"version"`
+type ReqAutoOrderCreate struct {
 }
 
-type RespVersion struct {
-	Version string `json:"version"`
+type RespAutoOrderCreate struct {
 }
 
-func (h *HttpHandle) Version(ctx *gin.Context) {
+func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
 	var (
-		funcName = "Version"
+		funcName = "AutoOrderCreate"
 		clientIp = GetClientIp(ctx)
-		req      ReqVersion
+		req      ReqAutoOrderCreate
 		apiResp  api_code.ApiResp
 		err      error
 	)
@@ -32,17 +30,16 @@ func (h *HttpHandle) Version(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doVersion(&req, &apiResp); err != nil {
-		log.Error("doVersion err:", err.Error(), funcName, clientIp)
+	if err = h.doAutoOrderCreate(&req, &apiResp); err != nil {
+		log.Error("doAutoOrderCreate err:", err.Error(), funcName, clientIp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doVersion(req *ReqVersion, apiResp *api_code.ApiResp) error {
-	var resp RespVersion
+func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_code.ApiResp) error {
+	var resp RespAutoOrderCreate
 
-	resp.Version = req.Version
 	apiResp.ApiRespOK(resp)
 	return nil
 }
