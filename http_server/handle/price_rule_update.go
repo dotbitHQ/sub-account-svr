@@ -17,6 +17,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"math"
 	"net/http"
 	"strings"
@@ -29,24 +30,24 @@ const (
 	RuleTypeWhitelist  RuleType = 2
 )
 
-var Ops = []string{"==", ">", ">=", "<", "<=", "not"}
-var Functions = []string{"include_chars", "only_include_charset"}
+var Ops = map[string]struct{}{"==": {}, ">": {}, ">=": {}, "<": {}, "<=": {}, "not": {}}
+var Functions = map[string]struct{}{"include_chars": {}, "only_include_charset": {}}
 
 type ReqPriceRuleUpdate struct {
 	core.ChainTypeAddress
-	Account string   `json:"account" binding:"required"`
-	List    ReqRules `json:"list" binding:"required"`
+	Account string `json:"account" binding:"required"`
+	List    Rules  `json:"list" binding:"required"`
 }
 
-type ReqRules []ReqRule
+type Rules []Rule
 
-type ReqRule struct {
+type Rule struct {
 	Name       string         `json:"name" binding:"required"`
 	Note       string         `json:"note"`
 	Price      float64        `json:"price"`
 	Type       RuleType       `json:"type" binding:"required;oneof=1 2"`
-	Whitelist  []string       `json:"whitelist"`
-	Conditions []ReqCondition `json:"conditions"`
+	Whitelist  []string       `json:"whitelist,omitempty"`
+	Conditions []ReqCondition `json:"conditions,omitempty"`
 }
 
 type ReqCondition struct {
@@ -194,7 +195,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
 	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 
-	priceRuleWitnessData, err := req.ParseToSubAccountRule()
+	priceRuleWitnessData, whiteListMap, err := req.ParseToSubAccountRule()
 	if err != nil {
 		return err
 	}
@@ -267,15 +268,33 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	})
 	log.Info("doCustomScript:", toolib.JsonString(resp))
 
-	if err := h.DbDao.CreatePriceConfig(tables.PriceConfig{
-		Account:   req.Account,
-		AccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
-		Action:    tables.PriceConfigActionAutoMintSwitch,
-		TxHash:    txHash.String(),
+	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(tables.PriceConfig{
+			Account:   req.Account,
+			AccountId: parentAccountId,
+			Action:    tables.PriceConfigActionPriceRules,
+			TxHash:    txHash.String(),
+		}).Error; err != nil {
+			return err
+		}
+		for accountId, whiteList := range whiteListMap {
+			if err := tx.Create(tables.RuleWhitelist{
+				TxHash:          txHash.String(),
+				ParentAccount:   req.Account,
+				ParentAccountId: parentAccountId,
+				RuleType:        tables.RuleTypePriceRules,
+				RuleIndex:       whiteList.Index,
+				Account:         whiteList.Account,
+				AccountId:       accountId,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return fmt.Errorf("CreatePriceConfig err: %s", err.Error())
+		return err
 	}
+
 	apiResp.ApiRespOK(resp)
 	return nil
 }
@@ -300,25 +319,13 @@ func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp
 		switch v.Type {
 		case RuleTypeConditions:
 			for _, vv := range v.Conditions {
-				if vv.VarName == witness.Account && vv.Op != string(witness.FunctionIncludeCharts) {
+				if _, ok := Functions[vv.Op]; !ok && vv.VarName == witness.AccountChars {
 					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 					return fmt.Errorf("params invalid")
 				}
 
-				if vv.Value == witness.AccountChars && vv.Op != string(witness.FunctionOnlyIncludeCharset) {
-					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-					return fmt.Errorf("params invalid")
-				}
-
-				if vv.Value == witness.AccountLength {
-					find := false
-					for _, op := range Ops {
-						if vv.Op == op {
-							find = true
-							break
-						}
-					}
-					if !find {
+				if vv.VarName == witness.AccountLength {
+					if _, ok := Ops[vv.Op]; !ok {
 						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 						return fmt.Errorf("params invalid")
 					}
@@ -334,7 +341,13 @@ func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp
 	return nil
 }
 
-func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
+type Whitelist struct {
+	Index   int    `json:"index"`
+	Account string `json:"account"`
+}
+
+func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, map[string]Whitelist, error) {
+	whiteList := make(map[string]Whitelist, 0)
 	ruleEntity := witness.NewSubAccountRuleEntity(r.Account)
 	for i := 0; i < len(r.List); i++ {
 		ruleReq := r.List[i]
@@ -347,6 +360,7 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
 		switch ruleReq.Type {
 		case RuleTypeConditions:
 			for _, v := range ruleReq.Conditions {
+
 				if funk.Contains(Functions, v.Op) {
 					rule.Ast.Type = witness.Function
 					rule.Ast.Name = v.Op
@@ -369,19 +383,20 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
 							Value:     gconv.String(v.Value),
 						})
 					}
-				} else {
-					rule.Ast.Type = witness.Operator
-					rule.Ast.Symbol = witness.SymbolType(v.Op)
-					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-						Type: witness.Variable,
-						Name: string(v.VarName),
-					})
-					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-						Type:      witness.Value,
-						ValueType: witness.Uint8,
-						Value:     gconv.Uint8(v.Value),
-					})
+					continue
 				}
+
+				rule.Ast.Type = witness.Operator
+				rule.Ast.Symbol = witness.SymbolType(v.Op)
+				rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+					Type: witness.Variable,
+					Name: string(v.VarName),
+				})
+				rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+					Type:      witness.Value,
+					ValueType: witness.Uint8,
+					Value:     gconv.Uint8(v.Value),
+				})
 			}
 		case RuleTypeWhitelist:
 			rule.Ast.Type = witness.Function
@@ -397,6 +412,10 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
 				subAccount = subAccount + "." + r.Account
 				subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(subAccount))
 				subAccountIds = append(subAccountIds, subAccountId)
+				whiteList[subAccountId] = Whitelist{
+					Index:   i,
+					Account: subAccount,
+				}
 			}
 			rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
 				Type:      witness.Value,
@@ -406,5 +425,10 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, error) {
 		}
 		ruleEntity.Rules = append(ruleEntity.Rules, rule)
 	}
-	return ruleEntity.GenWitnessData(common.DasActionSubAccountPriceRule)
+
+	res, err := ruleEntity.GenWitnessData(common.DasActionSubAccountPriceRule)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res, whiteList, nil
 }

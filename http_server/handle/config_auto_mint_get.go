@@ -71,7 +71,7 @@ func (h *HttpHandle) doConfigAutoMintGet(req *ReqConfigAutoMintGet, apiResp *api
 		return err
 	}
 
-	subAccountCell, err := h.getAccountOrSubAccountCell(baseInfo.ContractAcc, parentAccountId)
+	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())

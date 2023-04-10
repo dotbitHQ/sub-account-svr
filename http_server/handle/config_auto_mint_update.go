@@ -92,7 +92,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractAcc, parentAccountId)
+	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
@@ -172,6 +172,10 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
 	}
 
+	for _, v := range subAccountTx.Transaction.Witnesses {
+		txParams.Witnesses = append(txParams.Witnesses, v)
+	}
+
 	// build tx
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(txParams); err != nil {
@@ -179,7 +183,6 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	// TODO 是否单独记录ckb消耗
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 	changeCapacity = changeCapacity - sizeInBlock - 5000
