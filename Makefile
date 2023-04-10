@@ -13,3 +13,9 @@ slb:
 
 update:
 	go mod tidy
+
+docker:
+	docker build --network host -t dotbitteam/sub-account-svr:latest .
+
+docker-publish:
+	docker image push dotbitteam/sub-account-svr:latest
