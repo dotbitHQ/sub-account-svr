@@ -398,7 +398,7 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 	}
 
 	bys, _ := blake2b.Blake256(data)
-	signData.SignMsg = common.PersonSignPrefix + hex.EncodeToString(bys)
+	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	log.Info("GetEditSignData:", u.ExpiredAt, signData.SignMsg)
 	return
 }
@@ -420,7 +420,7 @@ func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, 
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("blake2b.Blake256 err: %s", err.Error()))
 		return
 	}
-	signData.SignMsg = common.PersonSignPrefix + hex.EncodeToString(bys)
+	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	log.Info("GetCreateSignData:", signData.SignMsg, u.MinSignInfo.ExpiredAt, u.MinSignInfo.SmtRoot)
 	// sig msg
 	signData.SignType = acc.ManagerAlgorithmId

@@ -3,7 +3,7 @@ module das_sub_account
 go 1.16
 
 require (
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230410033543-e39d94f3817d
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230410064753-d92e496519f2
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-redis/redis v6.15.9+incompatible
