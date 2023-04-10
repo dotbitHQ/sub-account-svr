@@ -34,6 +34,8 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/distribution/list", api_code.DoMonitorLog("distribution_list"), cacheHandleShort, h.H.DistributionList)
 		v1.POST("/currency/list", api_code.DoMonitorLog("currency_list"), cacheHandleShort, h.H.CurrencyList)
 		v1.POST("/config/auto_mint/get", api_code.DoMonitorLog("config_auto_mint_get"), cacheHandleShort, h.H.ConfigAutoMintGet)
+		v1.POST("/price/rule/list", api_code.DoMonitorLog("price_rule_list"), cacheHandleShort, h.H.PriceRuleList)
+		v1.POST("/preserved/rule/list", api_code.DoMonitorLog("preserved_rule_list"), cacheHandleShort, h.H.PreservedRuleList)
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)
@@ -47,7 +49,8 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
 		v1.POST("/mint/config/update", api_code.DoMonitorLog("mint_config_update"), h.H.MintConfigUpdate)
 		v1.POST("/config/auto_mint/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.ConfigAutoMintUpdate)
-		v1.POST("/price/rule/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.PriceRuleUpdate)
+		v1.POST("/price/rule/update", api_code.DoMonitorLog("price_rule_update"), h.H.PriceRuleUpdate)
+		v1.POST("/preserved/rule/update", api_code.DoMonitorLog("preserved_rule_update"), h.H.PreservedRuleUpdate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

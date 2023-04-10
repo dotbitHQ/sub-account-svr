@@ -39,13 +39,13 @@ func (h *HttpHandle) PriceRuleList(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
-	if err = h.doPriceRuleList(&req, &apiResp); err != nil {
+	if err = h.doRuleList(common.ActionDataTypeSubAccountPriceRules, &req, &apiResp); err != nil {
 		log.Error("doPriceRuleList err:", err.Error(), funcName, clientIp)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doPriceRuleList(req *ReqPriceRuleList, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPriceRuleList, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -83,7 +83,7 @@ func (h *HttpHandle) doPriceRuleList(req *ReqPriceRuleList, apiResp *api_code.Ap
 	}
 
 	subAccountEntity := witness.NewSubAccountRuleEntity(req.Account)
-	if err := subAccountEntity.ParseFromTx(subAccountTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+	if err := subAccountEntity.ParseFromTx(subAccountTx.Transaction, actionDataType); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return err
 	}

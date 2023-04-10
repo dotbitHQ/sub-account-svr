@@ -104,126 +104,8 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	baseInfo, err := h.TxTool.GetBaseInfo()
+	txParams, whiteListMap, err := h.rulesTxAssemble(common.ActionDataTypeSubAccountPriceRules, req, apiResp)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
-		return err
-	}
-
-	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
-		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
-	}
-	if accountInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
-		return fmt.Errorf("account no exist")
-	}
-	accountOutpoint := common.String2OutPointStruct(accountInfo.Outpoint)
-	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutpoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
-		return err
-	}
-
-	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
-	}
-	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return err
-	}
-
-	txParams := &txbuilder.BuildTransactionParams{}
-	txParams.CellDeps = append(txParams.CellDeps,
-		baseInfo.ContractAcc.ToCellDep(),
-		baseInfo.ContractSubAcc.ToCellDep(),
-		baseInfo.TimeCell.ToCellDep(),
-		baseInfo.HeightCell.ToCellDep(),
-		baseInfo.ConfigCellAcc.ToCellDep(),
-		baseInfo.ConfigCellSubAcc.ToCellDep(),
-	)
-
-	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
-		return err
-	}
-	balanceLiveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        dasLock,
-		CapacityNeed:      common.OneCkb,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
-	})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("GetBalanceCells err: %s", err.Error())
-	}
-	txParams.Inputs = append(txParams.Inputs,
-		&types.CellInput{
-			PreviousOutput: accountOutpoint,
-		},
-		&types.CellInput{
-			PreviousOutput: subAccountCell.OutPoint,
-		},
-	)
-	for _, v := range balanceLiveCells {
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: v.OutPoint,
-		})
-	}
-
-	// account cell
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: accountTx.Transaction.Outputs[accountOutpoint.Index].Capacity,
-		Lock:     accountTx.Transaction.Outputs[accountOutpoint.Index].Lock,
-		Type:     accountTx.Transaction.Outputs[accountOutpoint.Index].Type,
-	})
-	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
-
-	// sub_account cell
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Capacity,
-		Lock:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Lock,
-		Type:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Type,
-	})
-	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
-	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
-	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
-
-	priceRuleWitnessData, whiteListMap, err := req.ParseToSubAccountRule()
-	if err != nil {
-		return err
-	}
-	totalBytes := make([]byte, 0)
-	for i := 0; i < len(priceRuleWitnessData); i++ {
-		totalBytes = append(totalBytes, priceRuleWitnessData[i]...)
-		txParams.Witnesses = append(txParams.Witnesses, priceRuleWitnessData[i])
-	}
-	hash, err := blake2b.Blake256(totalBytes)
-	if err != nil {
-		return err
-	}
-	subAccountCellDetail.PriceRulesHash = hash[:10]
-
-	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
-	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
-
-	for _, v := range balanceLiveCells {
-		txParams.Outputs = append(txParams.Outputs, v.Output)
-		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
-	}
-
-	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
-		if actionDataType == common.DasActionSubAccountPreservedRule {
-			txParams.Witnesses = append(txParams.Witnesses, dataBys)
-		}
-		return true, nil
-	}); err != nil {
 		return err
 	}
 
@@ -252,7 +134,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
-		action:    common.DasActionConfigSubAccount,
+		action:    common.DasActionSubAccountPriceRule,
 		account:   req.Account,
 	})
 	if err != nil {
@@ -261,7 +143,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 
 	resp := RespConfigAutoMintUpdate{}
-	resp.Action = common.DasActionConfigSubAccount
+	resp.Action = common.DasActionSubAccountPriceRule
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,
@@ -297,6 +179,147 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return nil, nil, err
+	}
+	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+
+	baseInfo, err := h.TxTool.GetBaseInfo()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+		return nil, nil, err
+	}
+
+	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
+		return nil, nil, fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
+	}
+	if accountInfo.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
+		return nil, nil, fmt.Errorf("account no exist")
+	}
+	accountOutpoint := common.String2OutPointStruct(accountInfo.Outpoint)
+	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutpoint.TxHash)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+		return nil, nil, err
+	}
+
+	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		return nil, nil, fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
+	}
+	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		return nil, nil, err
+	}
+
+	txParams := &txbuilder.BuildTransactionParams{}
+	txParams.CellDeps = append(txParams.CellDeps,
+		baseInfo.ContractAcc.ToCellDep(),
+		baseInfo.ContractSubAcc.ToCellDep(),
+		baseInfo.TimeCell.ToCellDep(),
+		baseInfo.HeightCell.ToCellDep(),
+		baseInfo.ConfigCellAcc.ToCellDep(),
+		baseInfo.ConfigCellSubAcc.ToCellDep(),
+	)
+
+	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
+		return nil, nil, err
+	}
+	balanceLiveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        dasLock,
+		CapacityNeed:      common.OneCkb,
+		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+		SearchOrder:       indexer.SearchOrderDesc,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		return nil, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
+	}
+	txParams.Inputs = append(txParams.Inputs,
+		&types.CellInput{
+			PreviousOutput: accountOutpoint,
+		},
+		&types.CellInput{
+			PreviousOutput: subAccountCell.OutPoint,
+		},
+	)
+	for _, v := range balanceLiveCells {
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: v.OutPoint,
+		})
+	}
+
+	// account cell
+	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+		Capacity: accountTx.Transaction.Outputs[accountOutpoint.Index].Capacity,
+		Lock:     accountTx.Transaction.Outputs[accountOutpoint.Index].Lock,
+		Type:     accountTx.Transaction.Outputs[accountOutpoint.Index].Type,
+	})
+	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
+
+	// sub_account cell
+	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+		Capacity: subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Capacity,
+		Lock:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Lock,
+		Type:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Type,
+	})
+	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
+	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
+
+	rulesWitnessData, whiteListMap, err := req.ParseToSubAccountRule(inputActionDataType)
+	if err != nil {
+		return nil, nil, err
+	}
+	totalBytes := make([]byte, 0)
+	for i := 0; i < len(rulesWitnessData); i++ {
+		totalBytes = append(totalBytes, rulesWitnessData[i]...)
+		txParams.Witnesses = append(txParams.Witnesses, rulesWitnessData[i])
+	}
+
+	// TODO change splicing rules
+	hash, err := blake2b.Blake256(totalBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	switch inputActionDataType {
+	case common.ActionDataTypeSubAccountPriceRules:
+		subAccountCellDetail.PriceRulesHash = hash[:10]
+	case common.ActionDataTypeSubAccountPreservedRules:
+		subAccountCellDetail.PreservedRulesHash = hash[:10]
+	}
+
+	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
+	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
+
+	for _, v := range balanceLiveCells {
+		txParams.Outputs = append(txParams.Outputs, v.Output)
+		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
+	}
+
+	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+		if actionDataType != inputActionDataType {
+			txParams.Witnesses = append(txParams.Witnesses, dataBys)
+		}
+		return true, nil
+	}); err != nil {
+		return nil, nil, err
+	}
+	return txParams, whiteListMap, nil
 }
 
 func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
@@ -346,7 +369,7 @@ type Whitelist struct {
 	Account string `json:"account"`
 }
 
-func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, map[string]Whitelist, error) {
+func (r *ReqPriceRuleUpdate) ParseToSubAccountRule(actionDataType common.ActionDataType) ([][]byte, map[string]Whitelist, error) {
 	whiteList := make(map[string]Whitelist, 0)
 	ruleEntity := witness.NewSubAccountRuleEntity(r.Account)
 	for i := 0; i < len(r.List); i++ {
@@ -426,7 +449,7 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() ([][]byte, map[string]White
 		ruleEntity.Rules = append(ruleEntity.Rules, rule)
 	}
 
-	res, err := ruleEntity.GenWitnessData(common.DasActionSubAccountPriceRule)
+	res, err := ruleEntity.GenWitnessData(actionDataType)
 	if err != nil {
 		return nil, nil, err
 	}
