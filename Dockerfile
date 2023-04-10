@@ -29,7 +29,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 COPY --from=build /app/sub-account /app/sub-account
-COPY --from=build /app/config/config.yaml /app/config/config.yaml
+COPY --from=build /app/config/config.example.yaml /app/config/config.yaml
 
 EXPOSE 8125 8126
 
