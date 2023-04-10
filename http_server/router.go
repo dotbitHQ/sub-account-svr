@@ -48,6 +48,8 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/mint/config/update", api_code.DoMonitorLog("mint_config_update"), h.H.MintConfigUpdate)
 		v1.POST("/config/auto_mint/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.ConfigAutoMintUpdate)
 		v1.POST("/price/rule/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.PriceRuleUpdate)
+
+		v1.POST("/mint/account/search", api_code.DoMonitorLog("mint_acc_search"), h.H.MintAccountSearch)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

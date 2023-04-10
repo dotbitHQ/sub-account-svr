@@ -6,8 +6,8 @@ import (
 )
 
 func (d *DbDao) FindPaymentInfoByOrderId(orderID string) (list []tables.PaymentInfo, err error) {
-	err = d.db.Where("order_id=? and pay_status=? and refund_status=? and cancel_status=?",
-		orderID, tables.PayStatusSuccess, tables.RefundStatusDefault, tables.CancelStatusDefault).Find(&list).Error
+	err = d.db.Where("order_id=? and pay_hash_status=? and refund_status=?",
+		orderID, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).Find(&list).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
@@ -15,8 +15,8 @@ func (d *DbDao) FindPaymentInfoByOrderId(orderID string) (list []tables.PaymentI
 }
 
 func (d *DbDao) GetPaymentInfoByOrderId(orderID string) (payment tables.PaymentInfo, err error) {
-	err = d.db.Where("order_id=? and pay_status=? and refund_status=? and cancel_status=?",
-		orderID, tables.PayStatusSuccess, tables.RefundStatusDefault, tables.CancelStatusDefault).First(&payment).Error
+	err = d.db.Where("order_id=? and pay_hash_status=? and refund_status=?",
+		orderID, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).First(&payment).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
