@@ -42,15 +42,15 @@ type ReqPriceRuleUpdate struct {
 type Rules []Rule
 
 type Rule struct {
-	Name       string         `json:"name" binding:"required"`
-	Note       string         `json:"note"`
-	Price      float64        `json:"price"`
-	Type       RuleType       `json:"type" binding:"required;oneof=1 2"`
-	Whitelist  []string       `json:"whitelist,omitempty"`
-	Conditions []ReqCondition `json:"conditions,omitempty"`
+	Name       string      `json:"name" binding:"required"`
+	Note       string      `json:"note"`
+	Price      float64     `json:"price"`
+	Type       RuleType    `json:"type" binding:"required;oneof=1 2"`
+	Whitelist  []string    `json:"whitelist,omitempty"`
+	Conditions []Condition `json:"conditions,omitempty"`
 }
 
-type ReqCondition struct {
+type Condition struct {
 	VarName witness.VariableName `json:"var_name" binding:"required;oneof=account_chars account_length"`
 	Op      string               `json:"op" binding:"required;oneof=include_chars only_include_charset == > >= < <= not"`
 	Value   interface{}          `json:"value" binding:"required"`

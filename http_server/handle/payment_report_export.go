@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 	"math"
 	"net/http"
-	"reverse-svr/http_server/handle"
 	"time"
 )
 
@@ -32,7 +31,7 @@ type CsvRecord struct {
 func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	var (
 		funcName = "PaymentReportExport"
-		clientIp = handle.GetClientIp(ctx)
+		clientIp = GetClientIp(ctx)
 		req      ReqPaymentReportExport
 		apiResp  api_code.ApiResp
 		err      error

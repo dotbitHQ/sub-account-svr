@@ -49,6 +49,7 @@ const (
 	ApiCodeProfitNotEnough                 ApiCode = 40019
 	ApiCodeNoSupportPaymentToken           ApiCode = 40020
 	ApiCodeOrderNotExist                   ApiCode = 40021
+	ApiCodeRuleDataErr                     ApiCode = 40022
 )
 
 const (
