@@ -51,6 +51,9 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/config/auto_mint/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.ConfigAutoMintUpdate)
 		v1.POST("/price/rule/update", api_code.DoMonitorLog("price_rule_update"), h.H.PriceRuleUpdate)
 		v1.POST("/preserved/rule/update", api_code.DoMonitorLog("preserved_rule_update"), h.H.PreservedRuleUpdate)
+		v1.POST("/auto/account/search", api_code.DoMonitorLog("auto_acc_search"), h.H.AutoAccountSearch)
+		v1.POST("/auto/order/create", api_code.DoMonitorLog("auto_order_create"), h.H.AutoOrderCreate)
+		v1.POST("/auto/order/hash", api_code.DoMonitorLog("auto_order_hash"), h.H.AutoOrderHash)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{

@@ -99,34 +99,34 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 			Conditions: []Condition{},
 		}
 
-		if len(v.Ast.Expressions) != 2 {
+		if len(v.Ast.Expression.Expressions) != 2 {
 			err := errors.New("rule expressions length error")
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}
-		if v.Ast.Expressions[0].Type != witness.Variable || v.Ast.Expressions[1].Type != witness.Value {
+		if v.Ast.Expression.Expressions[0].Type != witness.Variable || v.Ast.Expression.Expressions[1].Type != witness.Value {
 			err := errors.New("rule expressions struct error")
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}
 
-		funcName := witness.FunctionType(v.Ast.Name)
+		funcName := witness.FunctionType(v.Ast.Expression.Name)
 		if funcName == witness.FunctionInList {
 			// whitelist process
 			rule.Type = RuleTypeWhitelist
 
-			if len(v.Ast.Expressions) != 2 {
+			if len(v.Ast.Expression.Expressions) != 2 {
 				err := errors.New("rule expressions length error")
 				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 				return err
 			}
-			if v.Ast.Expressions[0].Type != witness.Variable || v.Ast.Expressions[1].Type != witness.Value {
+			if v.Ast.Expression.Expressions[0].Type != witness.Variable || v.Ast.Expression.Expressions[1].Type != witness.Value {
 				err := errors.New("rule expressions struct error")
 				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 				return err
 			}
 
-			subAccountIds := gconv.Strings(v.Ast.Expressions[1].Value)
+			subAccountIds := gconv.Strings(v.Ast.Expression.Expressions[1].Expression.Value)
 			whitelist, err := h.DbDao.FindRulesBySubAccountIds(subAccountCell.OutPoint.TxHash.Hex(), parentAccountId, tables.RuleTypePriceRules, idx)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
@@ -158,21 +158,21 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 		switch v.Ast.Type {
 		case witness.Function:
 			cond := Condition{
-				VarName: witness.VariableName(v.Ast.Expressions[0].Name),
-				Op:      v.Ast.Name,
+				VarName: witness.VariableName(v.Ast.Expression.Expressions[0].Expression.Name),
+				Op:      v.Ast.Expression.Name,
 			}
-			switch v.Ast.Name {
+			switch v.Ast.Expression.Name {
 			case string(witness.FunctionIncludeCharts):
-				cond.Value = gconv.Strings(v.Ast.Expressions[1].Value)
+				cond.Value = gconv.Strings(v.Ast.Expression.Expressions[1].Expression.Value)
 			case string(witness.FunctionOnlyIncludeCharset):
-				cond.Value = gconv.String(v.Ast.Expressions[1].Value)
+				cond.Value = gconv.String(v.Ast.Expression.Expressions[1].Expression.Value)
 			}
 			rule.Conditions = append(rule.Conditions, cond)
 		case witness.Operator:
 			cond := Condition{
-				VarName: witness.VariableName(v.Ast.Expressions[0].Name),
-				Op:      string(v.Ast.Symbol),
-				Value:   gconv.Uint8(v.Ast.Expressions[1].Value),
+				VarName: witness.VariableName(v.Ast.Expression.Expressions[0].Expression.Name),
+				Op:      string(v.Ast.Expression.Symbol),
+				Value:   gconv.Uint8(v.Ast.Expression.Expressions[1].Expression.Value),
 			}
 			rule.Conditions = append(rule.Conditions, cond)
 		}

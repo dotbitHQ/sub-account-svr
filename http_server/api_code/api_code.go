@@ -50,6 +50,10 @@ const (
 	ApiCodeNoSupportPaymentToken           ApiCode = 40020
 	ApiCodeOrderNotExist                   ApiCode = 40021
 	ApiCodeRuleDataErr                     ApiCode = 40022
+	ApiCodeParentAccountNotExist           ApiCode = 40023
+	ApiCodeSubAccountMinting               ApiCode = 40024
+	ApiCodeSubAccountMinted                ApiCode = 40025
+	ApiCodeBeyondMaxYears                  ApiCode = 40026
 )
 
 const (

@@ -347,6 +347,15 @@ func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp
 					return fmt.Errorf("params invalid")
 				}
 
+				if vv.Op == string(witness.FunctionOnlyIncludeCharset) {
+					charsetName := gconv.String(vv.Value)
+					if _, ok := common.AccountCharTypeNameMap[charsetName]; !ok {
+						err := fmt.Errorf("charset %s not support", vv.Value)
+						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+						return err
+					}
+				}
+
 				if vv.VarName == witness.AccountLength {
 					if _, ok := Ops[vv.Op]; !ok {
 						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
@@ -386,47 +395,60 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule(actionDataType common.ActionD
 
 				if funk.Contains(Functions, v.Op) {
 					rule.Ast.Type = witness.Function
-					rule.Ast.Name = v.Op
-					rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+					rule.Ast.Expression.Name = v.Op
+					rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
 						Type: witness.Variable,
-						Name: string(v.VarName),
+						Expression: witness.ExpressionEntity{
+							Name: string(v.VarName),
+						},
 					})
 
 					if v.Op == string(witness.FunctionIncludeCharts) {
-						rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-							Type:      witness.Value,
-							ValueType: witness.StringArray,
-							Value:     gconv.Strings(v.Value),
+						rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
+							Type: witness.Value,
+							Expression: witness.ExpressionEntity{
+								ValueType: witness.StringArray,
+								Value:     gconv.Strings(v.Value),
+							},
 						})
 					}
 					if v.Op == string(witness.FunctionOnlyIncludeCharset) {
-						rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-							Type:      witness.Value,
-							ValueType: witness.Charset,
-							Value:     gconv.String(v.Value),
+						charsetType := common.AccountCharTypeNameMap[gconv.String(v.Value)]
+						rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
+							Type: witness.Value,
+							Expression: witness.ExpressionEntity{
+								ValueType: witness.Charset,
+								Value:     charsetType,
+							},
 						})
 					}
 					continue
 				}
 
 				rule.Ast.Type = witness.Operator
-				rule.Ast.Symbol = witness.SymbolType(v.Op)
-				rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+				rule.Ast.Expression.Symbol = witness.SymbolType(v.Op)
+				rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
 					Type: witness.Variable,
-					Name: string(v.VarName),
+					Expression: witness.ExpressionEntity{
+						Name: string(v.VarName),
+					},
 				})
-				rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-					Type:      witness.Value,
-					ValueType: witness.Uint8,
-					Value:     gconv.Uint8(v.Value),
+				rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
+					Type: witness.Value,
+					Expression: witness.ExpressionEntity{
+						ValueType: witness.Uint8,
+						Value:     gconv.Uint8(v.Value),
+					},
 				})
 			}
 		case RuleTypeWhitelist:
 			rule.Ast.Type = witness.Function
-			rule.Ast.Name = string(witness.FunctionInList)
-			rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
+			rule.Ast.Expression.Name = string(witness.FunctionInList)
+			rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
 				Type: witness.Variable,
-				Name: string(witness.Account),
+				Expression: witness.ExpressionEntity{
+					Name: string(witness.Account),
+				},
 			})
 
 			subAccountIds := make([]string, 0)
@@ -440,10 +462,12 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule(actionDataType common.ActionD
 					Account: subAccount,
 				}
 			}
-			rule.Ast.Expressions = append(rule.Ast.Expressions, witness.ExpressionEntity{
-				Type:      witness.Value,
-				ValueType: witness.BinaryArray,
-				Value:     subAccountIds,
+			rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
+				Type: witness.Value,
+				Expression: witness.ExpressionEntity{
+					ValueType: witness.BinaryArray,
+					Value:     subAccountIds,
+				},
 			})
 		}
 		ruleEntity.Rules = append(ruleEntity.Rules, rule)
