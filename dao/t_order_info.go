@@ -84,3 +84,7 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 		Order("id DESC").Find(&info).Limit(1).Error
 	return
 }
+
+func (d *DbDao) CreateOrderInfo(info tables.OrderInfo) error {
+	return d.db.Create(&info).Error
+}

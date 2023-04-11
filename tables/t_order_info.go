@@ -59,7 +59,7 @@ type OrderInfo struct {
 	ActionType    ActionType            `json:"action_type" gorm:"column:action_type; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-mint 1-renew';"`
 	Account       string                `json:"account" gorm:"column:account; type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '';"`
 	AccountId     string                `json:"account_id" gorm:"column:account_id; index:idx_account_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Years         int                   `json:"years" gorm:"column:years; type:int(10) unsigned NOT NULL DEFAULT '0' COMMENT '';"`
+	Years         uint64                `json:"years" gorm:"column:years; type:int(10) unsigned NOT NULL DEFAULT '0' COMMENT '';"`
 	AlgorithmId   common.DasAlgorithmId `json:"algorithm_id" gorm:"column:algorithm_id; type:smallint(6) NOT NULL DEFAULT '0' COMMENT '3,5-EVM 4-TRON 7-DOGE';"`
 	PayAddress    string                `json:"pay_address" gorm:"column:pay_address; index:idx_pay_address; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	TokenId       string                `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
