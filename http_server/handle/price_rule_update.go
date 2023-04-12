@@ -135,7 +135,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
-		action:    common.DasActionSubAccountPriceRule,
+		action:    common.DasActionConfigSubAccount,
 		account:   req.Account,
 	})
 	if err != nil {
@@ -144,7 +144,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 
 	resp := RespConfigAutoMintUpdate{}
-	resp.Action = common.DasActionSubAccountPriceRule
+	resp.Action = common.DasActionConfigSubAccount
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,

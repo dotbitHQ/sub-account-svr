@@ -92,7 +92,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
-		action:    common.DasActionSubAccountPreservedRule,
+		action:    common.DasActionConfigSubAccount,
 		account:   req.Account,
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	}
 
 	resp := RespConfigAutoMintUpdate{}
-	resp.Action = common.DasActionSubAccountPreservedRule
+	resp.Action = common.DasActionConfigSubAccount
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,
