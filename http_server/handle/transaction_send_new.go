@@ -12,7 +12,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
-	"github.com/pkg/errors"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 	"time"
@@ -296,26 +295,8 @@ func (h *HttpHandle) doActionConfigSubAccount(req *ReqTransactionSend, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 	}
-	hash, err := txBuilder.Transaction.ComputeHash()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-	priceConfig, err := h.DbDao.GetPriceConfigByTxHash(hash.String())
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return fmt.Errorf("GetPriceConfigByTxHash err: %s", err.Error())
-	}
-	if priceConfig.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "tx no exist")
-		return errors.New("tx no exist")
-	}
 	if _, err := txBuilder.SendTransaction(); err != nil {
 		return doSendTransactionError(err, apiResp)
-	}
-	if err := h.DbDao.UpdatePriceConfigByTxHash(hash.String()); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return fmt.Errorf("UpdatePriceConfigByTxHash err: %s", err.Error())
 	}
 	return nil
 }

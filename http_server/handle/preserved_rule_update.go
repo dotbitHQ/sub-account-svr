@@ -109,12 +109,8 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	log.Info("doCustomScript:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(tables.PriceConfig{
-			Account:   req.Account,
-			AccountId: parentAccountId,
-			Action:    tables.PriceConfigActionPreservedRules,
-			TxHash:    txHash.String(),
-		}).Error; err != nil {
+		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePreservedRules).
+			Delete(tables.RuleWhitelist{}).Error; err != nil {
 			return err
 		}
 		for accountId, whiteList := range whiteListMap {
