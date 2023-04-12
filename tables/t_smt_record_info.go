@@ -60,9 +60,8 @@ const (
 
 	MintTypeDefault      MintType = 0
 	MintTypeManual       MintType = 1
-	MintTypeCustomPrice  MintType = 2
-	MintTypeCustomScript MintType = 3
-	MintTypeAutoMint     MintType = 4
+	MintTypeCustomScript MintType = 2
+	MintTypeAutoMint     MintType = 3
 )
 
 func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err error) {

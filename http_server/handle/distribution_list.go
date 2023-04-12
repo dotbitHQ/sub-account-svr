@@ -139,7 +139,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 						return errors.New("db error")
 					}
-					list[idx].Amount = fmt.Sprintf("%f %s", order.Amount.InexactFloat64()/math.Pow10(token.Decimals), token.Symbol)
+					list[idx].Amount = fmt.Sprintf("%f %s", order.Amount.InexactFloat64()/math.Pow10(int(token.Decimals)), token.Symbol)
 				default:
 					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 					return errors.New("db error")

@@ -3,6 +3,7 @@ package tables
 import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/shopspring/decimal"
+	"strings"
 	"time"
 )
 
@@ -75,4 +76,10 @@ type OrderInfo struct {
 
 func (m *OrderInfo) TableName() string {
 	return "t_order_info"
+}
+
+func (m *OrderInfo) GetParentAccountId() string {
+	indexDot := strings.Index(m.AccountId, ".")
+	parentAccountName := m.Account[indexDot+1:]
+	return common.Bytes2Hex(common.GetAccountIdByAccount(parentAccountName))
 }

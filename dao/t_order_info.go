@@ -3,6 +3,7 @@ package dao
 import (
 	"das_sub_account/tables"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -59,12 +60,26 @@ func (d *DbDao) UpdateAutoPaymentIdById(ids []int64, paymentId string) error {
 	}).Error
 }
 
-func (d *DbDao) UpdateOrderStatusOk(orderId string) error {
-	return d.db.Model(tables.OrderInfo{}).
-		Where("order_id=? AND pay_status=?", orderId, tables.PayStatusUnpaid).
-		Updates(map[string]interface{}{
-			"pay_status": tables.PayStatusPaid,
-		}).Error
+func (d *DbDao) UpdateOrderStatusOk(orderId string, smtRecord tables.TableSmtRecordInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND pay_status=?",
+				orderId, tables.PayStatusUnpaid).
+			Updates(map[string]interface{}{
+				"": tables.PayStatusPaid,
+			}).Error; err != nil {
+			return err
+		}
+		if tx.RowsAffected == 0 {
+			return nil
+		}
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&smtRecord).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // =========

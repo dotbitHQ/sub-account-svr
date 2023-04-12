@@ -1,13 +1,18 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
+	"encoding/json"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"time"
 )
 
 type EventType string
@@ -79,11 +84,45 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 	// check event type
 	switch req.EventType {
 	case EventTypeOrderPay:
-		if err := h.DbDao.UpdateOrderStatusOk(order.OrderId); err != nil {
+		owner := core.DasAddressHex{
+			DasAlgorithmId: order.AlgorithmId,
+			AddressHex:     order.PayAddress,
+		}
+		args, err := h.DasCore.Daf().HexToArgs(owner, owner)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("Failed to get register args"))
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+		charsetList, err := h.DasCore.GetAccountCharSetList(order.Account)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("Failed to get account charset list"))
+			return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
+		}
+		content, err := json.Marshal(charsetList)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to json.Marshal charset list")
+			return fmt.Errorf("json Marshal err: %s", err.Error())
+		}
+
+		smtRecord := tables.TableSmtRecordInfo{
+			SvrName:         config.Cfg.Slb.SvrName,
+			AccountId:       order.AccountId,
+			RecordType:      tables.RecordTypeDefault,
+			MintType:        tables.MintTypeAutoMint,
+			OrderID:         order.OrderId,
+			Action:          common.DasActionUpdateSubAccount,
+			ParentAccountId: order.GetParentAccountId(),
+			Account:         order.Account,
+			Content:         string(content),
+			RegisterYears:   order.Years,
+			RegisterArgs:    common.Bytes2Hex(args),
+			Timestamp:       time.Now().UnixNano() / 1e6,
+			SubAction:       common.SubActionCreate,
+		}
+		if err := h.DbDao.UpdateOrderStatusOk(order.OrderId, smtRecord); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, fmt.Sprintf("Failed to update order status[%s]", order.OrderId))
 			return fmt.Errorf("UpdateOrderStatusOk err: %s", err.Error())
 		}
-		// todo business
 	case EventTypeOrderRefund:
 		// todo
 	default:
