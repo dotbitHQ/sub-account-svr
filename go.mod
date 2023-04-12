@@ -3,7 +3,7 @@ module das_sub_account
 go 1.16
 
 require (
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230407030407-137c95d1862e
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230411124205-062de36b4dc7
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-redis/redis v6.15.9+incompatible
@@ -11,7 +11,6 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
-	github.com/pkg/errors v0.9.1
 	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.5
 	github.com/shopspring/decimal v1.3.1

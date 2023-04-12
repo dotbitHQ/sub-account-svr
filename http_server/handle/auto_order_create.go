@@ -90,17 +90,40 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
+	// check token id
+	userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
+		return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
+	} else if cfg, ok := userConfig.CfgMap[req.TokenId]; !ok || !cfg.Enable {
+		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+		return nil
+	}
+
 	// get max years
 	if maxYear := h.getMaxYears(parentAccount); req.Years > maxYear {
 		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, fmt.Sprintf("sub-account[%s] has been minted", req.SubAccount))
 		return nil
 	}
 
-	// todo check price: blacklist or price rule
-	// todo get price
-	amount := decimal.Zero
+	// get rule price
+	usdAmount, err := h.getRulePrice(parentAccountId, req.SubAccount, apiResp)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
+		return fmt.Errorf("GetTokenById err: %s", err.Error())
+	} else if tokenPrice.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+		return nil
+	}
+	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
 
-	// todo create order
+	// create order
 	config.Cfg.Server.UniPayUrl = "http://127.0.0.1:9090"
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress: req.ChainTypeAddress,
@@ -122,8 +145,8 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		AlgorithmId: hexAddr.DasAlgorithmId,
 		PayAddress:  hexAddr.AddressHex,
 		TokenId:     req.TokenId,
-		Amount:      decimal.Decimal{}, // todo
-		USDAmount:   decimal.Decimal{}, // todo
+		Amount:      amount,
+		USDAmount:   usdAmount,
 		PayStatus:   tables.PayStatusUnpaid,
 		OrderStatus: tables.OrderStatusDefault,
 		Timestamp:   time.Now().Unix(),

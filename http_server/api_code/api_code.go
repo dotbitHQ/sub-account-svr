@@ -54,6 +54,9 @@ const (
 	ApiCodeSubAccountMinting               ApiCode = 40024
 	ApiCodeSubAccountMinted                ApiCode = 40025
 	ApiCodeBeyondMaxYears                  ApiCode = 40026
+	ApiCodeHitBlacklist                    ApiCode = 40027
+	ApiCodeNoTSetRules                     ApiCode = 40028
+	ApiCodeTokenIdNotSupported             ApiCode = 40029
 )
 
 const (

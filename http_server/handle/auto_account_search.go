@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
@@ -93,10 +95,13 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	// get max years
 	resp.MaxYear = h.getMaxYears(parentAccount)
 
-	// todo check price: blacklist or price rule
-
-	// todo get price
-	resp.Price = decimal.Zero
+	// get rule price
+	resp.Price, err = h.getRulePrice(parentAccountId, req.SubAccount, apiResp)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
 
 	apiResp.ApiRespOK(resp)
 	return nil
@@ -179,4 +184,52 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 		maxYear = config.Cfg.Das.MaxRegisterYears
 	}
 	return maxYear
+}
+
+func (h *HttpHandle) getRulePrice(parentAccountId, subAccount string, apiResp *api_code.ApiResp) (price decimal.Decimal, e error) {
+	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search rule config")
+		e = fmt.Errorf("GetRuleConfigByAccountId err: %s", err.Error())
+		return
+	}
+	ruleTx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(ruleConfig.TxHash))
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rule tx")
+		e = fmt.Errorf("GetTransaction err: %s", err.Error())
+		return
+	}
+	var ruleReverse witness.SubAccountRuleEntity
+	if err = ruleReverse.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPreservedRules); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rules")
+		e = fmt.Errorf("ParseFromTx err: %s", err.Error())
+		return
+	}
+	hit, index, err := ruleReverse.Hit(subAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to match rules")
+		e = fmt.Errorf("ruleReverse.Hit err: %s", err.Error())
+		return
+	} else if hit {
+		apiResp.ApiRespErr(api_code.ApiCodeHitBlacklist, "hit blacklist")
+		return
+	}
+
+	var rulePrice witness.SubAccountRuleEntity
+	if err = rulePrice.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rules")
+		e = fmt.Errorf("ParseFromTx err: %s", err.Error())
+		return
+	}
+	hit, index, err = rulePrice.Hit(subAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to match rules")
+		e = fmt.Errorf("rulePrice.Hit err: %s", err.Error())
+		return
+	} else if !hit {
+		apiResp.ApiRespErr(api_code.ApiCodeNoTSetRules, "not set price rules")
+		return
+	}
+	price = decimal.NewFromInt(int64(rulePrice.Rules[index].Price))
+	return
 }
