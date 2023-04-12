@@ -63,7 +63,10 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
 #### Request
 
 * path: /v1/account/list
-    * category: 1-main account 2-sub account 6-enable sub account
+    * category: 
+      * 1 : List of Main Accounts
+      * 2 : List of Sub-Accounts
+      * 6 : List of Main Accounts with the Sub-Account Function Enabled
 
 ```json
 {
