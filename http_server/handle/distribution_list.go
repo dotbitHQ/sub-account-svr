@@ -134,12 +134,12 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						log.Warnf("order: %s no payment info", record.OrderID)
 						return nil
 					}
-					token, err := h.DbDao.GetTokenById(paymentInfo.TokenId)
+					token, err := h.DbDao.GetTokenById(order.TokenId)
 					if err != nil {
 						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 						return errors.New("db error")
 					}
-					list[idx].Amount = fmt.Sprintf("%f %s", paymentInfo.Amount/math.Pow10(token.Decimals), token.Symbol)
+					list[idx].Amount = fmt.Sprintf("%f %s", order.Amount.InexactFloat64()/math.Pow10(token.Decimals), token.Symbol)
 				default:
 					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 					return errors.New("db error")

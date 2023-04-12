@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -276,18 +277,35 @@ func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, 
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
 	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 
-	rulesWitnessData, whiteListMap, err := req.ParseToSubAccountRule(inputActionDataType)
+	ruleEntity, whiteListMap, err := req.ParseToSubAccountRule()
 	if err != nil {
 		return nil, nil, err
 	}
-	totalBytes := make([]byte, 0)
-	for i := 0; i < len(rulesWitnessData); i++ {
-		totalBytes = append(totalBytes, rulesWitnessData[i]...)
-		txParams.Witnesses = append(txParams.Witnesses, rulesWitnessData[i])
+	ruleData, err := ruleEntity.GenData()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// TODO change splicing rules
-	hash, err := blake2b.Blake256(totalBytes)
+	// Assemble the split rules into one for easy hashing
+	rulesBuilder := molecule.NewSubAccountRulesBuilder()
+	for _, v := range ruleData {
+		subAccountRules, err := molecule.SubAccountRulesFromSlice(v, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		for i := uint(0); i < subAccountRules.ItemCount(); i++ {
+			subAccountRule := subAccountRules.Get(i)
+			rulesBuilder.Push(*subAccountRule)
+		}
+	}
+	rules := rulesBuilder.Build()
+
+	totalRules, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType, [][]byte{rules.AsSlice()})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hash, err := blake2b.Blake256(totalRules[0])
 	if err != nil {
 		return nil, nil, err
 	}
@@ -305,6 +323,14 @@ func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, 
 	for _, v := range balanceLiveCells {
 		txParams.Outputs = append(txParams.Outputs, v.Output)
 		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
+	}
+
+	rulesResult, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType, ruleData)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, v := range rulesResult {
+		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
 
 	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
@@ -374,7 +400,7 @@ type Whitelist struct {
 	Account string `json:"account"`
 }
 
-func (r *ReqPriceRuleUpdate) ParseToSubAccountRule(actionDataType common.ActionDataType) ([][]byte, map[string]Whitelist, error) {
+func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() (*witness.SubAccountRuleEntity, map[string]Whitelist, error) {
 	whiteList := make(map[string]Whitelist, 0)
 	ruleEntity := witness.NewSubAccountRuleEntity(r.Account)
 	for i := 0; i < len(r.List); i++ {
@@ -468,10 +494,5 @@ func (r *ReqPriceRuleUpdate) ParseToSubAccountRule(actionDataType common.ActionD
 		}
 		ruleEntity.Rules = append(ruleEntity.Rules, rule)
 	}
-
-	res, err := ruleEntity.GenWitnessData(actionDataType)
-	if err != nil {
-		return nil, nil, err
-	}
-	return res, whiteList, nil
+	return ruleEntity, whiteList, nil
 }
