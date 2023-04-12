@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
+	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,10 @@ type DbDao struct {
 	db       *gorm.DB
 	parserDb *gorm.DB
 }
+
+var (
+	log = mylog.NewLogger("dao", mylog.LevelDebug)
+)
 
 func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, error) {
 	db, err := toolib.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
