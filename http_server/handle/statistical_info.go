@@ -119,24 +119,22 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		paymentInfo := make(map[string]*Income)
 
 		for _, record := range smtRecords {
-			paymentsInfo, err := h.DbDao.FindPaymentInfoByOrderId(record.OrderID)
+			order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
 			if err != nil {
 				return err
 			}
-			for _, payment := range paymentsInfo {
-				token, err := h.DbDao.GetTokenById(payment.TokenId)
-				if err != nil {
-					return err
-				}
-				p, ok := paymentInfo[token.TokenId]
-				if !ok {
-					p = &Income{
-						Type: token.Symbol,
-					}
-					paymentInfo[token.TokenId] = p
-				}
-				p.Total += payment.Amount
+			token, err := h.DbDao.GetTokenById(order.TokenId)
+			if err != nil {
+				return err
 			}
+			p, ok := paymentInfo[order.TokenId]
+			if !ok {
+				p = &Income{
+					Type: token.Symbol,
+				}
+				paymentInfo[order.TokenId] = p
+			}
+			p.Total += order.Amount.InexactFloat64()
 		}
 
 		for k, v := range paymentInfo {

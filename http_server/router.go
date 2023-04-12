@@ -3,6 +3,7 @@ package http_server
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/internal/static_files"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
@@ -36,6 +37,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/config/auto_mint/get", api_code.DoMonitorLog("config_auto_mint_get"), cacheHandleShort, h.H.ConfigAutoMintGet)
 		v1.POST("/price/rule/list", api_code.DoMonitorLog("price_rule_list"), cacheHandleShort, h.H.PriceRuleList)
 		v1.POST("/preserved/rule/list", api_code.DoMonitorLog("preserved_rule_list"), cacheHandleShort, h.H.PreservedRuleList)
+		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)

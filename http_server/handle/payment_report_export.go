@@ -22,7 +22,7 @@ type CsvRecord struct {
 	Account   string
 	AccountId string
 	TokenId   string
-	Decimals  int
+	Decimals  int32
 	Address   string
 	Amount    float64
 	Ids       []int64
@@ -140,7 +140,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 	for _, v := range records {
-		amount := fmt.Sprintf(fmt.Sprintf("%%.%df", v.Decimals), v.Amount/math.Pow10(v.Decimals))
+		amount := fmt.Sprintf(fmt.Sprintf("%%.%df", v.Decimals), v.Amount/math.Pow10(int(v.Decimals)))
 		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
