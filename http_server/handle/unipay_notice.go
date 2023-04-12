@@ -3,6 +3,7 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
 	"encoding/json"
@@ -84,6 +85,13 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 	// check event type
 	switch req.EventType {
 	case EventTypeOrderPay:
+		paymentInfo := tables.PaymentInfo{
+			PayHash:       req.OrderInfo.PayHash,
+			OrderId:       req.OrderId,
+			PayHashStatus: tables.PayHashStatusConfirmed,
+			Timestamp:     time.Now().Unix(),
+		}
+
 		owner := core.DasAddressHex{
 			DasAlgorithmId: order.AlgorithmId,
 			AddressHex:     order.PayAddress,
@@ -119,9 +127,15 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 			Timestamp:       time.Now().UnixNano() / 1e6,
 			SubAction:       common.SubActionCreate,
 		}
-		if err := h.DbDao.UpdateOrderStatusOk(order.OrderId, smtRecord); err != nil {
+
+		rowsAffected, sri, err := h.DbDao.UpdateOrderStatusOkWithSmtRecord(paymentInfo, smtRecord)
+		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, fmt.Sprintf("Failed to update order status[%s]", order.OrderId))
-			return fmt.Errorf("UpdateOrderStatusOk err: %s", err.Error())
+			return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
+		} else if rowsAffected > 0 && sri.Id == 0 {
+			log.Warnf("doUniPayNotice:", req.OrderId, rowsAffected)
+			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", req.OrderId)
+			// multiple orders from the same account are successful
 		}
 	case EventTypeOrderRefund:
 		// todo
