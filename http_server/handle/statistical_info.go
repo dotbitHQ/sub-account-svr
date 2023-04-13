@@ -181,7 +181,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
-		resp.CkbSpending.Balance = fmt.Sprintf("%d", totalCapacity)
+		resp.CkbSpending.Balance = fmt.Sprintf("%.2f", float64(totalCapacity)/float64(common.OneCkb))
 		return nil
 	})
 
