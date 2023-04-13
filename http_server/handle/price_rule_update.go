@@ -107,6 +107,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	txParams, whiteListMap, err := h.rulesTxAssemble(common.ActionDataTypeSubAccountPriceRules, req, apiResp)
 	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
 		return err
 	}
 
@@ -171,6 +172,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		}
 		return nil
 	}); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}
 
