@@ -46,3 +46,12 @@ func (d *DbDao) UpdateRefundStatusToRefundIng(ids []uint64) error {
 			"refund_status": tables.RefundStatusRefunding,
 		}).Error
 }
+
+func (d *DbDao) UpdateRefundStatusToRefunded(payHash, orderId string) error {
+	return d.db.Model(tables.PaymentInfo{}).
+		Where("pay_hash=? AND order_id=? AND pay_hash_status=? AND refund_status=?",
+			payHash, orderId, tables.PayHashStatusConfirmed, tables.RefundStatusRefunding).
+		Updates(map[string]interface{}{
+			"refund_status": tables.RefundStatusRefunded,
+		}).Error
+}
