@@ -30,14 +30,14 @@ type CsvRecord struct {
 
 func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	var (
-		funcName = "PaymentReportExport"
-		clientIp = GetClientIp(ctx)
-		req      ReqPaymentReportExport
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "PaymentReportExport"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqPaymentReportExport
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return

@@ -59,15 +59,15 @@ type Condition struct {
 
 func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 	var (
-		funcName = "PriceRuleUpdate"
-		clientIp = GetClientIp(ctx)
-		req      ReqPriceRuleUpdate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "PriceRuleUpdate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqPriceRuleUpdate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
@@ -75,7 +75,7 @@ func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
 
 	if err = h.doPriceRuleUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp)
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

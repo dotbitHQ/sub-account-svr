@@ -22,23 +22,23 @@ type ReqCurrencyUpdate struct {
 
 func (h *HttpHandle) CurrencyUpdate(ctx *gin.Context) {
 	var (
-		funcName = "CurrencyUpdate"
-		clientIp = GetClientIp(ctx)
-		req      ReqCurrencyUpdate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "CurrencyUpdate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqCurrencyUpdate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doCurrencyUpdate(&req, &apiResp); err != nil {
-		log.Error("doCurrencyUpdate err:", err.Error(), funcName, clientIp)
+		log.Error("doCurrencyUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

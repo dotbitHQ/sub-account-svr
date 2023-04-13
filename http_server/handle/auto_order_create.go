@@ -31,23 +31,23 @@ type RespAutoOrderCreate struct {
 
 func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
 	var (
-		funcName = "AutoOrderCreate"
-		clientIp = GetClientIp(ctx)
-		req      ReqAutoOrderCreate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "AutoOrderCreate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqAutoOrderCreate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doAutoOrderCreate(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderCreate err:", err.Error(), funcName, clientIp)
+		log.Error("doAutoOrderCreate err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)

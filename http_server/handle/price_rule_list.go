@@ -24,20 +24,20 @@ type ReqPriceRuleList struct {
 
 func (h *HttpHandle) PriceRuleList(ctx *gin.Context) {
 	var (
-		funcName = "PriceRuleList"
-		clientIp = GetClientIp(ctx)
-		req      ReqPriceRuleList
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "PriceRuleList"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqPriceRuleList
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doRuleList(common.ActionDataTypeSubAccountPriceRules, &req, &apiResp); err != nil {
 		log.Error("doPriceRuleList err:", err.Error(), funcName, clientIp)
