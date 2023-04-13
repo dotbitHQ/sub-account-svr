@@ -79,7 +79,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByMintTypeAndPaging(accountId, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual, tables.MintTypeAutoMint}, []string{common.DasActionCreateSubAccount, common.DasActionRenewSubAccount}, req.Page, req.Size)
+	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByActions(accountId, []string{common.DasActionCreateSubAccount, common.DasActionRenewSubAccount}, req.Page, req.Size)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
