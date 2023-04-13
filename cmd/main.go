@@ -10,6 +10,7 @@ import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/task"
 	"das_sub_account/txtool"
+	"das_sub_account/unipay"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -140,6 +141,13 @@ func runServer(ctx *cli.Context) error {
 		}
 		log.Infof("block parser ok")
 	}
+	// refund
+	toolRefund := unipay.ToolRefund{
+		Ctx:   ctxServer,
+		Wg:    &wgServer,
+		DbDao: dbDao,
+	}
+	toolRefund.RunRefund()
 
 	// task
 	smtTask := task.SmtTask{

@@ -33,7 +33,10 @@ func TestRefundOrder(t *testing.T) {
 	config.Cfg.Server.UniPayUrl = "http://127.0.0.1:9090"
 	_, err := RefundOrder(ReqOrderRefund{
 		BusinessId: BusinessIdAutoSubAccount,
-		OrderId:    "893733a7ffe2b22b52b30eeb0db922a8",
+		RefundList: []RefundInfo{{
+			OrderId: "",
+			PayHash: "",
+		}},
 	})
 	if err != nil {
 		t.Fatal(err)

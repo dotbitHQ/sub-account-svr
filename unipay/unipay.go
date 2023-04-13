@@ -30,9 +30,14 @@ func CreateOrder(req ReqOrderCreate) (resp RespOrderCreate, err error) {
 	return
 }
 
+type RefundInfo struct {
+	OrderId string `json:"order_id"`
+	PayHash string `json:"pay_hash"`
+}
+
 type ReqOrderRefund struct {
-	BusinessId string `json:"business_id"`
-	OrderId    string `json:"order_id"`
+	BusinessId string       `json:"business_id"`
+	RefundList []RefundInfo `json:"refund_list"`
 }
 
 type RespOrderRefund struct {
