@@ -37,6 +37,7 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 			&tables.OrderInfo{},
 			&tables.PaymentInfo{},
 			&tables.UserConfig{},
+			&tables.RuleWhitelist{},
 		); err != nil {
 			return nil, err
 		}

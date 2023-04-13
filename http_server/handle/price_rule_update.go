@@ -154,7 +154,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePriceRules).
-			Delete(tables.RuleWhitelist{}).Error; err != nil {
+			Delete(&tables.RuleWhitelist{}).Error; err != nil {
 			return err
 		}
 		for accountId, whiteList := range whiteListMap {
