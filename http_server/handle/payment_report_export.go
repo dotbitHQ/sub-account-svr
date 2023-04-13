@@ -25,7 +25,7 @@ type CsvRecord struct {
 	Decimals  int32
 	Address   string
 	Amount    float64
-	Ids       []int64
+	Ids       []uint64
 }
 
 func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
@@ -43,7 +43,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 
-	list, err := h.DbDao.FindOrderPaymentInfo(req.Begin, req.End, req.Account)
+	list, err := h.DbDao.FindOrderByPayment(req.Begin, req.End, req.Account)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
@@ -93,9 +93,9 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			csvRecord.TokenId = v.TokenId
 			csvRecord.Address = record.Value
 			csvRecord.Decimals = token.Decimals
-			csvRecord.Ids = make([]int64, 0)
+			csvRecord.Ids = make([]uint64, 0)
 		}
-		csvRecord.Amount += v.Amount
+		csvRecord.Amount += v.Amount.InexactFloat64()
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
