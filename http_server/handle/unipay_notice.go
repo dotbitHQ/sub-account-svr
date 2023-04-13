@@ -6,14 +6,10 @@ import (
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
-	"encoding/json"
 	"fmt"
-	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
-	"time"
 )
 
 type EventType string
@@ -73,15 +69,15 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 		return nil
 	}
 	// check order id
-	for i, v := range req.EventList {
+	for _, v := range req.EventList {
 		switch v.EventType {
 		case EventTypeOrderPay:
-			if err := h.doPayConfirm(req.EventList[i]); err != nil {
-				log.Error("doPayConfirm err: %s", err.Error())
-				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doPayConfirm", err.Error())
+			if err := unipay.DoPaymentConfirm(h.DasCore, h.DbDao, v.OrderId, v.PayHash); err != nil {
+				log.Error("DoPaymentConfirm err: %s", err.Error())
+				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "DoPaymentConfirm", err.Error())
 			}
 		case EventTypeOrderRefund:
-			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId); err != nil {
+			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId, v.RefundHash); err != nil {
 				log.Error("UpdateRefundStatusToRefunded err: %s", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdateRefundStatusToRefunded", err.Error())
 			}
@@ -91,64 +87,5 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 	}
 
 	apiResp.ApiRespOK(resp)
-	return nil
-}
-
-func (h *HttpHandle) doPayConfirm(eventInfo EventInfo) error {
-	order, err := h.DbDao.GetOrderByOrderID(eventInfo.OrderId)
-	if err != nil {
-		return fmt.Errorf("GetOrderByOrderID err: %s", err.Error())
-	} else if order.Id == 0 {
-		return fmt.Errorf("order[%s] not exist", eventInfo.OrderId)
-	}
-
-	paymentInfo := tables.PaymentInfo{
-		PayHash:       eventInfo.PayHash,
-		OrderId:       eventInfo.OrderId,
-		PayHashStatus: tables.PayHashStatusConfirmed,
-		Timestamp:     time.Now().Unix(),
-	}
-
-	owner := core.DasAddressHex{
-		DasAlgorithmId: order.AlgorithmId,
-		AddressHex:     order.PayAddress,
-	}
-	args, err := h.DasCore.Daf().HexToArgs(owner, owner)
-	if err != nil {
-		return fmt.Errorf("HexToArgs err: %s", err.Error())
-	}
-	charsetList, err := h.DasCore.GetAccountCharSetList(order.Account)
-	if err != nil {
-		return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
-	}
-	content, err := json.Marshal(charsetList)
-	if err != nil {
-		return fmt.Errorf("json Marshal err: %s", err.Error())
-	}
-
-	smtRecord := tables.TableSmtRecordInfo{
-		SvrName:         config.Cfg.Slb.SvrName,
-		AccountId:       order.AccountId,
-		RecordType:      tables.RecordTypeDefault,
-		MintType:        tables.MintTypeAutoMint,
-		OrderID:         order.OrderId,
-		Action:          common.DasActionUpdateSubAccount,
-		ParentAccountId: order.GetParentAccountId(),
-		Account:         order.Account,
-		Content:         string(content),
-		RegisterYears:   order.Years,
-		RegisterArgs:    common.Bytes2Hex(args),
-		Timestamp:       time.Now().UnixNano() / 1e6,
-		SubAction:       common.SubActionCreate,
-	}
-
-	rowsAffected, sri, err := h.DbDao.UpdateOrderStatusOkWithSmtRecord(paymentInfo, smtRecord)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
-	} else if rowsAffected > 0 && sri.Id == 0 {
-		log.Warnf("doUniPayNotice:", eventInfo.OrderId, rowsAffected)
-		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", eventInfo.OrderId)
-		// multiple orders from the same account are successful
-	}
 	return nil
 }

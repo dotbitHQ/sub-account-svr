@@ -46,11 +46,12 @@ func TestRefundOrder(t *testing.T) {
 func TestOrderInfo(t *testing.T) {
 	config.Cfg.Server.UniPayUrl = "http://127.0.0.1:9090"
 	resp, err := OrderInfo(ReqOrderInfo{
-		BusinessId: BusinessIdAutoSubAccount,
-		OrderId:    "893733a7ffe2b22b52b30eeb0db922a8",
+		BusinessId:  BusinessIdAutoSubAccount,
+		OrderIdList: []string{},
+		PayHashList: []string{},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(resp.OrderId, resp.OrderStatus)
+	fmt.Println(resp.PaymentList)
 }

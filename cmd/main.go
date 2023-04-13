@@ -142,12 +142,13 @@ func runServer(ctx *cli.Context) error {
 		log.Infof("block parser ok")
 	}
 	// refund
-	toolRefund := unipay.ToolRefund{
-		Ctx:   ctxServer,
-		Wg:    &wgServer,
-		DbDao: dbDao,
+	toolUniPay := unipay.ToolUniPay{
+		Ctx:     ctxServer,
+		Wg:      &wgServer,
+		DbDao:   dbDao,
+		DasCore: dasCore,
 	}
-	toolRefund.RunRefund()
+	toolUniPay.RunUniPay()
 
 	// task
 	smtTask := task.SmtTask{
