@@ -175,27 +175,6 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
 
-	// build tx
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
-	if err := txBuilder.BuildTransaction(txParams); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-
-	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-	changeCapacity = changeCapacity - sizeInBlock - 5000
-	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
-
-	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
-
-	hash, err := txBuilder.Transaction.ComputeHash()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), hash.String())
-
 	signKey, signList, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
