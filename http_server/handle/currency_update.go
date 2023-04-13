@@ -83,7 +83,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	paymentConfig.CfgMap[req.TokenID] = tables.PaymentConfigElement{
 		Enable: req.Enable,
 	}
-	if err := h.DbDao.UpdatePaymentConfig(req.Account, paymentConfig); err != nil {
+	if err := h.DbDao.UpdatePaymentConfig(req.Account, &paymentConfig); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}

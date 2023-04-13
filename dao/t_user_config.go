@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (d *DbDao) UpdateMintConfig(account string, mintConfig tables.MintConfig) error {
+func (d *DbDao) UpdateMintConfig(account string, mintConfig *tables.MintConfig) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 	return d.db.Select("account", "account_id", "mint_config").Where("account_id=?", accountId).Save(&tables.UserConfig{
 		Account:    account,
@@ -15,7 +15,7 @@ func (d *DbDao) UpdateMintConfig(account string, mintConfig tables.MintConfig) e
 	}).Error
 }
 
-func (d *DbDao) UpdatePaymentConfig(account string, paymentConfig tables.PaymentConfig) error {
+func (d *DbDao) UpdatePaymentConfig(account string, paymentConfig *tables.PaymentConfig) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 	return d.db.Select("account", "account_id", "payment_config").Where("account_id=?", accountId).Save(&tables.UserConfig{
 		Account:       account,
@@ -31,8 +31,8 @@ func (d *DbDao) GetUserPaymentConfig(accountId string) (paymentConfig tables.Pay
 		err = nil
 		return
 	}
-	if userCfg.PaymentConfig.CfgMap != nil {
-		paymentConfig = userCfg.PaymentConfig
+	if userCfg.PaymentConfig != nil && userCfg.PaymentConfig.CfgMap != nil {
+		paymentConfig = *userCfg.PaymentConfig
 	} else {
 		paymentConfig.CfgMap = make(map[string]tables.PaymentConfigElement)
 	}

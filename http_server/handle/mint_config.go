@@ -64,7 +64,7 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 
-	if err := h.DbDao.UpdateMintConfig(req.Account, tables.MintConfig{
+	if err := h.DbDao.UpdateMintConfig(req.Account, &tables.MintConfig{
 		Title:    req.Title,
 		Desc:     req.Desc,
 		Benefits: req.Benefits,
