@@ -16,11 +16,11 @@ import (
 
 func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
 	var (
-		funcName = "LBProxy"
-		clientIp = GetClientIp(ctx)
-		apiResp  api_code.ApiResp
+		funcName               = "LBProxy"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		apiResp                api_code.ApiResp
 	)
-	log.Info("ApiReq:", funcName, clientIp, ctx.Request.URL.Path)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.URL.Path)
 
 	// slb by ip
 	h.doLBProxy(ctx, &apiResp, clientIp)
@@ -60,12 +60,12 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 
 func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
 	var (
-		funcName = "LBSubAccountCreate"
-		clientIp = GetClientIp(ctx)
-		apiResp  api_code.ApiResp
-		req      ReqSubAccountCreate
+		funcName               = "LBSubAccountCreate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		apiResp                api_code.ApiResp
+		req                    ReqSubAccountCreate
 	)
-	log.Info("ApiReq:", funcName, clientIp)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP)
 
 	bodyBytes, _ := ctx.GetRawData()
 	ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
@@ -84,12 +84,12 @@ func (h *LBHttpHandle) LBSubAccountCreate(ctx *gin.Context) {
 
 func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 	var (
-		funcName = "LBTransactionSend"
-		clientIp = GetClientIp(ctx)
-		apiResp  api_code.ApiResp
-		req      ReqTransactionSend
+		funcName               = "LBTransactionSend"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		apiResp                api_code.ApiResp
+		req                    ReqTransactionSend
 	)
-	log.Info("ApiReq:", funcName, clientIp)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP)
 
 	bodyBytes, _ := ctx.GetRawData()
 	ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))

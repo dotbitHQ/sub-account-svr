@@ -457,7 +457,17 @@ func TestSubAccountEdit2(t *testing.T) {
 
 func doSign(data handle.SignInfoList, privateKey string) error {
 	for i, _ := range data.List {
-		if err := task.DoSign(data.Action, data.List[i].SignList, privateKey); err != nil {
+		if err := task.DoSign(data.Action, data.List[i].SignList, privateKey, false); err != nil {
+			return fmt.Errorf("task.DoSign err: %s", err.Error())
+		}
+	}
+	fmt.Println("=========== doSign:", toolib.JsonString(data.List))
+	return nil
+}
+
+func doSign2(data handle.SignInfoList, privateKey string, compress bool) error {
+	for i, _ := range data.List {
+		if err := task.DoSign(data.Action, data.List[i].SignList, privateKey, compress); err != nil {
 			return fmt.Errorf("task.DoSign err: %s", err.Error())
 		}
 	}

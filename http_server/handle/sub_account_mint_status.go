@@ -28,11 +28,11 @@ const (
 
 func (h *HttpHandle) SubAccountMintStatus(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountMintStatus"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountMintStatus
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SubAccountMintStatus"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountMintStatus
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -41,7 +41,7 @@ func (h *HttpHandle) SubAccountMintStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSubAccountMintStatus(&req, &apiResp); err != nil {
 		log.Error("doSubAccountMintStatus err:", err.Error(), funcName, clientIp)

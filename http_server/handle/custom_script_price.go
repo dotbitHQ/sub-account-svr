@@ -21,11 +21,11 @@ type RespCustomScriptPrice struct {
 
 func (h *HttpHandle) CustomScriptPrice(ctx *gin.Context) {
 	var (
-		funcName = "CustomScriptPrice"
-		clientIp = GetClientIp(ctx)
-		req      ReqCustomScriptPrice
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "CustomScriptPrice"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqCustomScriptPrice
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -34,7 +34,7 @@ func (h *HttpHandle) CustomScriptPrice(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doCustomScriptPrice(&req, &apiResp); err != nil {
 		log.Error("doCustomScriptPrice err:", err.Error(), funcName, clientIp)

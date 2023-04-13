@@ -9,6 +9,7 @@ import (
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -102,11 +103,11 @@ func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 
 func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 	var (
-		funcName = "SubAccountEditNew"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountEdit
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "SubAccountEditNew"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountEdit
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -115,7 +116,7 @@ func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doSubAccountEditNew(&req, &apiResp); err != nil {
 		log.Error("doSubAccountEditNew err:", err.Error(), funcName, clientIp)
@@ -397,7 +398,7 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 	}
 
 	bys, _ := blake2b.Blake256(data)
-	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
+	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	log.Info("GetEditSignData:", u.ExpiredAt, signData.SignMsg)
 	return
 }
@@ -419,8 +420,7 @@ func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, 
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("blake2b.Blake256 err: %s", err.Error()))
 		return
 	}
-	signData.SignMsg = common.Bytes2Hex([]byte("from did: "))[2:] + common.Bytes2Hex(bys)[2:]
-
+	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	log.Info("GetCreateSignData:", signData.SignMsg, u.MinSignInfo.ExpiredAt, u.MinSignInfo.SmtRoot)
 	// sig msg
 	signData.SignType = acc.ManagerAlgorithmId

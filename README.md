@@ -44,7 +44,7 @@ docker-compose up -d
 
 _if you already have a mysql installed, just run_
 ```bash
-docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server slagga/sub-account
+docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server dotbitteam/sub-account-svr:latest
 ```
 
 ### Others

@@ -21,12 +21,12 @@ type RespConfigInfo struct {
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
 	var (
-		funcName = "ConfigInfo"
-		clientIp = GetClientIp(ctx)
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "ConfigInfo"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		apiResp                api_code.ApiResp
+		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP)
 
 	if err = h.doConfigInfo(&apiResp); err != nil {
 		log.Error("doConfigInfo err:", err.Error(), funcName, clientIp)

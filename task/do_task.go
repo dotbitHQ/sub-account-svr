@@ -114,7 +114,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	return nil
 }
 
-func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey string) error {
+func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey string, compress bool) error {
 	for i, signData := range signList {
 		var signRes []byte
 		var err error
@@ -140,6 +140,12 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 		case common.DasAlgorithmIdEd25519:
 			signRes = sign.Ed25519Signature(common.Hex2Bytes(privateKey), signMsg)
 			signRes = append(signRes, []byte{1}...)
+		case common.DasAlgorithmIdDogeChain:
+			signMsg = []byte(signData.SignMsg)
+			signRes, err = sign.DogeSignature(signMsg, privateKey, compress)
+			if err != nil {
+				return fmt.Errorf("sign.DogeSignature err: %s", err.Error())
+			}
 		default:
 			return fmt.Errorf("not supported sign type[%d]", signData.SignType)
 		}

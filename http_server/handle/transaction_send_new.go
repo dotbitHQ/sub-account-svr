@@ -1,9 +1,11 @@
 package handle
 
 import (
+	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
+	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
@@ -27,11 +29,11 @@ type RespTransactionSend struct {
 
 func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 	var (
-		funcName = "TransactionSendNew"
-		clientIp = GetClientIp(ctx)
-		req      ReqTransactionSend
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "TransactionSendNew"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqTransactionSend
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -41,7 +43,7 @@ func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 		return
 	}
 
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doTransactionSendNew(&req, &apiResp); err != nil {
 		log.Error("doTransactionSendNew err:", err.Error(), funcName, clientIp)
@@ -115,6 +117,13 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 	}
+	if req.Action == common.DasActionEnableSubAccount && h.ServerScript != nil {
+		subsidizeArgs := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Lock.Args
+		if bytes.Compare(subsidizeArgs, h.ServerScript.Args) == 0 {
+			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "Open sub-account subsidy", fmt.Sprintf("Account: %s", sic.Account))
+		}
+	}
+
 	if hash, err := txBuilder.SendTransaction(); err != nil {
 		return doSendTransactionError(err, apiResp)
 	} else {
@@ -307,7 +316,7 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 	switch signData.SignType {
 	case common.DasAlgorithmIdEth:
 		signMsg = fixSignature(signMsg)
-		signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
+		signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
 			return "", fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
@@ -318,9 +327,15 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "TronHexToBase58 error")
 			return "", fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
 		}
-		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), common.Hex2Bytes(signData.SignMsg), signAddress)
+		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
 	case common.DasAlgorithmIdEd25519:
 		signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
+	case common.DasAlgorithmIdDogeChain:
+		signOk, err = sign.VerifyDogeSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyDogeSignature error")
+			return "", fmt.Errorf("VerifyDogeSignature err: %s [%s]", err.Error(), signAddress)
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
 		return "", nil

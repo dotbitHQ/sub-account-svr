@@ -14,6 +14,7 @@ import (
 	"github.com/dotbitHQ/das-lib/dascache"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/mylog"
 	"net"
 	"strings"
@@ -33,12 +34,13 @@ type HttpHandle struct {
 	TxTool        *txtool.SubAccountTxTool
 	LB            *lb.LoadBalancing
 	SmtServerUrl  *string
+	ServerScript  *types.Script
 }
 
-func GetClientIp(ctx *gin.Context) string {
+func GetClientIp(ctx *gin.Context) (string, string) {
 	clientIP := fmt.Sprintf("%v", ctx.Request.Header.Get("X-Real-IP"))
 	remoteAddrIP, _, _ := net.SplitHostPort(ctx.Request.RemoteAddr)
-	return fmt.Sprintf("( %s )( %s )", clientIP, remoteAddrIP)
+	return clientIP, remoteAddrIP
 }
 
 func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {

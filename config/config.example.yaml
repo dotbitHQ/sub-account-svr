@@ -19,6 +19,8 @@ das:
     - "bsc_bnb"
 origins:
   - ""
+subsidy_whitelist:
+  "": ""
 notify:
   lark_error_key: ""
   lark_create_sub_account_key: ""

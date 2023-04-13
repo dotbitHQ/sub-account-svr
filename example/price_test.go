@@ -15,7 +15,7 @@ import (
 
 func getClientTestnet2() (rpc.Client, error) {
 	ckbUrl := "https://testnet.ckb.dev/"
-	indexerUrl := "https://testnet.ckb.dev/indexer"
+	indexerUrl := "https://testnet.ckb.dev/"
 	return rpc.DialWithIndexer(ckbUrl, indexerUrl)
 }
 
@@ -27,6 +27,7 @@ func getNewDasCoreTestnet2() (*core.DasCore, error) {
 
 	env := core.InitEnvOpt(common.DasNetTypeTestnet2,
 		common.DasContractNameConfigCellType,
+		common.DasContractNameDispatchCellType,
 	)
 	var wg sync.WaitGroup
 	ops := []core.DasCoreOption{
@@ -34,6 +35,41 @@ func getNewDasCoreTestnet2() (*core.DasCore, error) {
 		core.WithDasContractArgs(env.ContractArgs),
 		core.WithDasContractCodeHash(env.ContractCodeHash),
 		core.WithDasNetType(common.DasNetTypeTestnet2),
+		core.WithTHQCodeHash(env.THQCodeHash),
+	}
+	dc := core.NewDasCore(context.Background(), &wg, ops...)
+	// contract
+	dc.InitDasContract(env.MapContract)
+	// config cell
+	if err = dc.InitDasConfigCell(); err != nil {
+		return nil, err
+	}
+	return dc, nil
+}
+
+func getClientMainnet() (rpc.Client, error) {
+	ckbUrl := "https://mainnet.ckb.dev"
+	indexerUrl := "https://mainnet.ckb.dev"
+	return rpc.DialWithIndexer(ckbUrl, indexerUrl)
+}
+
+func getNewDasCoreMainnet() (*core.DasCore, error) {
+	client, err := getClientMainnet()
+	if err != nil {
+		return nil, err
+	}
+
+	env := core.InitEnvOpt(common.DasNetTypeMainNet,
+		common.DasContractNameConfigCellType,
+		common.DasContractNameDispatchCellType,
+		common.DasContractNameBalanceCellType,
+	)
+	var wg sync.WaitGroup
+	ops := []core.DasCoreOption{
+		core.WithClient(client),
+		core.WithDasContractArgs(env.ContractArgs),
+		core.WithDasContractCodeHash(env.ContractCodeHash),
+		core.WithDasNetType(common.DasNetTypeMainNet),
 		core.WithTHQCodeHash(env.THQCodeHash),
 	}
 	dc := core.NewDasCore(context.Background(), &wg, ops...)

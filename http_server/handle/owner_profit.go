@@ -25,11 +25,11 @@ type RespOwnerProfit struct {
 
 func (h *HttpHandle) OwnerProfit(ctx *gin.Context) {
 	var (
-		funcName = "OwnerProfit"
-		clientIp = GetClientIp(ctx)
-		req      ReqOwnerProfit
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "OwnerProfit"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqOwnerProfit
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -38,7 +38,7 @@ func (h *HttpHandle) OwnerProfit(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doOwnerProfit(&req, &apiResp); err != nil {
 		log.Error("doOwnerProfit err:", err.Error(), funcName, clientIp)

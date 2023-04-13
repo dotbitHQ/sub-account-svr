@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (d *DbDao) GetNeedDoCheckTxTaskList(svrName string) (list []tables.TableTaskInfo, err error) {
@@ -164,10 +165,14 @@ func (d *DbDao) CreateChainTask(task *tables.TableTaskInfo, list []tables.TableS
 				return err
 			}
 		}
-		if err := tx.Create(&task).Error; err != nil {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&task).Error; err != nil {
 			return err
 		}
-		if err := tx.Create(&list).Error; err != nil {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&list).Error; err != nil {
 			return err
 		}
 		return nil
@@ -278,6 +283,14 @@ func (d *DbDao) GetTaskByOutpointWithParentAccountIdForConfirm(parentAccountId, 
 func (d *DbDao) UpdateTaskStatusToRollback(ids []uint64) error {
 	return d.db.Model(tables.TableTaskInfo{}).
 		Where("id IN(?) AND smt_status=? AND tx_status=?", ids, tables.SmtStatusWriting, tables.TxStatusUnSend).
+		Updates(map[string]interface{}{
+			"smt_status": tables.SmtStatusNeedToRollback,
+		}).Error
+}
+
+func (d *DbDao) UpdateTaskStatusToRollbackWithBalanceErr(taskId string) error {
+	return d.db.Model(tables.TableTaskInfo{}).
+		Where("task_id=? AND smt_status=? AND tx_status=?", taskId, tables.SmtStatusNeedToWrite, tables.TxStatusUnSend).
 		Updates(map[string]interface{}{
 			"smt_status": tables.SmtStatusNeedToRollback,
 		}).Error

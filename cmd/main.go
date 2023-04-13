@@ -182,6 +182,7 @@ func runServer(ctx *cli.Context) error {
 			RC:            rc,
 			TxTool:        txTool,
 			SmtServerUrl:  &smtServer,
+			ServerScript:  serverScript,
 		},
 	}
 	hs.Run()

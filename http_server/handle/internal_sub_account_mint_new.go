@@ -20,11 +20,11 @@ import (
 
 func (h *HttpHandle) InternalSubAccountMintNew(ctx *gin.Context) {
 	var (
-		funcName = "InternalSubAccountMintNew"
-		clientIp = GetClientIp(ctx)
-		req      ReqSubAccountCreate
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "InternalSubAccountMintNew"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqSubAccountCreate
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -33,7 +33,7 @@ func (h *HttpHandle) InternalSubAccountMintNew(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doInternalSubAccountMintNew(&req, &apiResp); err != nil {
 		log.Error("doInternalSubAccountMintNew err:", err.Error(), funcName, clientIp)

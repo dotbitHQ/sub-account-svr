@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"strings"
 )
 
 type ReqCustomScriptInfo struct {
@@ -21,11 +22,11 @@ type RespCustomScriptInfo struct {
 
 func (h *HttpHandle) CustomScriptInfo(ctx *gin.Context) {
 	var (
-		funcName = "CustomScriptInfo"
-		clientIp = GetClientIp(ctx)
-		req      ReqCustomScriptInfo
-		apiResp  api_code.ApiResp
-		err      error
+		funcName               = "CustomScriptInfo"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqCustomScriptInfo
+		apiResp                api_code.ApiResp
+		err                    error
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -34,7 +35,7 @@ func (h *HttpHandle) CustomScriptInfo(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doCustomScriptInfo(&req, &apiResp); err != nil {
 		log.Error("doCustomScriptInfo err:", err.Error(), funcName, clientIp)
@@ -51,7 +52,7 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 	// custom-script
 	subAccLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		doGetSubAccountCellErr(err, apiResp)
 		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
 	detail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
@@ -85,4 +86,15 @@ func (h *HttpHandle) doCustomScriptInfo(req *ReqCustomScriptInfo, apiResp *api_c
 	}
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func doGetSubAccountCellErr(err error, apiResp *api_code.ApiResp) {
+	if err == nil || apiResp == nil {
+		return
+	}
+	if strings.Contains(err.Error(), "sub account cell len") {
+		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, err.Error())
+	} else {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+	}
 }

@@ -3,7 +3,7 @@
 ##
 ## Build
 ##
-FROM golang:1.15-buster AS build
+FROM golang:1.16-buster AS build
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 COPY --from=build /app/sub-account /app/sub-account
-COPY --from=build /app/config/config.yaml /app/config/config.yaml
+COPY --from=build /app/config/config.example.yaml /app/config/config.yaml
 
 EXPOSE 8125 8126
 

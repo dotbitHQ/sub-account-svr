@@ -6,13 +6,18 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/smt"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -238,4 +243,120 @@ func TestAccountIndex(t *testing.T) {
 	suffix := strings.TrimLeft(acc[index:], ".")
 
 	fmt.Println(suffix, acc[strings.Index(acc, ".")+1:])
+}
+
+func TestDasLockBalance(t *testing.T) {
+	db, err := toolib.NewGormDB("", "", "", "das_database", 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list []tables.TableAccountInfo
+	err = db.Select("owner_chain_type,owner").Group("owner_chain_type,owner").Find(&list).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(len(list))
+	//
+	dc, err := getNewDasCoreMainnet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	//
+	ch := make(chan tables.TableAccountInfo, 100)
+
+	total := uint64(0)
+	errGroup := &errgroup.Group{}
+	lock := &sync.Mutex{}
+	for i := 0; i < 30; i++ {
+		fmt.Println(i)
+		errGroup.Go(func() error {
+			for acc := range ch {
+				if acc.Owner == common.BlackHoleAddress {
+					continue
+				}
+				chainType := acc.OwnerChainType
+				owner := acc.Owner
+				//fmt.Println(chainType, owner)
+				balance, err := getBalance(dc, chainType, owner)
+				if err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+				if balance > 0 {
+					lock.Lock()
+					total += balance
+					lock.Unlock()
+				}
+				fmt.Println(acc.Owner, balance)
+			}
+			return nil
+		})
+	}
+
+	for i := range list {
+		ch <- list[i]
+	}
+	close(ch)
+
+	if err := errGroup.Wait(); err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println("total:", total)
+
+	//fmt.Println(getBalance(dc, common.ChainTypeEth, "0x9176aCD39A3A9Ae99dcB3922757f8Af4f94cDF3C"))
+	//fmt.Println(getBalance05(dc))
+}
+
+func TestDasLockBalance2(t *testing.T) {
+	dc, err := getNewDasCoreMainnet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(getBalance(dc, common.ChainTypeEth, ""))
+	fmt.Println(getBalance05(dc))
+}
+
+func getBalance(dc *core.DasCore, chainType common.ChainType, addr string) (uint64, error) {
+	total := uint64(0)
+	dasLock, _, err := dc.Daf().HexToScript(core.DasAddressHex{
+		DasAlgorithmId: chainType.ToDasAlgorithmId(false),
+		AddressHex:     addr,
+		IsMulti:        false,
+		ChainType:      chainType,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("hexToScript err: %s", err.Error())
+	}
+	searchKey := &indexer.SearchKey{
+		Script:     dasLock,
+		ScriptType: indexer.ScriptTypeLock,
+		Filter: &indexer.CellsFilter{
+			OutputDataLenRange: &[2]uint64{0, 1},
+		},
+	}
+	res, err := dc.Client().GetCellsCapacity(context.Background(), searchKey)
+	if err != nil {
+		return 0, fmt.Errorf("GetCellsCapacity err: %s", err.Error())
+	}
+	total += res.Capacity
+	return total / 1e8, nil
+}
+
+func getBalance05(dc *core.DasCore) (uint64, error) {
+	total := uint64(0)
+	searchKey := &indexer.SearchKey{
+		Script: &types.Script{
+			CodeHash: types.HexToHash("0xebafc1ebe95b88cac426f984ed5fce998089ecad0cd2f8b17755c9de4cb02162"),
+			HashType: types.HashTypeType,
+			Args:     nil,
+		},
+		ScriptType: indexer.ScriptTypeType,
+	}
+	res, err := dc.Client().GetCellsCapacity(context.Background(), searchKey)
+	if err != nil {
+		return 0, fmt.Errorf("GetCellsCapacity err: %s", err.Error())
+	}
+	total += res.Capacity
+	return total / 1e8, nil
 }

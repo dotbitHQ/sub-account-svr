@@ -143,94 +143,95 @@ func (t *SmtTask) doUpdateSubAccountTaskDetail(action common.DasAction, parentAc
 	return nil
 }
 
+// deprecated
 func (t *SmtTask) doUpdateSubAccountTask(action common.DasAction) error {
-	list, err := t.DbDao.GetNeedToDoTaskListByAction(config.Cfg.Slb.SvrName, action)
-	if err != nil {
-		return fmt.Errorf("GetNeedToDoTaskListByAction err: %s [%s]", err.Error(), action)
-	}
-
-	// group task list by ParentAccountId
-	mapTaskList, mapTaskIdList := t.groupByParentAccountIdNew(list)
-	// do task
-	for parentAccountId, taskList := range mapTaskList {
-		taskIdList, _ := mapTaskIdList[parentAccountId]
-
-		// check need roll back
-		var needRollbackIds []uint64
-		for _, v := range taskList {
-			if v.SmtStatus != tables.SmtStatusNeedToWrite {
-				needRollbackIds = append(needRollbackIds, v.Id)
-			}
-		}
-		if len(needRollbackIds) > 0 {
-			if err := t.DbDao.UpdateTaskStatusToRollback(needRollbackIds); err != nil {
-				return fmt.Errorf("UpdateTaskStatusToRollback err: %s", err.Error())
-			}
-			continue
-		}
-
-		if _, ok := config.Cfg.SuspendMap[parentAccountId]; ok {
-			log.Warn("SuspendMap:", parentAccountId)
-			continue
-		}
-
-		// get smt records
-		taskMap, subAccountIds, err := t.getTaskMap(taskIdList)
-		if err != nil {
-			return fmt.Errorf("getTaskMap err: %s", err.Error())
-		}
-
-		// check nonce
-		hasDiffNonce, err := t.doCheckNonceNew(taskMap, subAccountIds)
-		if err != nil {
-			return fmt.Errorf("doCheckNonce err: %s", err.Error())
-		} else if hasDiffNonce {
-			log.Warn("doCheckNonce:", parentAccountId)
-			continue
-		}
-
-		// do check
-		resCheck, err := t.TxTool.DoCheckBeforeBuildTx(parentAccountId)
-		if err != nil {
-			if resCheck != nil && resCheck.Continue {
-				log.Info("CheckInProgressTask: task in progress", parentAccountId)
-				continue
-			}
-			return fmt.Errorf("DoCheckBeforeBuildTx err: %s", err.Error())
-		}
-
-		// do check custom script
-		if tId, customScriptOk := t.TxTool.DoCheckCustomScriptHashNew(resCheck.SubAccountLiveCell, taskList); !customScriptOk {
-			log.Error("DoCheckCustomScriptHash err:", tId)
-			if err := t.DbDao.UpdateTaskCompleteWithDiffCustomScriptHash(tId, taskMap[tId]); err != nil {
-				return fmt.Errorf("UpdateTaskCompleteWithDiffCustomScriptHash err: %s", err.Error())
-			}
-			return fmt.Errorf("DoCheckCustomScriptHash err: %s", tId)
-		}
-
-		// get account
-		parentAccount, err := t.DbDao.GetAccountInfoByAccountId(parentAccountId)
-		if err != nil {
-			return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
-		}
-
-		// do task detail
-		if err := t.doTaskDetail(&paramDoTaskDetail{
-			action:             action,
-			taskList:           taskList,
-			taskMap:            taskMap,
-			account:            &parentAccount,
-			subAccountLiveCell: resCheck.SubAccountLiveCell,
-			baseInfo:           resCheck.BaseInfo,
-			subAccountIds:      subAccountIds,
-		}); err != nil {
-			if err == cache.ErrDistributedLockPreemption {
-				log.Info("doTaskDetail: task in progress", parentAccountId)
-				continue
-			}
-			return fmt.Errorf("doTaskDetail err: %s", err.Error())
-		}
-	}
+	//list, err := t.DbDao.GetNeedToDoTaskListByAction(config.Cfg.Slb.SvrName, action)
+	//if err != nil {
+	//	return fmt.Errorf("GetNeedToDoTaskListByAction err: %s [%s]", err.Error(), action)
+	//}
+	//
+	//// group task list by ParentAccountId
+	//mapTaskList, mapTaskIdList := t.groupByParentAccountIdNew(list)
+	//// do task
+	//for parentAccountId, taskList := range mapTaskList {
+	//	taskIdList, _ := mapTaskIdList[parentAccountId]
+	//
+	//	// check need roll back
+	//	var needRollbackIds []uint64
+	//	for _, v := range taskList {
+	//		if v.SmtStatus != tables.SmtStatusNeedToWrite {
+	//			needRollbackIds = append(needRollbackIds, v.Id)
+	//		}
+	//	}
+	//	if len(needRollbackIds) > 0 {
+	//		if err := t.DbDao.UpdateTaskStatusToRollback(needRollbackIds); err != nil {
+	//			return fmt.Errorf("UpdateTaskStatusToRollback err: %s", err.Error())
+	//		}
+	//		continue
+	//	}
+	//
+	//	if _, ok := config.Cfg.SuspendMap[parentAccountId]; ok {
+	//		log.Warn("SuspendMap:", parentAccountId)
+	//		continue
+	//	}
+	//
+	//	// get smt records
+	//	taskMap, subAccountIds, err := t.getTaskMap(taskIdList)
+	//	if err != nil {
+	//		return fmt.Errorf("getTaskMap err: %s", err.Error())
+	//	}
+	//
+	//	// check nonce
+	//	hasDiffNonce, err := t.doCheckNonceNew(taskMap, subAccountIds)
+	//	if err != nil {
+	//		return fmt.Errorf("doCheckNonce err: %s", err.Error())
+	//	} else if hasDiffNonce {
+	//		log.Warn("doCheckNonce:", parentAccountId)
+	//		continue
+	//	}
+	//
+	//	// do check
+	//	resCheck, err := t.TxTool.DoCheckBeforeBuildTx(parentAccountId)
+	//	if err != nil {
+	//		if resCheck != nil && resCheck.Continue {
+	//			log.Info("CheckInProgressTask: task in progress", parentAccountId)
+	//			continue
+	//		}
+	//		return fmt.Errorf("DoCheckBeforeBuildTx err: %s", err.Error())
+	//	}
+	//
+	//	// do check custom script
+	//	if tId, customScriptOk := t.TxTool.DoCheckCustomScriptHashNew(resCheck.SubAccountLiveCell, taskList); !customScriptOk {
+	//		log.Error("DoCheckCustomScriptHash err:", tId)
+	//		if err := t.DbDao.UpdateTaskCompleteWithDiffCustomScriptHash(tId, taskMap[tId]); err != nil {
+	//			return fmt.Errorf("UpdateTaskCompleteWithDiffCustomScriptHash err: %s", err.Error())
+	//		}
+	//		return fmt.Errorf("DoCheckCustomScriptHash err: %s", tId)
+	//	}
+	//
+	//	// get account
+	//	parentAccount, err := t.DbDao.GetAccountInfoByAccountId(parentAccountId)
+	//	if err != nil {
+	//		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	//	}
+	//
+	//	// do task detail
+	//	if err := t.doTaskDetail(&paramDoTaskDetail{
+	//		action:             action,
+	//		taskList:           taskList,
+	//		taskMap:            taskMap,
+	//		account:            &parentAccount,
+	//		subAccountLiveCell: resCheck.SubAccountLiveCell,
+	//		baseInfo:           resCheck.BaseInfo,
+	//		subAccountIds:      subAccountIds,
+	//	}); err != nil {
+	//		if err == cache.ErrDistributedLockPreemption {
+	//			log.Info("doTaskDetail: task in progress", parentAccountId)
+	//			continue
+	//		}
+	//		return fmt.Errorf("doTaskDetail err: %s", err.Error())
+	//	}
+	//}
 	return nil
 }
 
