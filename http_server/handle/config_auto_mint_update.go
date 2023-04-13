@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
-	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 )
@@ -67,112 +65,19 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
 		return err
 	}
-	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	baseInfo, err := h.TxTool.GetBaseInfo()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
-		return err
-	}
-
-	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
-		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
-	}
-	if accountInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
-		return fmt.Errorf("account no exist")
-	}
-	accountOutpoint := common.String2OutPointStruct(accountInfo.Outpoint)
-	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutpoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
-		return err
-	}
-
-	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
-	}
-	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return err
-	}
-
-	txParams := &txbuilder.BuildTransactionParams{}
-	txParams.CellDeps = append(txParams.CellDeps,
-		baseInfo.ContractAcc.ToCellDep(),
-		baseInfo.ContractSubAcc.ToCellDep(),
-		baseInfo.TimeCell.ToCellDep(),
-		baseInfo.HeightCell.ToCellDep(),
-		baseInfo.ConfigCellAcc.ToCellDep(),
-		baseInfo.ConfigCellSubAcc.ToCellDep(),
-	)
-
-	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
-		return err
-	}
-	balanceLiveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        dasLock,
-		CapacityNeed:      common.OneCkb,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
-	})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("GetBalanceCells err: %s", err.Error())
-	}
-	txParams.Inputs = append(txParams.Inputs,
-		&types.CellInput{
-			PreviousOutput: accountOutpoint,
-		},
-		&types.CellInput{
-			PreviousOutput: subAccountCell.OutPoint,
-		},
-	)
-	for _, v := range balanceLiveCells {
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: v.OutPoint,
-		})
-	}
-
-	// account cell
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: accountTx.Transaction.Outputs[accountOutpoint.Index].Capacity,
-		Lock:     accountTx.Transaction.Outputs[accountOutpoint.Index].Lock,
-		Type:     accountTx.Transaction.Outputs[accountOutpoint.Index].Type,
-	})
-	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
-
-	// sub_account cell
-	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Capacity,
-		Lock:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Lock,
-		Type:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Type,
-	})
-	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
-	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
+	enable := witness.AutoDistributionDefault
 	if req.Enable {
-		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
-	} else {
-		subAccountCellDetail.AutoDistribution = witness.AutoDistributionDefault
-	}
-	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
-	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
-
-	for _, v := range balanceLiveCells {
-		txParams.Outputs = append(txParams.Outputs, v.Output)
-		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
+		enable = witness.AutoDistributionEnable
 	}
 
-	for _, v := range subAccountTx.Transaction.Witnesses {
-		txParams.Witnesses = append(txParams.Witnesses, v)
+	txParams, _, err := h.rulesTxAssemble(&ReqPriceRuleUpdate{
+		ChainTypeAddress: req.ChainTypeAddress,
+		Account:          req.Account,
+	}, apiResp, []common.ActionDataType{}, enable)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
+		return err
 	}
 
 	signKey, signList, err := h.buildTx(&paramBuildTx{

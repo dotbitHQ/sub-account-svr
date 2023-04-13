@@ -105,7 +105,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	txParams, whiteListMap, err := h.rulesTxAssemble(common.ActionDataTypeSubAccountPriceRules, req, apiResp)
+	txParams, whiteListMap, err := h.rulesTxAssemble(req, apiResp, []common.ActionDataType{common.ActionDataTypeSubAccountPriceRules})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
 		return err
@@ -180,7 +180,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	return nil
 }
 
-func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
+func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp, inputActionDataType []common.ActionDataType, enableSwitch ...witness.AutoDistribution) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
 	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
@@ -277,48 +277,11 @@ func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, 
 	})
 	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
-	subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
-
-	ruleEntity, whiteListMap, err := req.ParseToSubAccountRule()
-	if err != nil {
-		return nil, nil, err
+	if len(enableSwitch) > 0 {
+		subAccountCellDetail.AutoDistribution = enableSwitch[0]
+	} else if len(inputActionDataType) > 0 {
+		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 	}
-	ruleData, err := ruleEntity.GenData()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Assemble the split rules into one for easy hashing
-	rulesBuilder := molecule.NewSubAccountRulesBuilder()
-	for _, v := range ruleData {
-		subAccountRules, err := molecule.SubAccountRulesFromSlice(v, true)
-		if err != nil {
-			return nil, nil, err
-		}
-		for i := uint(0); i < subAccountRules.ItemCount(); i++ {
-			subAccountRule := subAccountRules.Get(i)
-			rulesBuilder.Push(*subAccountRule)
-		}
-	}
-	rules := rulesBuilder.Build()
-
-	totalRules, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType, [][]byte{rules.AsSlice()})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hash, err := blake2b.Blake256(totalRules[0])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	switch inputActionDataType {
-	case common.ActionDataTypeSubAccountPriceRules:
-		subAccountCellDetail.PriceRulesHash = hash[:10]
-	case common.ActionDataTypeSubAccountPreservedRules:
-		subAccountCellDetail.PreservedRulesHash = hash[:10]
-	}
-
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
@@ -327,21 +290,85 @@ func (h *HttpHandle) rulesTxAssemble(inputActionDataType common.ActionDataType, 
 		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
 	}
 
-	rulesResult, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType, ruleData)
+	var rulesResult [][]byte
+	var whiteListMap map[string]Whitelist
+	if len(inputActionDataType) == 1 {
+		var ruleEntity *witness.SubAccountRuleEntity
+		ruleEntity, whiteListMap, err = req.ParseToSubAccountRule()
+		if err != nil {
+			return nil, nil, err
+		}
+		ruleData, err := ruleEntity.GenData()
+		if err != nil {
+			return nil, nil, err
+		}
+		// Assemble the split rules into one for easy hashing
+		rulesBuilder := molecule.NewSubAccountRulesBuilder()
+		for _, v := range ruleData {
+			subAccountRules, err := molecule.SubAccountRulesFromSlice(v, true)
+			if err != nil {
+				return nil, nil, err
+			}
+			for i := uint(0); i < subAccountRules.ItemCount(); i++ {
+				subAccountRule := subAccountRules.Get(i)
+				rulesBuilder.Push(*subAccountRule)
+			}
+		}
+		rules := rulesBuilder.Build()
+		totalRules, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType[0], [][]byte{rules.AsSlice()})
+		if err != nil {
+			return nil, nil, err
+		}
+
+		hash, err := blake2b.Blake256(totalRules[0])
+		if err != nil {
+			return nil, nil, err
+		}
+
+		switch inputActionDataType[0] {
+		case common.ActionDataTypeSubAccountPriceRules:
+			subAccountCellDetail.PriceRulesHash = hash[:10]
+		case common.ActionDataTypeSubAccountPreservedRules:
+			subAccountCellDetail.PreservedRulesHash = hash[:10]
+		}
+
+		rulesResult, err = ruleEntity.GenWitnessDataWithRuleData(inputActionDataType[0], ruleData)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// witness
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionConfigSubAccount, common.Hex2Bytes(common.ParamOwner))
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, v := range rulesResult {
-		txParams.Witnesses = append(txParams.Witnesses, v)
+	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+
+	if len(inputActionDataType) == 1 {
+		for _, v := range rulesResult {
+			txParams.Witnesses = append(txParams.Witnesses, v)
+		}
 	}
 
-	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
-		if actionDataType != inputActionDataType {
-			txParams.Witnesses = append(txParams.Witnesses, dataBys)
-		}
-		return true, nil
-	}); err != nil {
+	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
+	if err != nil {
 		return nil, nil, err
+	}
+	if ruleConfig.Id > 0 {
+		subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+			return nil, nil, err
+		}
+		if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+			if len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType {
+				txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
+			}
+			return true, nil
+		}); err != nil {
+			return nil, nil, err
+		}
 	}
 	return txParams, whiteListMap, nil
 }
