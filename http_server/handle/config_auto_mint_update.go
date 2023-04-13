@@ -214,7 +214,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,
 	})
-	log.Info("doCustomScript:", toolib.JsonString(resp))
+	log.Info("doConfigAutoMintUpdate:", toolib.JsonString(resp))
 
 	apiResp.ApiRespOK(resp)
 	return nil
