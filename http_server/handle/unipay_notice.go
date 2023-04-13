@@ -23,7 +23,8 @@ const (
 	EventTypeOrderRefund EventType = "ORDER.REFUND"
 )
 
-type OrderInfo struct {
+type EventInfo struct {
+	EventType    EventType           `json:"event_type"`
 	OrderId      string              `json:"order_id"`
 	PayStatus    tables.PayStatus    `json:"pay_status"`
 	PayHash      string              `json:"pay_hash"`
@@ -33,8 +34,7 @@ type OrderInfo struct {
 
 type ReqUniPayNotice struct {
 	BusinessId string      `json:"business_id"`
-	EventType  EventType   `json:"event_type"`
-	Orders     []OrderInfo `json:"orders"`
+	EventList  []EventInfo `json:"event_list"`
 }
 
 type RespUniPayNotice struct {
@@ -73,41 +73,38 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 		return nil
 	}
 	// check order id
-	switch req.EventType {
-	case EventTypeOrderPay:
-		for i := range req.Orders {
-			if err := h.doPayConfirm(req.Orders[i]); err != nil {
+	for i, v := range req.EventList {
+		switch v.EventType {
+		case EventTypeOrderPay:
+			if err := h.doPayConfirm(req.EventList[i]); err != nil {
 				log.Error("doPayConfirm err: %s", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doPayConfirm", err.Error())
 			}
-		}
-	case EventTypeOrderRefund:
-		for _, v := range req.Orders {
+		case EventTypeOrderRefund:
 			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId); err != nil {
 				log.Error("UpdateRefundStatusToRefunded err: %s", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdateRefundStatusToRefunded", err.Error())
 			}
+		default:
+			log.Error("EventType invalid:", v.EventType)
 		}
-	default:
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("EventType[%s] invalid", req.EventType))
-		return nil
 	}
 
 	apiResp.ApiRespOK(resp)
 	return nil
 }
 
-func (h *HttpHandle) doPayConfirm(reqOrder OrderInfo) error {
-	order, err := h.DbDao.GetOrderByOrderID(reqOrder.OrderId)
+func (h *HttpHandle) doPayConfirm(eventInfo EventInfo) error {
+	order, err := h.DbDao.GetOrderByOrderID(eventInfo.OrderId)
 	if err != nil {
 		return fmt.Errorf("GetOrderByOrderID err: %s", err.Error())
 	} else if order.Id == 0 {
-		return fmt.Errorf("order[%s] not exist", reqOrder.OrderId)
+		return fmt.Errorf("order[%s] not exist", eventInfo.OrderId)
 	}
 
 	paymentInfo := tables.PaymentInfo{
-		PayHash:       reqOrder.PayHash,
-		OrderId:       reqOrder.OrderId,
+		PayHash:       eventInfo.PayHash,
+		OrderId:       eventInfo.OrderId,
 		PayHashStatus: tables.PayHashStatusConfirmed,
 		Timestamp:     time.Now().Unix(),
 	}
@@ -149,8 +146,8 @@ func (h *HttpHandle) doPayConfirm(reqOrder OrderInfo) error {
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
 	} else if rowsAffected > 0 && sri.Id == 0 {
-		log.Warnf("doUniPayNotice:", reqOrder.OrderId, rowsAffected)
-		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", reqOrder.OrderId)
+		log.Warnf("doUniPayNotice:", eventInfo.OrderId, rowsAffected)
+		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", eventInfo.OrderId)
 		// multiple orders from the same account are successful
 	}
 	return nil
