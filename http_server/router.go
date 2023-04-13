@@ -56,6 +56,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/auto/account/search", api_code.DoMonitorLog("auto_acc_search"), h.H.AutoAccountSearch)
 		v1.POST("/auto/order/create", api_code.DoMonitorLog("auto_order_create"), h.H.AutoOrderCreate)
 		v1.POST("/auto/order/hash", api_code.DoMonitorLog("auto_order_hash"), h.H.AutoOrderHash)
+		v1.POST("/currency/update", api_code.DoMonitorLog("currency_update"), h.H.CurrencyUpdate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{
