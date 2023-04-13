@@ -7,13 +7,13 @@ import (
 )
 
 type UserConfig struct {
-	Id            int64         `gorm:"column:id;AUTO_INCREMENT" json:"id"`
-	Account       string        `gorm:"column:account;type:varchar(255);comment:父账号;NOT NULL" json:"account"`
-	AccountId     string        `gorm:"column:account_id;index:idx_account_id;type:varchar(255);comment:父账号id;NOT NULL" json:"account_id"`
-	MintConfig    MintConfig    `gorm:"column:mint_config;type:text;comment:mint设置内容" json:"mint_config"`
-	PaymentConfig PaymentConfig `gorm:"column:payment_config;type:text;comment:用户收款配置" json:"payment_config"`
-	CreatedAt     time.Time     `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"created_at"`
-	UpdatedAt     time.Time     `gorm:"column:updated_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"updated_at"`
+	Id            int64          `gorm:"column:id;AUTO_INCREMENT" json:"id"`
+	Account       string         `gorm:"column:account;type:varchar(255);comment:父账号;NOT NULL" json:"account"`
+	AccountId     string         `gorm:"column:account_id;index:idx_account_id;type:varchar(255);comment:父账号id;NOT NULL" json:"account_id"`
+	MintConfig    *MintConfig    `gorm:"column:mint_config;type:text;comment:mint设置内容" json:"mint_config"`
+	PaymentConfig *PaymentConfig `gorm:"column:payment_config;type:text;comment:用户收款配置" json:"payment_config"`
+	CreatedAt     time.Time      `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"created_at"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"updated_at"`
 }
 
 type MintConfig struct {
