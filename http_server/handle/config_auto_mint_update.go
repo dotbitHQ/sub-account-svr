@@ -80,7 +80,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	signKey, signList, err := h.buildTx(&paramBuildTx{
+	signKey, signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,

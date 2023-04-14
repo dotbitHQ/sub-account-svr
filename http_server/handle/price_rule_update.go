@@ -111,28 +111,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		return err
 	}
 
-	// build tx
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
-	if err := txBuilder.BuildTransaction(txParams); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-
-	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-	changeCapacity = changeCapacity - sizeInBlock - 5000
-	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
-
-	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
-
-	txHash, err := txBuilder.Transaction.ComputeHash()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
-		return err
-	}
-	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), txHash.String())
-
-	signKey, signList, err := h.buildTx(&paramBuildTx{
+	signKey, signList, txHash, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -159,7 +138,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		}
 		for accountId, whiteList := range whiteListMap {
 			if err := tx.Create(tables.RuleWhitelist{
-				TxHash:          txHash.String(),
+				TxHash:          txHash,
 				ParentAccount:   req.Account,
 				ParentAccountId: parentAccountId,
 				RuleType:        tables.RuleTypePriceRules,

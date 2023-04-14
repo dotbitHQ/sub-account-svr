@@ -189,7 +189,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	//	return fmt.Errorf("BuildTransaction err: %s", err.Error())
 	//}
 
-	signKey, signList, err := h.buildTx(&paramBuildTx{
+	signKey, signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{},
 		chainType:  req.chainType,
