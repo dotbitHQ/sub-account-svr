@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/scorpiotzh/toolib"
-	"math"
 	"net/http"
 )
 
@@ -88,101 +87,37 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 		return err
 	}
 
-	resRuleList := make(Rules, 0)
-
 	for idx, v := range subAccountEntity.Rules {
-		rule := Rule{
-			Name:       v.Name,
-			Note:       v.Note,
-			Price:      float64(v.Price) / math.Pow10(6),
-			Whitelist:  []string{},
-			Conditions: []Condition{},
-		}
+		if v.Ast.Type == witness.Function &&
+			v.Ast.Name == string(witness.FunctionInList) &&
+			v.Ast.Expressions[0].Type == witness.Variable &&
+			v.Ast.Expressions[0].Name == string(witness.Account) &&
+			v.Ast.Expressions[1].Type == witness.Value &&
+			v.Ast.Expressions[1].ValueType == witness.BinaryArray {
 
-		if len(v.Ast.Expression.Expressions) != 2 {
-			err := errors.New("rule expressions length error")
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return err
-		}
-		if v.Ast.Expression.Expressions[0].Type != witness.Variable || v.Ast.Expression.Expressions[1].Type != witness.Value {
-			err := errors.New("rule expressions struct error")
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return err
-		}
-
-		funcName := witness.FunctionType(v.Ast.Expression.Name)
-		if funcName == witness.FunctionInList {
-			// whitelist process
-			rule.Type = RuleTypeWhitelist
-
-			if len(v.Ast.Expression.Expressions) != 2 {
-				err := errors.New("rule expressions length error")
-				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-				return err
-			}
-			if v.Ast.Expression.Expressions[0].Type != witness.Variable || v.Ast.Expression.Expressions[1].Type != witness.Value {
-				err := errors.New("rule expressions struct error")
-				apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-				return err
-			}
-
-			subAccountIds := gconv.Strings(v.Ast.Expression.Expressions[1].Expression.Value)
-			whitelist, err := h.DbDao.FindRulesBySubAccountIds(subAccountCell.OutPoint.TxHash.Hex(), parentAccountId, tables.RuleTypePriceRules, idx)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-				return err
-			}
-			if len(whitelist) != len(subAccountIds) {
-				err = errors.New("rule data error")
-				apiResp.ApiRespErr(api_code.ApiCodeRuleDataErr, err.Error())
-				return err
-			}
-
-			whitelistMap := make(map[string]tables.RuleWhitelist)
-			for _, v := range whitelist {
-				whitelistMap[v.AccountId] = v
-			}
-			for _, v := range subAccountIds {
-				subAcc, ok := whitelistMap[v]
-				if !ok {
-					err = errors.New("rule data error")
-					apiResp.ApiRespErr(api_code.ApiCodeRuleDataErr, err.Error())
+			accIdWhitelist := gconv.Strings(v.Ast.Expressions[1].Value)
+			accWhitelist := make([]string, 0, len(accIdWhitelist))
+			for _, v := range accIdWhitelist {
+				rule, err := h.DbDao.GetRulesBySubAccountId(parentAccountId, tables.RuleTypePriceRules, v)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 					return err
 				}
-				rule.Whitelist = append(rule.Whitelist, subAcc.Account)
+				if rule.Id == 0 {
+					err := errors.New("data aberrant")
+					apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+					return err
+				}
+				accWhitelist = append(accWhitelist, rule.Account)
 			}
-			continue
+			subAccountEntity.Rules[idx].Ast.Expressions[1].Value = accWhitelist
 		}
-
-		rule.Type = RuleTypeConditions
-		switch v.Ast.Type {
-		case witness.Function:
-			cond := Condition{
-				VarName: witness.VariableName(v.Ast.Expression.Expressions[0].Expression.Name),
-				Op:      v.Ast.Expression.Name,
-			}
-			switch v.Ast.Expression.Name {
-			case string(witness.FunctionIncludeCharts):
-				cond.Value = gconv.Strings(v.Ast.Expression.Expressions[1].Expression.Value)
-			case string(witness.FunctionOnlyIncludeCharset):
-				cond.Value = gconv.String(v.Ast.Expression.Expressions[1].Expression.Value)
-			}
-			rule.Conditions = append(rule.Conditions, cond)
-		case witness.Operator:
-			cond := Condition{
-				VarName: witness.VariableName(v.Ast.Expression.Expressions[0].Expression.Name),
-				Op:      string(v.Ast.Expression.Symbol),
-				Value:   gconv.Uint8(v.Ast.Expression.Expressions[1].Expression.Value),
-			}
-			rule.Conditions = append(rule.Conditions, cond)
-		}
-		resRuleList = append(resRuleList, rule)
 	}
 
 	apiResp.ApiRespOK(struct {
-		List Rules `json:"list"`
+		List interface{} `json:"list"`
 	}{
-		List: resRuleList,
+		List: subAccountEntity.Rules,
 	})
 	return nil
 }

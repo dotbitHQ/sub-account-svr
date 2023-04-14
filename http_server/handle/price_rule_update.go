@@ -17,44 +17,14 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
-	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
-	"math"
 	"net/http"
-	"strings"
 )
-
-type RuleType int
-
-const (
-	RuleTypeConditions RuleType = 1
-	RuleTypeWhitelist  RuleType = 2
-)
-
-var Ops = map[string]struct{}{"==": {}, ">": {}, ">=": {}, "<": {}, "<=": {}, "not": {}}
-var Functions = map[string]struct{}{"include_chars": {}, "only_include_charset": {}}
 
 type ReqPriceRuleUpdate struct {
 	core.ChainTypeAddress
-	Account string `json:"account" binding:"required"`
-	List    Rules  `json:"list" binding:"required"`
-}
-
-type Rules []Rule
-
-type Rule struct {
-	Name       string      `json:"name" binding:"required"`
-	Note       string      `json:"note"`
-	Price      float64     `json:"price"`
-	Type       RuleType    `json:"type" binding:"required;oneof=1 2"`
-	Whitelist  []string    `json:"whitelist,omitempty"`
-	Conditions []Condition `json:"conditions,omitempty"`
-}
-
-type Condition struct {
-	VarName witness.VariableName `json:"var_name" binding:"required;oneof=account_chars account_length"`
-	Op      string               `json:"op" binding:"required;oneof=include_chars only_include_charset == > >= < <= not"`
-	Value   interface{}          `json:"value" binding:"required"`
+	Account string                      `json:"account" binding:"required"`
+	List    witness.SubAccountRuleSlice `json:"list" binding:"required"`
 }
 
 func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
@@ -81,11 +51,6 @@ func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
-	// req params check
-	if err := h.reqCheck(req, apiResp); err != nil {
-		return err
-	}
-
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -157,6 +122,11 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+type Whitelist struct {
+	Index   int
+	Account string
 }
 
 func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp, inputActionDataType []common.ActionDataType, enableSwitch ...witness.AutoDistribution) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
@@ -270,13 +240,34 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 
 	var rulesResult [][]byte
-	var whiteListMap map[string]Whitelist
+	whiteListMap := make(map[string]Whitelist)
 	if len(inputActionDataType) == 1 {
-		var ruleEntity *witness.SubAccountRuleEntity
-		ruleEntity, whiteListMap, err = req.ParseToSubAccountRule()
-		if err != nil {
+		ruleEntity := witness.NewSubAccountRuleEntity(req.Account)
+		ruleEntity.Version = witness.SubAccountRuleVersionV1
+		ruleEntity.Rules = req.List
+		if err := ruleEntity.Check(); err != nil {
 			return nil, nil, err
 		}
+
+		for idx, v := range ruleEntity.Rules {
+			if v.Ast.Type == witness.Function &&
+				v.Ast.Name == string(witness.FunctionInList) &&
+				v.Ast.Expressions[0].Type == witness.Variable &&
+				v.Ast.Expressions[0].Name == string(witness.Account) &&
+				v.Ast.Expressions[1].Type == witness.Value &&
+				v.Ast.Expressions[1].ValueType == witness.BinaryArray {
+
+				accWhitelist := gconv.Strings(v.Ast.Expressions[1].Value)
+				for _, v := range accWhitelist {
+					accId := common.Bytes2Hex(common.GetAccountIdByAccount(v))
+					whiteListMap[accId] = Whitelist{
+						Index:   idx,
+						Account: v,
+					}
+				}
+			}
+		}
+
 		ruleData, err := ruleEntity.GenData()
 		if err != nil {
 			return nil, nil, err
@@ -350,157 +341,4 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		}
 	}
 	return txParams, whiteListMap, nil
-}
-
-func (h *HttpHandle) reqCheck(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
-	for _, v := range req.List {
-		if v.Type == RuleTypeConditions && len(v.Conditions) == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-			return fmt.Errorf("params invalid")
-		}
-
-		if v.Type == RuleTypeWhitelist && len(v.Whitelist) == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-			return fmt.Errorf("params invalid")
-		}
-
-		if v.Price > 0 && float64(int(v.Price*100))/100 != v.Price {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-			return fmt.Errorf("params invalid")
-		}
-
-		switch v.Type {
-		case RuleTypeConditions:
-			for _, vv := range v.Conditions {
-				if _, ok := Functions[vv.Op]; !ok && vv.VarName == witness.AccountChars {
-					apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-					return fmt.Errorf("params invalid")
-				}
-
-				if vv.Op == string(witness.FunctionOnlyIncludeCharset) {
-					charsetName := gconv.String(vv.Value)
-					if _, ok := common.AccountCharTypeNameMap[charsetName]; !ok {
-						err := fmt.Errorf("charset %s not support", vv.Value)
-						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-						return err
-					}
-				}
-
-				if vv.VarName == witness.AccountLength {
-					if _, ok := Ops[vv.Op]; !ok {
-						apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-						return fmt.Errorf("params invalid")
-					}
-				}
-			}
-		case RuleTypeWhitelist:
-			if len(v.Whitelist) == 0 {
-				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-				return fmt.Errorf("params invalid")
-			}
-		}
-	}
-	return nil
-}
-
-type Whitelist struct {
-	Index   int    `json:"index"`
-	Account string `json:"account"`
-}
-
-func (r *ReqPriceRuleUpdate) ParseToSubAccountRule() (*witness.SubAccountRuleEntity, map[string]Whitelist, error) {
-	whiteList := make(map[string]Whitelist, 0)
-	ruleEntity := witness.NewSubAccountRuleEntity(r.Account)
-	for i := 0; i < len(r.List); i++ {
-		ruleReq := r.List[i]
-		rule := witness.SubAccountRule{
-			Index: uint32(i),
-			Name:  ruleReq.Name,
-			Note:  ruleReq.Note,
-			Price: uint64(math.Pow10(6) * ruleReq.Price),
-		}
-		switch ruleReq.Type {
-		case RuleTypeConditions:
-			for _, v := range ruleReq.Conditions {
-
-				if funk.Contains(Functions, v.Op) {
-					rule.Ast.Type = witness.Function
-					rule.Ast.Expression.Name = v.Op
-					rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-						Type: witness.Variable,
-						Expression: witness.ExpressionEntity{
-							Name: string(v.VarName),
-						},
-					})
-
-					if v.Op == string(witness.FunctionIncludeCharts) {
-						rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-							Type: witness.Value,
-							Expression: witness.ExpressionEntity{
-								ValueType: witness.StringArray,
-								Value:     gconv.Strings(v.Value),
-							},
-						})
-					}
-					if v.Op == string(witness.FunctionOnlyIncludeCharset) {
-						charsetType := common.AccountCharTypeNameMap[gconv.String(v.Value)]
-						rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-							Type: witness.Value,
-							Expression: witness.ExpressionEntity{
-								ValueType: witness.Charset,
-								Value:     charsetType,
-							},
-						})
-					}
-					continue
-				}
-
-				rule.Ast.Type = witness.Operator
-				rule.Ast.Expression.Symbol = witness.SymbolType(v.Op)
-				rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-					Type: witness.Variable,
-					Expression: witness.ExpressionEntity{
-						Name: string(v.VarName),
-					},
-				})
-				rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-					Type: witness.Value,
-					Expression: witness.ExpressionEntity{
-						ValueType: witness.Uint8,
-						Value:     gconv.Uint8(v.Value),
-					},
-				})
-			}
-		case RuleTypeWhitelist:
-			rule.Ast.Type = witness.Function
-			rule.Ast.Expression.Name = string(witness.FunctionInList)
-			rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-				Type: witness.Variable,
-				Expression: witness.ExpressionEntity{
-					Name: string(witness.Account),
-				},
-			})
-
-			subAccountIds := make([]string, 0)
-			for _, v := range ruleReq.Whitelist {
-				subAccount := strings.Split(strings.TrimSpace(v), ".")[0]
-				subAccount = subAccount + "." + r.Account
-				subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(subAccount))
-				subAccountIds = append(subAccountIds, subAccountId)
-				whiteList[subAccountId] = Whitelist{
-					Index:   i,
-					Account: subAccount,
-				}
-			}
-			rule.Ast.Expression.Expressions = append(rule.Ast.Expression.Expressions, witness.AstExpression{
-				Type: witness.Value,
-				Expression: witness.ExpressionEntity{
-					ValueType: witness.BinaryArray,
-					Value:     subAccountIds,
-				},
-			})
-		}
-		ruleEntity.Rules = append(ruleEntity.Rules, rule)
-	}
-	return ruleEntity, whiteList, nil
 }

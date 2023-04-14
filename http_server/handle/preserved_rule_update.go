@@ -37,11 +37,6 @@ func (h *HttpHandle) PreservedRuleUpdate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
-	// req params check
-	if err := h.reqCheck(req, apiResp); err != nil {
-		return err
-	}
-
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
