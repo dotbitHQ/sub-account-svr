@@ -35,7 +35,7 @@ func (m *AutoPaymentInfo) TableName() string {
 	return "t_auto_payment_info"
 }
 
-func (m AutoPaymentInfo) GenAutoPaymentId() error {
+func (m *AutoPaymentInfo) GenAutoPaymentId() error {
 	uid, err := uuid.NewUUID()
 	if err != nil {
 		return err
