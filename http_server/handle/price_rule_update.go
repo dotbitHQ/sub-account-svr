@@ -192,13 +192,13 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
 
 	// sub_account cell
-	subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.TxIndex]
+	subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.OutPoint.Index]
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: subAccountCellOutput.Capacity,
 		Lock:     subAccountCellOutput.Lock,
 		Type:     subAccountCellOutput.Type,
 	})
-	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
 	if len(enableSwitch) > 0 {
 		subAccountCellDetail.AutoDistribution = enableSwitch[0]
