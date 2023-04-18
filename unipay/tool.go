@@ -23,10 +23,6 @@ type ToolUniPay struct {
 }
 
 func (t *ToolUniPay) RunUniPay() {
-	if !config.Cfg.Server.RefundSwitch {
-		return
-	}
-
 	tickerRefund := time.NewTicker(time.Minute * 10)
 	tickerSearchStatus := time.NewTicker(time.Minute * 5)
 

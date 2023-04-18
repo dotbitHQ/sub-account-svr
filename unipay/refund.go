@@ -1,10 +1,14 @@
 package unipay
 
 import (
+	"das_sub_account/config"
 	"fmt"
 )
 
 func (t *ToolUniPay) doRefund() error {
+	if !config.Cfg.Server.RefundSwitch {
+		return nil
+	}
 	//get payment list
 	list, err := t.DbDao.GetUnRefundList()
 	if err != nil {
