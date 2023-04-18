@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
-	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
@@ -130,13 +129,7 @@ type Whitelist struct {
 }
 
 func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp, inputActionDataType []common.ActionDataType, enableSwitch ...witness.AutoDistribution) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return nil, nil, err
-	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-
 	baseInfo, err := h.TxTool.GetBaseInfo()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
@@ -180,22 +173,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		baseInfo.ConfigCellSubAcc.ToCellDep(),
 	)
 
-	dasLock, _, err := h.DasCore.Daf().HexToScript(*res)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "HexToArgs err")
-		return nil, nil, err
-	}
-	balanceLiveCells, _, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        dasLock,
-		CapacityNeed:      common.OneCkb,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
-	})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return nil, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
-	}
 	txParams.Inputs = append(txParams.Inputs,
 		&types.CellInput{
 			PreviousOutput: accountOutpoint,
@@ -204,25 +181,22 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			PreviousOutput: subAccountCell.OutPoint,
 		},
 	)
-	for _, v := range balanceLiveCells {
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: v.OutPoint,
-		})
-	}
 
 	// account cell
+	accountCellOutput := accountTx.Transaction.Outputs[accountOutpoint.Index]
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: accountTx.Transaction.Outputs[accountOutpoint.Index].Capacity,
-		Lock:     accountTx.Transaction.Outputs[accountOutpoint.Index].Lock,
-		Type:     accountTx.Transaction.Outputs[accountOutpoint.Index].Type,
+		Capacity: accountCellOutput.Capacity,
+		Lock:     accountCellOutput.Lock,
+		Type:     accountCellOutput.Type,
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
 
 	// sub_account cell
+	subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.TxIndex]
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-		Capacity: subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Capacity,
-		Lock:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Lock,
-		Type:     subAccountTx.Transaction.Outputs[subAccountCell.TxIndex].Type,
+		Capacity: subAccountCellOutput.Capacity,
+		Lock:     subAccountCellOutput.Lock,
+		Type:     subAccountCellOutput.Type,
 	})
 	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
@@ -233,11 +207,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
-
-	for _, v := range balanceLiveCells {
-		txParams.Outputs = append(txParams.Outputs, v.Output)
-		txParams.OutputsData = append(txParams.OutputsData, v.OutputData)
-	}
 
 	var rulesResult [][]byte
 	whiteListMap := make(map[string]Whitelist)

@@ -203,9 +203,10 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, str
 
 	if p.action == common.DasActionConfigSubAccount {
 		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-		changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-		changeCapacity = changeCapacity - sizeInBlock - 5000
-		txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
+		latestOutput := len(txBuilder.Transaction.Outputs) - 1
+		changeCapacity := txBuilder.Transaction.Outputs[latestOutput].Capacity - sizeInBlock - 5000
+		txBuilder.Transaction.Outputs[latestOutput].Capacity = changeCapacity
+		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity)
 	}
 
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
