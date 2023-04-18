@@ -7,6 +7,7 @@ server:
   server_address: ""
   server_private_key: ""
   smt_server: "http://10.143.1.180:10000"
+  uni_pay_url: "http://127.0.0.1:9092"
   refund_switch: false
 das:
   max_register_years: 20
