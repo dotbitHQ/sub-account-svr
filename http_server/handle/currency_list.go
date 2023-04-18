@@ -60,7 +60,7 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 		return err
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
+	if err := h.check(address, req.Account, apiResp); err != nil {
 		return err
 	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))

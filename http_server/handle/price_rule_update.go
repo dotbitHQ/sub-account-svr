@@ -65,7 +65,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
+	if err := h.check(address, req.Account, apiResp); err != nil {
 		return err
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))

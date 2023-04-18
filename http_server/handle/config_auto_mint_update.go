@@ -62,7 +62,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
+	if err := h.check(address, req.Account, apiResp); err != nil {
 		return err
 	}
 

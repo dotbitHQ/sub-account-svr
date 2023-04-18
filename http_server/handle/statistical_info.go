@@ -69,7 +69,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		return err
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.checkAuth(address, req.Account, apiResp); err != nil {
+	if err := h.check(address, req.Account, apiResp); err != nil {
 		return err
 	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
@@ -202,7 +202,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	return nil
 }
 
-func (h *HttpHandle) checkAuth(address, account string, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) check(address, account string, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -217,6 +217,17 @@ func (h *HttpHandle) checkAuth(address, account string, apiResp *api_code.ApiRes
 	if !strings.EqualFold(acc.Owner, address) && !strings.EqualFold(acc.Manager, address) {
 		err = errors.New("you not this account permissions")
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+		return err
+	}
+
+	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
+		return fmt.Errorf("SearchAccount err: %s", err.Error())
+	}
+	if accountInfo.EnableSubAccount != tables.AccountEnableStatusOn {
+		err = errors.New("sub account no enable, please enable sub_account before use")
+		apiResp.ApiRespErr(api_code.ApiCodeSubAccountNoEnable, err.Error())
 		return err
 	}
 

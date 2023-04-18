@@ -58,6 +58,7 @@ const (
 	ApiCodeNoTSetRules                        ApiCode = 40028
 	ApiCodeTokenIdNotSupported                ApiCode = 40029
 	ApiCodeNoSubAccountDistributionPermission ApiCode = 40030
+	ApiCodeSubAccountNoEnable                 ApiCode = 40031
 )
 
 const (
