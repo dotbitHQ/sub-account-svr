@@ -275,6 +275,7 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 		SmtRoot:          smt.H256Zero(),
 		DasProfit:        0,
 		OwnerProfit:      0,
+		Flag:             witness.FlagTypeCustomRule,
 		CustomScriptArgs: nil,
 	}
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
