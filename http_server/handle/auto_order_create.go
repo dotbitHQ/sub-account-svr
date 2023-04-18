@@ -1,7 +1,6 @@
 package handle
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
@@ -124,7 +123,6 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
 
 	// create order
-	config.Cfg.Server.UniPayUrl = "http://127.0.0.1:9090"
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress: req.ChainTypeAddress,
 		BusinessId:       unipay.BusinessIdAutoSubAccount,
