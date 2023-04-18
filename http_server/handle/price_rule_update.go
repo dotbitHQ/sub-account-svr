@@ -284,6 +284,20 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
+	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	accBuilder, ok := accBuilderMap[parentAccountId]
+	if !ok {
+		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
+	}
+	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
+		OldIndex: 0,
+		Action:   common.DasActionUpdateSubAccount,
+	})
+	txParams.Witnesses = append(txParams.Witnesses, accWitness)
+
 	if len(inputActionDataType) == 1 {
 		for _, v := range rulesResult {
 			txParams.Witnesses = append(txParams.Witnesses, v)
