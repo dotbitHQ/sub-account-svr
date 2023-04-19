@@ -253,7 +253,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			}
 		}
 		rules := rulesBuilder.Build()
-		totalRules, err := ruleEntity.GenWitnessDataWithRuleData(inputActionDataType[0], [][]byte{rules.AsSlice()})
+		totalRules, err := ruleEntity.GenWitnessDataWithRuleData([][]byte{rules.AsSlice()})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -271,7 +271,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			subAccountCellDetail.PreservedRulesHash = hash[:10]
 		}
 
-		rulesResult, err = ruleEntity.GenWitnessDataWithRuleData(inputActionDataType[0], ruleData)
+		rulesResult, err = ruleEntity.GenWitnessDataWithRuleData(ruleData)
 		if err != nil {
 			return nil, nil, err
 		}
