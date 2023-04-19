@@ -272,8 +272,9 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		}
 
 		// add actionDataType to prefix
-		for _, v := range ruleData {
-			rulesResult = append(rulesResult, witness.GenDasDataWitnessWithByte(inputActionDataType[0], v))
+		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
