@@ -253,13 +253,9 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			}
 		}
 		rules := rulesBuilder.Build()
-		totalRules, err := ruleEntity.GenWitnessDataWithRuleData([][]byte{rules.AsSlice()})
-		if err != nil {
-			return nil, nil, err
-		}
-		log.Infof("rule config: %s", common.Bytes2Hex(totalRules[0]))
+		log.Infof("rule config: %s", common.Bytes2Hex(rules.AsSlice()))
 
-		hash, err := blake2b.Blake256(totalRules[0])
+		hash, err := blake2b.Blake256(rules.AsSlice())
 		if err != nil {
 			return nil, nil, err
 		}
