@@ -79,7 +79,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,
 	})
-	log.Info("doCustomScript:", toolib.JsonString(resp))
+	log.Info("doPreservedRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePreservedRules).
