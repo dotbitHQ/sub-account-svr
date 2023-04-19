@@ -205,11 +205,10 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	} else if len(inputActionDataType) > 0 {
 		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 	}
-	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
-	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
 	var rulesResult [][]byte
 	whiteListMap := make(map[string]Whitelist)
+	// Assemble price rules and calculate rule hash
 	if len(inputActionDataType) == 1 {
 		ruleEntity := witness.NewSubAccountRuleEntity(req.Account)
 		ruleEntity.Version = witness.SubAccountRuleVersionV1
@@ -276,6 +275,8 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			return nil, nil, err
 		}
 	}
+	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
+	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
 	// witness
 	actionWitness, err := witness.GenActionDataWitness(common.DasActionConfigSubAccount, common.Hex2Bytes(common.ParamOwner))
