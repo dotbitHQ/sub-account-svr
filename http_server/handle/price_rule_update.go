@@ -271,7 +271,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			subAccountCellDetail.PreservedRulesHash = hash[:10]
 		}
 
-		rulesResult, err = ruleEntity.GenWitnessDataWithRuleData(ruleData)
+		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -285,12 +285,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		return nil, nil, err
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
-
-	if len(inputActionDataType) == 1 {
-		for _, v := range rulesResult {
-			txParams.Witnesses = append(txParams.Witnesses, v)
-		}
-	}
 
 	// witness account cell
 	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
@@ -315,12 +309,25 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		return nil, nil, err
 	}
 	if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
-		if len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType {
+		if (len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType) &&
+			(actionDataType == common.ActionDataTypeSubAccountPriceRules ||
+				actionDataType == common.ActionDataTypeSubAccountPreservedRules) {
+
+			if len(inputActionDataType) > 0 && inputActionDataType[0] == actionDataType {
+				return true, nil
+			}
 			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
 		}
 		return true, nil
 	}); err != nil {
 		return nil, nil, err
+	}
+
+	// rule witness
+	if len(inputActionDataType) == 1 {
+		for _, v := range rulesResult {
+			txParams.Witnesses = append(txParams.Witnesses, v)
+		}
 	}
 	return txParams, whiteListMap, nil
 }
