@@ -206,7 +206,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 	}
 
-	var rulesResult [][]byte
+	rulesResult := make([][]byte, 0)
 	whiteListMap := make(map[string]Whitelist)
 	// Assemble price rules and calculate rule hash
 	if len(inputActionDataType) == 1 {
@@ -271,9 +271,9 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			subAccountCellDetail.PreservedRulesHash = hash[:10]
 		}
 
-		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
-		if err != nil {
-			return nil, nil, err
+		// add actionDataType to prefix
+		for _, v := range ruleData {
+			rulesResult = append(rulesResult, witness.GenDasDataWitnessWithByte(inputActionDataType[0], v))
 		}
 	}
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
@@ -324,10 +324,8 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 
 	// rule witness
-	if len(inputActionDataType) == 1 {
-		for _, v := range rulesResult {
-			txParams.Witnesses = append(txParams.Witnesses, v)
-		}
+	for _, v := range rulesResult {
+		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
 	return txParams, whiteListMap, nil
 }
