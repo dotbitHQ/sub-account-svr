@@ -220,12 +220,12 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		for idx, v := range ruleEntity.Rules {
 			if v.Ast.Type == witness.Function &&
 				v.Ast.Name == string(witness.FunctionInList) &&
-				v.Ast.Expressions[0].Type == witness.Variable &&
-				v.Ast.Expressions[0].Name == string(witness.Account) &&
-				v.Ast.Expressions[1].Type == witness.Value &&
-				v.Ast.Expressions[1].ValueType == witness.BinaryArray {
+				v.Ast.Arguments[0].Type == witness.Variable &&
+				v.Ast.Arguments[0].Name == string(witness.Account) &&
+				v.Ast.Arguments[1].Type == witness.Value &&
+				v.Ast.Arguments[1].ValueType == witness.BinaryArray {
 
-				accWhitelist := gconv.Strings(v.Ast.Expressions[1].Value)
+				accWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
 				for _, v := range accWhitelist {
 					accId := common.Bytes2Hex(common.GetAccountIdByAccount(v))
 					whiteListMap[accId] = Whitelist{
@@ -257,6 +257,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		if err != nil {
 			return nil, nil, err
 		}
+		log.Infof("rule config: %s", common.Bytes2Hex(totalRules[0]))
 
 		hash, err := blake2b.Blake256(totalRules[0])
 		if err != nil {
