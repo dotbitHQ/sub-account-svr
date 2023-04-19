@@ -284,6 +284,13 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
+	if len(inputActionDataType) == 1 {
+		for _, v := range rulesResult {
+			txParams.Witnesses = append(txParams.Witnesses, v)
+		}
+	}
+
+	// witness account cell
 	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
 	if err != nil {
 		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
@@ -299,30 +306,19 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
-	if len(inputActionDataType) == 1 {
-		for _, v := range rulesResult {
-			txParams.Witnesses = append(txParams.Witnesses, v)
-		}
-	}
-
-	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
+	// witness sub_account cell
+	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return nil, nil, err
 	}
-	if ruleConfig.Id > 0 {
-		subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-			return nil, nil, err
+	if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+		if len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType {
+			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
 		}
-		if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
-			if len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType {
-				txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
-			}
-			return true, nil
-		}); err != nil {
-			return nil, nil, err
-		}
+		return true, nil
+	}); err != nil {
+		return nil, nil, err
 	}
 	return txParams, whiteListMap, nil
 }
