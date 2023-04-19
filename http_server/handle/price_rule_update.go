@@ -294,7 +294,8 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
 		OldIndex: 0,
-		Action:   common.DasActionUpdateSubAccount,
+		NewIndex: 0,
+		Action:   common.DasActionConfigSubAccount,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
