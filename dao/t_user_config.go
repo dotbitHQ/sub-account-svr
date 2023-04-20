@@ -8,10 +8,8 @@ import (
 
 func (d *DbDao) UpdateMintConfig(account string, mintConfig *tables.MintConfig) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
-	return d.db.Select("account", "account_id", "mint_config").Where("account_id=?", accountId).Save(&tables.UserConfig{
-		Account:    account,
-		AccountId:  accountId,
-		MintConfig: mintConfig,
+	return d.db.Model(&tables.UserConfig{}).Where("account_id=?", accountId).Updates(map[string]interface{}{
+		"mint_config": mintConfig,
 	}).Error
 }
 
