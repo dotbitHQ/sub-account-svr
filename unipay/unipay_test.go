@@ -55,3 +55,8 @@ func TestOrderInfo(t *testing.T) {
 	}
 	fmt.Println(resp.PaymentList)
 }
+
+func TestCalculatePrice(t *testing.T) {
+	d := decimal.NewFromFloat(10).Div(decimal.NewFromFloat(1954.04000000))
+	t.Logf("%s", d.StringFixed(18))
+}

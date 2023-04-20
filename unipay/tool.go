@@ -33,14 +33,14 @@ func (t *ToolUniPay) RunUniPay() {
 			case <-tickerRefund.C:
 				log.Info("doRefund start")
 				if err := t.doRefund(); err != nil {
-					log.Error("doRefund err: %s", err.Error())
+					log.Errorf("doRefund err: %s", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRefund", err.Error())
 				}
 				log.Info("doRefund end")
 			case <-tickerSearchStatus.C:
 				log.Info("doConfirmStatus start")
 				if err := t.doConfirmStatus(); err != nil {
-					log.Error("doConfirmStatus err: %s", err.Error())
+					log.Errorf("doConfirmStatus err: %s", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmStatus", err.Error())
 				}
 				log.Info("doConfirmStatus end")

@@ -65,7 +65,7 @@ func (t *ToolUniPay) doConfirmStatus() error {
 				continue
 			}
 			if err = DoPaymentConfirm(t.DasCore, t.DbDao, v.OrderId, v.PayHash); err != nil {
-				log.Error("DoPaymentConfirm err: %s", err.Error())
+				log.Errorf("DoPaymentConfirm err: %s", err.Error())
 				// todo
 			}
 		}
@@ -141,7 +141,7 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
 	} else if rowsAffected > 0 && sri.Id == 0 {
-		log.Warnf("doUniPayNotice:", orderId, rowsAffected)
+		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
 		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", orderId)
 		// multiple orders from the same account are successful
 	}
