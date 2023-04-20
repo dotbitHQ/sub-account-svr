@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/shopspring/decimal"
+	"math/big"
 	"testing"
 )
 
@@ -57,6 +58,6 @@ func TestOrderInfo(t *testing.T) {
 }
 
 func TestCalculatePrice(t *testing.T) {
-	d := decimal.NewFromFloat(10).Div(decimal.NewFromFloat(1951.52000000))
+	d := decimal.NewFromFloat(5126943111439236).Div(decimal.NewFromBigInt(big.NewInt(1), 18))
 	t.Logf("%s", d.StringFixed(18))
 }
