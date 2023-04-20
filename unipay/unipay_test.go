@@ -57,6 +57,6 @@ func TestOrderInfo(t *testing.T) {
 }
 
 func TestCalculatePrice(t *testing.T) {
-	d := decimal.NewFromFloat(10).Div(decimal.NewFromFloat(1954.04000000))
+	d := decimal.NewFromFloat(10).Div(decimal.NewFromFloat(1951.52000000))
 	t.Logf("%s", d.StringFixed(18))
 }
