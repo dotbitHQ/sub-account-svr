@@ -99,7 +99,7 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 
 func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr string) (info tables.OrderInfo, err error) {
 	timestamp := time.Now().Add(time.Hour * 24 * 15)
-	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address!=? action_type=? AND pay_status=?",
+	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address!=? AND action_type=? AND pay_status=?",
 		accountId, timestamp, addr, tables.ActionTypeMint, tables.PayStatusPaid).
 		Order("id DESC").First(&info).Error
 	if err == gorm.ErrRecordNotFound {
