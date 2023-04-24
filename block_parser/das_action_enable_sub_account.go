@@ -45,7 +45,7 @@ func (b *BlockParser) DasActionEnableSubAccount(req FuncTransactionHandleReq) (r
 	return
 }
 
-func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
+func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
 	if isCV, err := isCurrentVersionTx(req.Tx, common.DASContractNameSubAccountCellType); err != nil {
 		resp.Err = fmt.Errorf("isCurrentVersion err: %s", err.Error())
 		return
@@ -53,7 +53,7 @@ func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionH
 		log.Warn("not current version enable sub account tx")
 		return
 	}
-	log.Info("DasActionConfigSubAccountCustomScript:", req.BlockNumber, req.TxHash)
+	log.Info("DasActionConfigSubAccountOrCustomScript:", req.Action, req.BlockNumber, req.TxHash)
 
 	accBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
 	if err != nil {
@@ -66,7 +66,7 @@ func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionH
 		TaskId:          "",
 		TaskType:        tables.TaskTypeChain,
 		ParentAccountId: accBuilder.AccountId,
-		Action:          common.DasActionConfigSubAccountCustomScript,
+		Action:          req.Action,
 		RefOutpoint:     "",
 		BlockNumber:     req.BlockNumber,
 		Outpoint:        common.OutPoint2String(req.TxHash, 1),
