@@ -49,6 +49,7 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 			return tmpTx.Error
 		}
 		rowsAffected = tmpTx.RowsAffected
+		log.Info("UpdateOrderStatusOkWithSmtRecord:", rowsAffected, paymentInfo.OrderId)
 
 		if err := tx.Clauses(clause.Insert{
 			Modifier: "IGNORE",

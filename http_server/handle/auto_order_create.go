@@ -101,7 +101,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 
 	// get max years
 	if maxYear := h.getMaxYears(parentAccount); req.Years > maxYear {
-		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, fmt.Sprintf("sub-account[%s] has been minted", req.SubAccount))
+		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, "The main account is valid for less than one year")
 		return nil
 	}
 

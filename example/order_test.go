@@ -39,7 +39,7 @@ func TestAutoOrderCreate(t *testing.T) {
 	req := handle.ReqAutoOrderCreate{
 		ChainTypeAddress: ctaETH,
 		ActionType:       tables.ActionTypeMint,
-		SubAccount:       "zh.sub-account-test.bit",
+		SubAccount:       "tz.sub-account-test.bit",
 		TokenId:          tables.TokenIdEth,
 		Years:            1,
 	}
