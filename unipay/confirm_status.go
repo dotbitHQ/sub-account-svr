@@ -140,7 +140,7 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	rowsAffected, err := dbDao.UpdateOrderStatusOkWithSmtRecord(paymentInfo, smtRecord)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
-	} else if rowsAffected > 0 {
+	} else if rowsAffected == 0 {
 		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
 		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", orderId)
 		// multiple orders from the same account are successful
