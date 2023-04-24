@@ -279,6 +279,20 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
+	// sub_account_cell custom rule witness
+	subAccountTx, err := s.DasCore.Client().GetTransaction(s.Ctx, p.SubAccountOutpoint.TxHash)
+	if err != nil {
+		return nil, err
+	}
+	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+		if actionDataType == common.ActionDataTypeSubAccountPriceRules || actionDataType == common.ActionDataTypeSubAccountPreservedRules {
+			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+
 	txParams.CellDeps = append(txParams.CellDeps,
 		&types.CellDep{
 			OutPoint: p.AccountOutPoint,
