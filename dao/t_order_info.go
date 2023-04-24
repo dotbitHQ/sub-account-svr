@@ -36,7 +36,7 @@ func (d *DbDao) UpdateAutoPaymentIdById(ids []uint64, paymentId string) error {
 	}).Error
 }
 
-func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo, smtRecord tables.TableSmtRecordInfo) (rowsAffected int64, sri tables.TableSmtRecordInfo, e error) {
+func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo, smtRecord tables.TableSmtRecordInfo) (rowsAffected int64, e error) {
 	e = d.db.Transaction(func(tx *gorm.DB) error {
 		tmpTx := tx.Model(tables.OrderInfo{}).
 			Where("order_id=? AND pay_status=?",
@@ -50,13 +50,13 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 		}
 		rowsAffected = tmpTx.RowsAffected
 
-		if err := tmpTx.Clauses(clause.Insert{
+		if err := tx.Clauses(clause.Insert{
 			Modifier: "IGNORE",
 		}).Create(&paymentInfo).Error; err != nil {
 			return err
 		}
 
-		if err := tmpTx.Model(tables.PaymentInfo{}).
+		if err := tx.Model(tables.PaymentInfo{}).
 			Where("pay_hash=? AND pay_hash_status=?",
 				paymentInfo.PayHash, tables.PayHashStatusPending).
 			Updates(map[string]interface{}{
@@ -79,15 +79,9 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 			return nil
 		}
 
-		if err := tmpTx.Clauses(clause.Insert{
+		if err := tx.Clauses(clause.Insert{
 			Modifier: "IGNORE",
 		}).Create(&smtRecord).Error; err != nil {
-			return err
-		}
-
-		if err := tmpTx.Select("id").
-			Where("order_id=?", paymentInfo.OrderId).
-			Order("id DESC").Limit(1).Find(&sri).Error; err != nil {
 			return err
 		}
 		return nil

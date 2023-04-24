@@ -39,12 +39,26 @@ func TestAutoOrderCreate(t *testing.T) {
 	req := handle.ReqAutoOrderCreate{
 		ChainTypeAddress: ctaETH,
 		ActionType:       tables.ActionTypeMint,
-		SubAccount:       "00007.0001.bit",
+		SubAccount:       "zh.sub-account-test.bit",
 		TokenId:          tables.TokenIdEth,
 		Years:            1,
 	}
 	data := handle.RespAutoOrderCreate{}
 	url := fmt.Sprintf("%s/auto/order/create", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+}
+
+func TestAutoOrderHash(t *testing.T) {
+	req := handle.ReqAutoOrderHash{
+		ChainTypeAddress: ctaETH,
+		OrderId:          "bd26fa24a1e25589b1cdbcbde49b097e",
+		Hash:             "0x3cea874525d4bddd5a5afe5cac6f6058257340ead483ec063f1583789cab56d7",
+	}
+	data := handle.RespAutoOrderHash{}
+	url := fmt.Sprintf("%s/auto/order/hash", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
 	}
