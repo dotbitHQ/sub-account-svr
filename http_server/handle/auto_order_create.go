@@ -18,7 +18,7 @@ type ReqAutoOrderCreate struct {
 	core.ChainTypeAddress
 	ActionType tables.ActionType `json:"action_type"`
 	SubAccount string            `json:"sub_account"`
-	TokenId    string            `json:"token_id"`
+	TokenId    tables.TokenId    `json:"token_id"`
 	Years      uint64            `json:"years"`
 }
 
@@ -94,7 +94,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
 		return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
-	} else if cfg, ok := userConfig.CfgMap[req.TokenId]; !ok || !cfg.Enable {
+	} else if cfg, ok := userConfig.CfgMap[string(req.TokenId)]; !ok || !cfg.Enable {
 		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
 		return nil
 	}
@@ -112,7 +112,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
+	tokenPrice, err := h.DbDao.GetTokenById(string(req.TokenId))
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
 		return fmt.Errorf("GetTokenById err: %s", err.Error())
@@ -142,7 +142,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		Years:       req.Years,
 		AlgorithmId: hexAddr.DasAlgorithmId,
 		PayAddress:  hexAddr.AddressHex,
-		TokenId:     req.TokenId,
+		TokenId:     string(req.TokenId),
 		Amount:      amount,
 		USDAmount:   usdAmount,
 		PayStatus:   tables.PayStatusUnpaid,

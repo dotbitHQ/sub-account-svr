@@ -17,7 +17,7 @@ type ReqOrderCreate struct {
 	core.ChainTypeAddress
 	BusinessId string          `json:"business_id"`
 	Amount     decimal.Decimal `json:"amount"`
-	PayTokenId string          `json:"pay_token_id"`
+	PayTokenId tables.TokenId  `json:"pay_token_id"`
 }
 
 type RespOrderCreate struct {

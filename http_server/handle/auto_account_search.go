@@ -180,6 +180,7 @@ func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.Da
 
 func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {
 	maxYear := parentAccount.ExpiredAt / uint64(common.OneYearSec)
+	log.Info("getMaxYears:", parentAccount.ExpiredAt, maxYear, config.Cfg.Das.MaxRegisterYears)
 	if maxYear > config.Cfg.Das.MaxRegisterYears {
 		maxYear = config.Cfg.Das.MaxRegisterYears
 	}
