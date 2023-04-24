@@ -73,12 +73,12 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 		switch v.EventType {
 		case EventTypeOrderPay:
 			if err := unipay.DoPaymentConfirm(h.DasCore, h.DbDao, v.OrderId, v.PayHash); err != nil {
-				log.Error("DoPaymentConfirm err: %s", err.Error())
+				log.Error("DoPaymentConfirm err: ", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "DoPaymentConfirm", err.Error())
 			}
 		case EventTypeOrderRefund:
 			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId, v.RefundHash); err != nil {
-				log.Error("UpdateRefundStatusToRefunded err: %s", err.Error())
+				log.Error("UpdateRefundStatusToRefunded err: ", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdateRefundStatusToRefunded", err.Error())
 			}
 		default:

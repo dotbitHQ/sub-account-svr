@@ -70,6 +70,7 @@ type OrderInfo struct {
 	OrderStatus   OrderStatus           `json:"order_status" gorm:"column:order_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-default 1-cancel';"`
 	Timestamp     int64                 `json:"timestamp" gorm:"column:timestamp; index:idx_timestamp; type:bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '';"`
 	AutoPaymentId string                `json:"auto_payment_id" gorm:"column:auto_payment_id; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
+	SvrName       string                `json:"svr_name" gorm:"column:svr_name; index:k_svr_name; type:varchar(255) NOT NULL DEFAULT '' COMMENT 'smt tree';"`
 	CreatedAt     time.Time             `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt     time.Time             `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
@@ -78,8 +79,9 @@ func (m *OrderInfo) TableName() string {
 	return "t_order_info"
 }
 
-func (m *OrderInfo) GetParentAccountId() string {
-	indexDot := strings.Index(m.AccountId, ".")
-	parentAccountName := m.Account[indexDot+1:]
+func GetParentAccountId(subAcc string) string {
+	indexDot := strings.Index(subAcc, ".")
+	parentAccountName := subAcc[indexDot+1:]
+	log.Info("GetParentAccountId:", subAcc, parentAccountName)
 	return common.Bytes2Hex(common.GetAccountIdByAccount(parentAccountName))
 }

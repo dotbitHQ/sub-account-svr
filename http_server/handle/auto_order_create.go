@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
@@ -148,6 +149,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		PayStatus:   tables.PayStatusUnpaid,
 		OrderStatus: tables.OrderStatusDefault,
 		Timestamp:   time.Now().Unix(),
+		SvrName:     config.Cfg.Slb.SvrName,
 	}
 	if err = h.DbDao.CreateOrderInfo(orderInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")

@@ -122,13 +122,13 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	}
 
 	smtRecord := tables.TableSmtRecordInfo{
-		SvrName:         config.Cfg.Slb.SvrName,
+		SvrName:         order.SvrName,
 		AccountId:       order.AccountId,
 		RecordType:      tables.RecordTypeDefault,
 		MintType:        tables.MintTypeAutoMint,
 		OrderID:         order.OrderId,
 		Action:          common.DasActionUpdateSubAccount,
-		ParentAccountId: order.GetParentAccountId(),
+		ParentAccountId: tables.GetParentAccountId(order.Account),
 		Account:         order.Account,
 		Content:         string(content),
 		RegisterYears:   order.Years,
