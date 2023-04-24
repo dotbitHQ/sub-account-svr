@@ -14,6 +14,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -105,16 +106,61 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	// get balance cell
-	totalYears := uint64(0)
+	builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+	}
+	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
+	if err != nil {
+		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
+	}
+
+	manualTotalYears := uint64(0)
+	autoMintTotalPrice := uint64(0)
 	for _, v := range p.SmtRecordInfoList {
-		if v.SubAction == common.SubActionCreate {
-			totalYears += v.RegisterYears
+		if v.SubAction != common.SubActionCreate {
+			continue
+		}
+		switch v.MintType {
+		case tables.MintTypeDefault, tables.MintTypeManual:
+			manualTotalYears += v.RegisterYears
+		case tables.MintTypeAutoMint:
+			subAccountCell, err := s.getSubAccountCell(v.ParentAccountId)
+			if err != nil {
+				return nil, err
+			}
+			subAccountTx, err := s.DasCore.Client().GetTransaction(s.Ctx, subAccountCell.OutPoint.TxHash)
+			if err != nil {
+				return nil, err
+			}
+			parentAccountInfo, err := s.DbDao.GetAccountInfoByAccountId(v.ParentAccountId)
+			if err != nil {
+				return nil, err
+			}
+			subAccountRule := witness.NewSubAccountRuleEntity(parentAccountInfo.Account)
+			if err := subAccountRule.ParseFromTx(subAccountTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+				return nil, err
+			}
+			hit, idx, err := subAccountRule.Hit(v.Account)
+			if err != nil {
+				return nil, err
+			}
+			if !hit {
+				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
+			}
+			autoMintTotalPrice += uint64(decimal.NewFromInt(int64(subAccountRule.Rules[idx].Price)).
+				Div(decimal.NewFromInt(int64(common.UsdRateBase))).
+				Div(decimal.NewFromInt(int64(p.BaseInfo.QuoteCell.Quote()))).
+				Mul(decimal.NewFromInt(int64(common.OneCkb))).IntPart())
 		}
 	}
-	registerCapacity := p.NewSubAccountPrice * totalYears
+
+	registerCapacity := p.NewSubAccountPrice*manualTotalYears + autoMintTotalPrice*uint64(newRate)/common.PercentRateBase
+
+	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalPrice, newRate)
+
 	var change uint64
 	var balanceLiveCells []*indexer.LiveCell
-	var err error
 	if registerCapacity > 0 {
 		change, balanceLiveCells, err = s.getBalanceCell(&paramBalance{
 			taskInfo:     p.TaskInfo,
@@ -673,4 +719,25 @@ func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
 		return false
 	}
 	return true
+}
+
+func (s *SubAccountTxTool) getSubAccountCell(parentAccountId string) (*indexer.LiveCell, error) {
+	baseInfo, err := s.GetBaseInfo()
+	if err != nil {
+		return nil, err
+	}
+	searchKey := indexer.SearchKey{
+		Script:     baseInfo.ContractSubAcc.ToScript(common.Hex2Bytes(parentAccountId)),
+		ScriptType: indexer.ScriptTypeType,
+		ArgsLen:    0,
+		Filter:     nil,
+	}
+	liveCell, err := s.DasCore.Client().GetCells(s.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
+	if err != nil {
+		return nil, fmt.Errorf("GetCells err: %s", err.Error())
+	}
+	if subLen := len(liveCell.Objects); subLen != 1 {
+		return nil, fmt.Errorf("sub account outpoint len: %d", subLen)
+	}
+	return liveCell.Objects[0], nil
 }
