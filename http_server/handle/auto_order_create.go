@@ -79,12 +79,27 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 
 	// check sub account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	accStatus, _, err := h.checkSubAccount(apiResp, hexAddr, subAccountId)
+	oldOrder, accStatus, isSelf, err := h.checkSubAccount(apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	} else if accStatus == AccStatusMinting {
+		if isSelf {
+			resOrder, err := unipay.GetOrderInfo(unipay.ReqOrderInfo{
+				BusinessId: unipay.BusinessIdAutoSubAccount,
+				OrderId:    oldOrder.OrderId,
+			})
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get order by unipay")
+				return fmt.Errorf("unipay.GetOrderInfo err: %s", err.Error())
+			}
+			resp.OrderId = oldOrder.OrderId
+			resp.Amount = oldOrder.Amount
+			resp.PaymentAddress = resOrder.PaymentAddress
+			resp.ContractAddress = resOrder.ContractAddress
+			apiResp.ApiRespOK(resp)
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeSubAccountMinting, fmt.Sprintf("sub-account[%s] is minting", req.SubAccount))
 		return nil
 	} else if accStatus == AccStatusMinted {
@@ -136,7 +151,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		PayTokenId:       req.TokenId,
 	})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order")
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
 	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)

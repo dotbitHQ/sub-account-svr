@@ -86,7 +86,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 
 	// check sub account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	resp.Status, resp.IsSelf, err = h.checkSubAccount(apiResp, hexAddr, subAccountId)
+	_, resp.Status, resp.IsSelf, err = h.checkSubAccount(apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -145,7 +145,7 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 	return &parentAccount, nil
 }
 
-func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, e error) {
+func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (orderInfo tables.OrderInfo, accStatus AccStatus, isSelf bool, e error) {
 	accStatus = AccStatusUnMinted
 	subAccount, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
 	if err != nil {
@@ -157,7 +157,7 @@ func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.Da
 		return
 	}
 	// check order of self
-	orderInfo, err := h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex)
+	orderInfo, err = h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")
 		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)

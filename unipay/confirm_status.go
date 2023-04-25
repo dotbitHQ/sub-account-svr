@@ -38,7 +38,7 @@ func (t *ToolUniPay) doConfirmStatus() error {
 	}
 
 	// call unipay
-	resp, err := OrderInfo(ReqOrderInfo{
+	resp, err := GetPaymentInfo(ReqPaymentInfo{
 		BusinessId:  BusinessIdAutoSubAccount,
 		OrderIdList: orderIdList,
 		PayHashList: payHashList,

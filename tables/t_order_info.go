@@ -79,6 +79,10 @@ func (m *OrderInfo) TableName() string {
 	return "t_order_info"
 }
 
+func GetEfficientOrderTimestamp() int64 {
+	return time.Now().Add(-time.Hour * 24).Unix()
+}
+
 func GetParentAccountId(subAcc string) string {
 	indexDot := strings.Index(subAcc, ".")
 	parentAccountName := subAcc[indexDot+1:]

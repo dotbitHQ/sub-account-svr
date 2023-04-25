@@ -51,13 +51,13 @@ func RefundOrder(req ReqOrderRefund) (resp RespOrderRefund, err error) {
 	return
 }
 
-type ReqOrderInfo struct {
+type ReqPaymentInfo struct {
 	BusinessId  string   `json:"business_id"`
 	OrderIdList []string `json:"order_id_list"`
 	PayHashList []string `json:"pay_hash_list"`
 }
 
-type RespOrderInfo struct {
+type RespPaymentInfo struct {
 	PaymentList []PaymentInfo `json:"payment_list"`
 }
 
@@ -69,7 +69,24 @@ type PaymentInfo struct {
 	RefundHash    string               `json:"refund_hash"`
 }
 
-func OrderInfo(req ReqOrderInfo) (resp RespOrderInfo, err error) {
+func GetPaymentInfo(req ReqPaymentInfo) (resp RespPaymentInfo, err error) {
+	url := fmt.Sprintf("%s/v1/payment/info", config.Cfg.Server.UniPayUrl)
+	err = http_api.SendReq(url, &req, &resp)
+	return
+}
+
+type ReqOrderInfo struct {
+	BusinessId string `json:"business_id"`
+	OrderId    string `json:"order_id"`
+}
+
+type RespOrderInfo struct {
+	OrderId         string `json:"order_id"`
+	PaymentAddress  string `json:"payment_address"`
+	ContractAddress string `json:"contract_address"`
+}
+
+func GetOrderInfo(req ReqOrderInfo) (resp RespOrderInfo, err error) {
 	url := fmt.Sprintf("%s/v1/order/info", config.Cfg.Server.UniPayUrl)
 	err = http_api.SendReq(url, &req, &resp)
 	return

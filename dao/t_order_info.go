@@ -4,7 +4,6 @@ import (
 	"das_sub_account/tables"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err error) {
@@ -93,7 +92,7 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 // =========
 
 func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr string) (info tables.OrderInfo, err error) {
-	timestamp := time.Now().Add(time.Hour * 24 * 15)
+	timestamp := tables.GetEfficientOrderTimestamp()
 	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address!=? AND action_type=? AND pay_status=?",
 		accountId, timestamp, addr, tables.ActionTypeMint, tables.PayStatusPaid).
 		Order("id DESC").First(&info).Error
@@ -104,7 +103,7 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr str
 }
 
 func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string) (info tables.OrderInfo, err error) {
-	timestamp := time.Now().Add(time.Hour * 24 * 15)
+	timestamp := tables.GetEfficientOrderTimestamp()
 	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address=? AND action_type=?",
 		accountId, timestamp, addr, tables.ActionTypeMint).
 		Order("id DESC").First(&info).Error
