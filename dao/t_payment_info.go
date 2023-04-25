@@ -72,5 +72,5 @@ func (d *DbDao) GetRefundStatusRefundingList() (list []tables.PaymentInfo, err e
 }
 
 func getPaymentInfoTimestamp() int64 {
-	return time.Now().Add(-time.Hour * 24 * 7).Unix()
+	return time.Now().Add(-time.Hour * 24 * 3).Unix()
 }
