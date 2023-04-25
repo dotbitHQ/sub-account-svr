@@ -104,8 +104,8 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr str
 
 func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string) (info tables.OrderInfo, err error) {
 	timestamp := tables.GetEfficientOrderTimestamp()
-	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address=? AND action_type=?",
-		accountId, timestamp, addr, tables.ActionTypeMint).
+	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address=? AND action_type=? AND pay_status=?",
+		accountId, timestamp, addr, tables.ActionTypeMint, tables.PayStatusPaid).
 		Order("id DESC").First(&info).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
