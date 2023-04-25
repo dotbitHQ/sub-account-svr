@@ -126,7 +126,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 
 	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
 	if req.TokenId == tables.TokenIdErc20USDT || req.TokenId == tables.TokenIdBep20USDT {
-		amount = amount.Add(decimal.NewFromInt(rand.Int63n(9 * 1e5)))
+		amount = amount.Add(decimal.NewFromInt(rand.Int63n(1e5)))
 	}
 	// create order
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
