@@ -152,6 +152,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	autoMintCommissionPrice := autoMintTotalPrice * uint64(newRate) / common.PercentRateBase
+	ownerProfit := autoMintTotalPrice - autoMintCommissionPrice
 
 	registerCapacity := p.NewSubAccountPrice*manualTotalYears + autoMintCommissionPrice
 
@@ -265,7 +266,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
-		Capacity: p.SubAccountCellOutput.Capacity + registerCapacity,
+		Capacity: p.SubAccountCellOutput.Capacity + registerCapacity + ownerProfit,
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
@@ -274,7 +275,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
 	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
-	subDataDetail.OwnerProfit = subDataDetail.OwnerProfit + autoMintTotalPrice - autoMintCommissionPrice
+	subDataDetail.OwnerProfit = subDataDetail.OwnerProfit + ownerProfit
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
