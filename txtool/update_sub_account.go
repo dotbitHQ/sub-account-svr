@@ -165,7 +165,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			taskInfo:     p.TaskInfo,
 			dasLock:      balanceDasLock,
 			dasType:      balanceDasType,
-			needCapacity: p.CommonFee + registerCapacity,
+			needCapacity: p.CommonFee + registerCapacity + ownerProfit,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
