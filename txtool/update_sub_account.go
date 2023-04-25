@@ -116,7 +116,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	manualTotalYears := uint64(0)
-	autoMintTotalPrice := uint64(0)
+	autoMintTotalPrice := int64(0)
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
 			continue
@@ -148,14 +148,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !hit {
 				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
 			}
-			autoMintTotalPrice += uint64(decimal.NewFromInt(int64(subAccountRule.Rules[idx].Price)).
-				Div(decimal.NewFromInt(int64(common.UsdRateBase))).
+			autoMintTotalPrice += decimal.NewFromInt(int64(subAccountRule.Rules[idx].Price)).
 				Div(decimal.NewFromInt(int64(p.BaseInfo.QuoteCell.Quote()))).
-				Mul(decimal.NewFromInt(int64(common.OneCkb))).IntPart())
+				Mul(decimal.NewFromInt(int64(common.OneCkb))).IntPart()
 		}
 	}
 
-	registerCapacity := p.NewSubAccountPrice*manualTotalYears + autoMintTotalPrice*uint64(newRate)/common.PercentRateBase
+	autoMintCommissionPrice := decimal.NewFromInt(autoMintTotalPrice).
+		Mul(decimal.NewFromInt(int64(newRate))).
+		Div(decimal.NewFromInt(int64(common.PercentRateBase))).IntPart()
+
+	registerCapacity := p.NewSubAccountPrice*manualTotalYears + uint64(autoMintCommissionPrice)
 
 	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalPrice, newRate)
 
