@@ -14,7 +14,6 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -116,7 +115,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	manualTotalYears := uint64(0)
-	autoMintTotalPrice := int64(0)
+	autoMintTotalPrice := uint64(0)
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
 			continue
@@ -148,17 +147,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !hit {
 				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
 			}
-			autoMintTotalPrice += decimal.NewFromInt(int64(subAccountRule.Rules[idx].Price)).
-				Div(decimal.NewFromInt(int64(p.BaseInfo.QuoteCell.Quote()))).
-				Mul(decimal.NewFromInt(int64(common.OneCkb))).IntPart()
+			autoMintTotalPrice += subAccountRule.Rules[idx].Price / p.BaseInfo.QuoteCell.Quote() * common.OneCkb
 		}
 	}
 
-	autoMintCommissionPrice := decimal.NewFromInt(autoMintTotalPrice).
-		Mul(decimal.NewFromInt(int64(newRate))).
-		Div(decimal.NewFromInt(int64(common.PercentRateBase))).IntPart()
-
-	registerCapacity := p.NewSubAccountPrice*manualTotalYears + uint64(autoMintCommissionPrice)
+	registerCapacity := p.NewSubAccountPrice*manualTotalYears + autoMintTotalPrice*uint64(newRate)/common.PercentRateBase
 
 	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalPrice, newRate)
 
@@ -278,7 +271,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
-	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
+	subDataDetail.DasProfit += registerCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
