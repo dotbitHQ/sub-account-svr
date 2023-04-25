@@ -25,7 +25,7 @@ var (
 func TestAutoAccountSearch(t *testing.T) {
 	req := handle.ReqAutoAccountSearch{
 		ChainTypeAddress: ctaETH,
-		SubAccount:       "zh.sub-account-test.bit",
+		SubAccount:       "03.sub-account-test.bit",
 	}
 	data := handle.RespAutoAccountSearch{}
 	url := fmt.Sprintf("%s/auto/account/search", ApiUrl)
@@ -39,8 +39,8 @@ func TestAutoOrderCreate(t *testing.T) {
 	req := handle.ReqAutoOrderCreate{
 		ChainTypeAddress: ctaETH,
 		ActionType:       tables.ActionTypeMint,
-		SubAccount:       "tz.sub-account-test.bit",
-		TokenId:          tables.TokenIdEth,
+		SubAccount:       "04.sub-account-test.bit",
+		TokenId:          tables.TokenIdErc20USDT,
 		Years:            1,
 	}
 	data := handle.RespAutoOrderCreate{}
@@ -54,8 +54,8 @@ func TestAutoOrderCreate(t *testing.T) {
 func TestAutoOrderHash(t *testing.T) {
 	req := handle.ReqAutoOrderHash{
 		ChainTypeAddress: ctaETH,
-		OrderId:          "bd26fa24a1e25589b1cdbcbde49b097e",
-		Hash:             "0x3cea874525d4bddd5a5afe5cac6f6058257340ead483ec063f1583789cab56d7",
+		OrderId:          "af7054eaf87de38a592bec32ff853fa6",
+		Hash:             "0x0abd01adb4afbe65510e8d688c837358fd5403e79c4d86a9bb5604a01475b7d5",
 	}
 	data := handle.RespAutoOrderHash{}
 	url := fmt.Sprintf("%s/auto/order/hash", ApiUrl)

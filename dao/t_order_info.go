@@ -66,14 +66,14 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 			return err
 		}
 
-		//if err := tmpTx.Model(tables.PaymentInfo{}).
-		//	Where("order_id=? AND pay_hash!=? AND pay_hash_status=? AND refund_status=?",
-		//		paymentInfo.OrderId, paymentInfo.PayHash, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).
-		//	Updates(map[string]interface{}{
-		//		"refund_status": tables.RefundStatusUnRefund,
-		//	}).Error; err != nil {
-		//	return err
-		//}
+		if err := tmpTx.Model(tables.PaymentInfo{}).
+			Where("order_id=? AND pay_hash!=? AND pay_hash_status=?",
+				paymentInfo.OrderId, paymentInfo.PayHash, tables.PayHashStatusPending).
+			Updates(map[string]interface{}{
+				"pay_hash_status": tables.PayHashStatusRejected,
+			}).Error; err != nil {
+			return err
+		}
 
 		if rowsAffected == 0 { // multi pay hash
 			return nil
