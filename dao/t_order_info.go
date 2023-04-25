@@ -65,7 +65,7 @@ func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo,
 			return err
 		}
 
-		if err := tmpTx.Model(tables.PaymentInfo{}).
+		if err := tx.Model(tables.PaymentInfo{}).
 			Where("order_id=? AND pay_hash!=? AND pay_hash_status=?",
 				paymentInfo.OrderId, paymentInfo.PayHash, tables.PayHashStatusPending).
 			Updates(map[string]interface{}{
