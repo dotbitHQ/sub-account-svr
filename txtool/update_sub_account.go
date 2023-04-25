@@ -194,11 +194,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if err != nil {
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			}
-			if len(witnessMintSignInfo) > 0 {
+			if len(witnessMintSignInfo) > 0 && v.MintSignId != "" {
 				smtKey := smt.AccountIdToSmtH256(v.AccountId)
 
 				if mintSignProof, ok := rsMemoryRep.Proofs[smtKey.String()]; !ok {
-					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey)
+					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey.String())
 				} else {
 					subAccountNew.EditValue = common.Hex2Bytes(mintSignProof)
 				}
