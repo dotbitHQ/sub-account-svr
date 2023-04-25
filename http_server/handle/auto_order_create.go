@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -122,8 +123,11 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
 		return nil
 	}
-	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
 
+	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
+	if req.TokenId == tables.TokenIdErc20USDT || req.TokenId == tables.TokenIdBep20USDT {
+		amount = amount.Add(decimal.NewFromInt(rand.Int63n(9 * 1e5)))
+	}
 	// create order
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress: req.ChainTypeAddress,
