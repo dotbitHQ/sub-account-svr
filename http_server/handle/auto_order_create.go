@@ -99,6 +99,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			resp.PaymentAddress = resOrder.PaymentAddress
 			resp.ContractAddress = resOrder.ContractAddress
 			apiResp.ApiRespOK(resp)
+			return nil
 		}
 		apiResp.ApiRespErr(api_code.ApiCodeSubAccountMinting, fmt.Sprintf("sub-account[%s] is minting", req.SubAccount))
 		return nil
