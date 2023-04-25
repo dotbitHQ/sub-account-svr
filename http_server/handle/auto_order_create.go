@@ -24,9 +24,10 @@ type ReqAutoOrderCreate struct {
 }
 
 type RespAutoOrderCreate struct {
-	OrderId        string          `json:"order_id"`
-	PaymentAddress string          `json:"payment_address"`
-	Amount         decimal.Decimal `json:"amount"`
+	OrderId         string          `json:"order_id"`
+	PaymentAddress  string          `json:"payment_address"`
+	ContractAddress string          `json:"contract_address"`
+	Amount          decimal.Decimal `json:"amount"`
 }
 
 func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
@@ -134,7 +135,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
-	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, amount)
+	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
 	orderInfo := tables.OrderInfo{
 		OrderId:     res.OrderId,
 		ActionType:  req.ActionType,
@@ -159,6 +160,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	resp.OrderId = res.OrderId
 	resp.Amount = amount
 	resp.PaymentAddress = res.PaymentAddress
+	resp.ContractAddress = res.ContractAddress
 
 	apiResp.ApiRespOK(resp)
 	return nil

@@ -21,8 +21,9 @@ type ReqOrderCreate struct {
 }
 
 type RespOrderCreate struct {
-	OrderId        string `json:"order_id"`
-	PaymentAddress string `json:"payment_address"`
+	OrderId         string `json:"order_id"`
+	PaymentAddress  string `json:"payment_address"`
+	ContractAddress string `json:"contract_address"`
 }
 
 func CreateOrder(req ReqOrderCreate) (resp RespOrderCreate, err error) {

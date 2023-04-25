@@ -26,9 +26,11 @@ func (m *TTokenPriceInfo) TableName() string {
 type TokenId string
 
 const (
-	TokenIdEth   TokenId = "eth_eth"
-	TokenIdTrx   TokenId = "tron_trx"
-	TokenIdBnb   TokenId = "bsc_bnb"
-	TokenIdMatic TokenId = "polygon_matic"
-	TokenIdDoge  TokenId = "doge_doge"
+	TokenIdEth       TokenId = "eth_eth"
+	TokenIdErc20USDT TokenId = "eth_erc20_usdt"
+	TokenIdTrx       TokenId = "tron_trx"
+	TokenIdBnb       TokenId = "bsc_bnb"
+	TokenIdBep20USDT TokenId = "eth_bep20_usdt"
+	TokenIdMatic     TokenId = "polygon_matic"
+	TokenIdDoge      TokenId = "doge_doge"
 )
