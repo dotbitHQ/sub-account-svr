@@ -30,7 +30,7 @@ const (
 	TokenIdErc20USDT TokenId = "eth_erc20_usdt"
 	TokenIdTrx       TokenId = "tron_trx"
 	TokenIdBnb       TokenId = "bsc_bnb"
-	TokenIdBep20USDT TokenId = "eth_bep20_usdt"
+	TokenIdBep20USDT TokenId = "bsc_bep20_usdt"
 	TokenIdMatic     TokenId = "polygon_matic"
 	TokenIdDoge      TokenId = "doge_doge"
 )
