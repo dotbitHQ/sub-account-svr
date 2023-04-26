@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"math"
 	"net/http"
@@ -24,7 +25,7 @@ type CsvRecord struct {
 	TokenId   string
 	Decimals  int32
 	Address   string
-	Amount    float64
+	Amount    decimal.Decimal
 	Ids       []uint64
 }
 
@@ -95,7 +96,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			csvRecord.Decimals = token.Decimals
 			csvRecord.Ids = make([]uint64, 0)
 		}
-		csvRecord.Amount += v.Amount.InexactFloat64()
+		csvRecord.Amount.Add(v.Amount)
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
@@ -140,8 +141,8 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 	for _, v := range records {
-		amount := fmt.Sprintf(fmt.Sprintf("%%.%df", v.Decimals), v.Amount/math.Pow10(int(v.Decimals)))
-		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount}); err != nil {
+		amount := v.Amount.Sub(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))))
+		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount.String()}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
