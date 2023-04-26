@@ -11,6 +11,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
+	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"math"
 	"net/http"
@@ -125,21 +126,16 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 						return errors.New("db error")
 					}
-					paymentInfo, err := h.DbDao.GetPaymentInfoByOrderId(record.OrderID)
-					if err != nil {
-						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-						return errors.New("db error")
-					}
-					if paymentInfo.Id == 0 {
-						log.Warnf("order: %s no payment info", record.OrderID)
-						return nil
-					}
+
+					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
+
 					token, err := h.DbDao.GetTokenById(order.TokenId)
 					if err != nil {
 						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 						return errors.New("db error")
 					}
-					list[idx].Amount = fmt.Sprintf("%f %s", order.Amount.InexactFloat64()/math.Pow10(int(token.Decimals)), token.Symbol)
+					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
+					list[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
 				default:
 					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 					return errors.New("db error")
