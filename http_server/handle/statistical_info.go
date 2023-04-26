@@ -114,19 +114,12 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		}
 
 		paymentInfo := make(map[string]decimal.Decimal)
-
 		for _, record := range smtRecords {
 			order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
 			if err != nil {
 				return err
 			}
-			if _, ok := paymentInfo[order.TokenId]; !ok {
-				paymentInfo[order.TokenId] = decimal.NewFromInt(0)
-			}
-			paymentInfo[order.TokenId].Add(order.Amount)
-
-			log.Infof("amount: %s", order.Amount)
-			log.Infof("total: %s", paymentInfo[order.TokenId])
+			paymentInfo[order.TokenId] = paymentInfo[order.TokenId].Add(order.Amount)
 		}
 
 		for k, v := range paymentInfo {
