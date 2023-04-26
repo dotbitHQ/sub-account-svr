@@ -88,7 +88,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	errG := &errgroup.Group{}
 
 	errG.Go(func() error {
-		subAccountNum, err := h.DbDao.GetSubAccountNum(req.Account)
+		subAccountNum, err := h.DbDao.GetSubAccountNum(accountId)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return err
@@ -98,7 +98,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		subAccountDistinct, err := h.DbDao.GetSubAccountNumDistinct(req.Account)
+		subAccountDistinct, err := h.DbDao.GetSubAccountNumDistinct(accountId)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return err
@@ -129,14 +129,14 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			if err != nil {
 				return err
 			}
-			p, ok := paymentInfo[order.TokenId]
-			if !ok {
-				p = &Income{
-					Type: token.Symbol,
+			if _, ok := paymentInfo[order.TokenId]; !ok {
+				paymentInfo[order.TokenId] = &Income{
+					Type:    token.Symbol,
+					Total:   decimal.NewFromInt(0),
+					Balance: decimal.NewFromInt(0),
 				}
-				paymentInfo[order.TokenId] = p
 			}
-			p.Total.Add(order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
+			paymentInfo[order.TokenId].Total.Add(order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
 		}
 
 		for k, v := range paymentInfo {

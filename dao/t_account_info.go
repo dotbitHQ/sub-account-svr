@@ -191,16 +191,16 @@ func (d *DbDao) GetAccountListByAccountIds(accountIds []string) (list []tables.T
 	return
 }
 
-func (d *DbDao) GetSubAccountNum(account string) (num int64, err error) {
-	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", common.GetAccountIdByAccount(account)).Count(&num).Error
+func (d *DbDao) GetSubAccountNum(parentAccountId string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", parentAccountId).Count(&num).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
 	return
 }
 
-func (d *DbDao) GetSubAccountNumDistinct(account string) (num int64, err error) {
-	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", common.GetAccountIdByAccount(account)).Distinct("owner").Count(&num).Error
+func (d *DbDao) GetSubAccountNumDistinct(parentAccountId string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", parentAccountId).Distinct("owner").Count(&num).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
