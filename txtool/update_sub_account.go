@@ -147,7 +147,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !hit {
 				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
 			}
-			autoMintTotalPrice += subAccountRule.Rules[idx].Price / p.BaseInfo.QuoteCell.Quote() * common.OneCkb
+
+			quote := p.BaseInfo.QuoteCell.Quote()
+			yearlyPrice := subAccountRule.Rules[idx].Price
+			if yearlyPrice < quote {
+				autoMintTotalPrice += yearlyPrice * common.OneCkb / quote * v.RegisterYears
+			} else {
+				autoMintTotalPrice += yearlyPrice / quote * common.OneCkb * v.RegisterYears
+			}
 		}
 	}
 
