@@ -11,7 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
+	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
+	"math"
 	"net/http"
 	"strings"
 )
@@ -106,15 +108,15 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		smtRecords, err := h.DbDao.FindSmtRecordInfoByMintType(accountId, tables.MintTypeAutoMint, []string{common.DasActionCreateSubAccount, common.DasActionRenewSubAccount})
+		smtRecords, err := h.DbDao.FindSmtRecordInfoByMintType(accountId, tables.MintTypeAutoMint, []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount})
 		if err != nil {
 			return err
 		}
 
 		type Income struct {
 			Type    string
-			Total   float64
-			Balance float64
+			Total   decimal.Decimal
+			Balance decimal.Decimal
 		}
 		paymentInfo := make(map[string]*Income)
 
@@ -134,7 +136,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 				}
 				paymentInfo[order.TokenId] = p
 			}
-			p.Total += order.Amount.InexactFloat64()
+			p.Total.Add(order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
 		}
 
 		for k, v := range paymentInfo {
@@ -142,14 +144,18 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			if err != nil {
 				return err
 			}
-			v.Balance += amount
+			token, err := h.DbDao.GetTokenById(k)
+			if err != nil {
+				return err
+			}
+			v.Balance.Add(amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
 		}
 
 		for _, v := range paymentInfo {
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:    v.Type,
-				Total:   fmt.Sprintf("%f", v.Total),
-				Balance: fmt.Sprintf("%f", v.Total-v.Balance),
+				Total:   v.Total.String(),
+				Balance: v.Total.Sub(v.Balance).String(),
 			})
 		}
 		return nil
