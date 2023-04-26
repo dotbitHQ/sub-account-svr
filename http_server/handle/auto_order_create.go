@@ -140,6 +140,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
+	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
 	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
 	if req.TokenId == tables.TokenIdErc20USDT || req.TokenId == tables.TokenIdBep20USDT {
 		amount = amount.Add(decimal.NewFromInt(rand.Int63n(1e5)))
