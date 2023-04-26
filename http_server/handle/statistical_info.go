@@ -113,11 +113,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return err
 		}
 
-		type Income struct {
-			Type  string
-			Total decimal.Decimal
-		}
-		paymentInfo := make(map[string]*Income)
+		paymentInfo := make(map[string]decimal.Decimal)
 
 		for _, record := range smtRecords {
 			order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
@@ -125,11 +121,12 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 				return err
 			}
 			if _, ok := paymentInfo[order.TokenId]; !ok {
-				paymentInfo[order.TokenId] = &Income{
-					Total: decimal.NewFromInt(0),
-				}
+				paymentInfo[order.TokenId] = decimal.NewFromInt(0)
 			}
-			paymentInfo[order.TokenId].Total.Add(order.Amount)
+			paymentInfo[order.TokenId].Add(order.Amount)
+
+			log.Infof("amount: %s", order.Amount)
+			log.Infof("total: %s", paymentInfo[order.TokenId])
 		}
 
 		for k, v := range paymentInfo {
@@ -144,9 +141,9 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
 
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
-				Type:    v.Type,
-				Total:   v.Total.Div(decimals).String(),
-				Balance: v.Total.Sub(amount).Div(decimals).String(),
+				Type:    token.Symbol,
+				Total:   v.Div(decimals).String(),
+				Balance: v.Sub(amount).Div(decimals).String(),
 			})
 		}
 		return nil
