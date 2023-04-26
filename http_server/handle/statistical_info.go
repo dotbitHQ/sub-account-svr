@@ -114,9 +114,8 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		}
 
 		type Income struct {
-			Type    string
-			Total   decimal.Decimal
-			Balance decimal.Decimal
+			Type  string
+			Total decimal.Decimal
 		}
 		paymentInfo := make(map[string]*Income)
 
@@ -125,37 +124,29 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			if err != nil {
 				return err
 			}
-			token, err := h.DbDao.GetTokenById(order.TokenId)
-			if err != nil {
-				return err
-			}
 			if _, ok := paymentInfo[order.TokenId]; !ok {
 				paymentInfo[order.TokenId] = &Income{
-					Type:    token.Symbol,
-					Total:   decimal.NewFromInt(0),
-					Balance: decimal.NewFromInt(0),
+					Total: decimal.NewFromInt(0),
 				}
 			}
-			paymentInfo[order.TokenId].Total.Add(order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
+			paymentInfo[order.TokenId].Total.Add(order.Amount)
 		}
 
 		for k, v := range paymentInfo {
-			amount, err := h.DbDao.GetAutoPaymentAmount(accountId, k, tables.PaymentStatusSuccess)
-			if err != nil {
-				return err
-			}
 			token, err := h.DbDao.GetTokenById(k)
 			if err != nil {
 				return err
 			}
-			v.Balance.Add(amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))))
-		}
+			amount, err := h.DbDao.GetAutoPaymentAmount(accountId, k, tables.PaymentStatusSuccess)
+			if err != nil {
+				return err
+			}
+			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
 
-		for _, v := range paymentInfo {
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:    v.Type,
-				Total:   v.Total.String(),
-				Balance: v.Total.Sub(v.Balance).String(),
+				Total:   v.Total.Div(decimals).String(),
+				Balance: v.Total.Sub(amount).Div(decimals).String(),
 			})
 		}
 		return nil
