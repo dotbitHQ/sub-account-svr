@@ -108,6 +108,14 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
+	// check switch
+	err = h.checkSwitch(parentAccountId, apiResp)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
 	// check token id
 	userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
 	if err != nil {

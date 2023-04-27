@@ -93,6 +93,14 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 		return nil
 	}
 
+	// check switch
+	err = h.checkSwitch(parentAccountId, apiResp)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
 	// get max years
 	resp.MaxYear = h.getMaxYears(parentAccount)
 
@@ -177,6 +185,25 @@ func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.Da
 		return
 	}
 	return
+}
+
+func (h *HttpHandle) checkSwitch(parentAccountId string, apiResp *api_code.ApiResp) error {
+	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+	}
+	subAccTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccCell.OutPoint.TxHash)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetTransaction err: %s", err.Error())
+	}
+	subAccData := witness.ConvertSubAccountCellOutputData(subAccTx.Transaction.OutputsData[subAccCell.OutPoint.Index])
+	if subAccData.AutoDistribution == witness.AutoDistributionDefault {
+		apiResp.ApiRespErr(api_code.ApiCodeAutoDistributionClosed, "Automatic allocation is not turned on")
+		return nil
+	}
+	return nil
 }
 
 func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {

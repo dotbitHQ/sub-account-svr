@@ -59,6 +59,7 @@ const (
 	ApiCodeTokenIdNotSupported                ApiCode = 40029
 	ApiCodeNoSubAccountDistributionPermission ApiCode = 40030
 	ApiCodeSubAccountNoEnable                 ApiCode = 40031
+	ApiCodeAutoDistributionClosed             ApiCode = 40032
 )
 
 const (
