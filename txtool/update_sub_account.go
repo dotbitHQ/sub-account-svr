@@ -2,8 +2,10 @@ package txtool
 
 import (
 	"bytes"
+	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -44,8 +46,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var txParams txbuilder.BuildTransactionParams
 	var res ResultBuildUpdateSubAccountTx
 
-	balanceDasLock := p.BalanceDasLock
-	balanceDasType := p.BalanceDasType
+	var balanceDasLock *types.Script
+	var balanceDasType *types.Script
 	// get mint sign info
 	var witnessMintSignInfo []byte
 	mintSignTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
@@ -55,43 +57,42 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if v.SubAction != common.SubActionCreate {
 			continue
 		}
-		if v.MintSignId != "" {
-			mintSignInfo, err := s.DbDao.GetMinSignInfo(v.MintSignId)
-			if err != nil {
-				return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
-			}
-			witnessMintSignInfo = mintSignInfo.GenWitness()
-			var listKeyValue []tables.MintSignInfoKeyValue
-			err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
-			if err != nil {
-				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string:", err.Error())
-			}
-			if len(smtKv) == 0 {
-				for _, kv := range listKeyValue {
-					smtKey := smt.AccountIdToSmtH256(kv.Key)
-					smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
-					if err != nil {
-						return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
-					}
-					smtKv = append(smtKv, smt.SmtKv{
-						smtKey,
-						smtValue,
-					})
+		if v.MintSignId == "" {
+			continue
+		}
 
+		mintSignInfo, err := s.DbDao.GetMinSignInfo(v.MintSignId)
+		if err != nil {
+			return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
+		}
+		witnessMintSignInfo = mintSignInfo.GenWitness()
+		var listKeyValue []tables.MintSignInfoKeyValue
+		err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+		if err != nil {
+			return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string: %s", err.Error())
+		}
+		if len(smtKv) == 0 {
+			for _, kv := range listKeyValue {
+				smtKey := smt.AccountIdToSmtH256(kv.Key)
+				smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
+				if err != nil {
+					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
 				}
+				smtKv = append(smtKv, smt.SmtKv{
+					Key:   smtKey,
+					Value: smtValue,
+				})
 			}
+		}
 
-			balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
-				DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
-				AddressHex:     mintSignInfo.Address,
-				IsMulti:        false,
-				ChainType:      mintSignInfo.ChainType,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
-			}
-
-			break
+		balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+			DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
+			AddressHex:     mintSignInfo.Address,
+			IsMulti:        false,
+			ChainType:      mintSignInfo.ChainType,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
 		}
 	}
 
@@ -115,7 +116,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	manualTotalYears := uint64(0)
-	autoMintTotalPrice := uint64(0)
+	autoMintTotalCapacity := uint64(0)
+	subAccountPriceMap := make(map[string]uint64)
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate {
 			continue
@@ -150,36 +152,55 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 			quote := p.BaseInfo.QuoteCell.Quote()
 			yearlyPrice := subAccountRule.Rules[idx].Price
+			subAccountPrice := uint64(0)
 			if yearlyPrice < quote {
-				autoMintTotalPrice += yearlyPrice * common.OneCkb / quote * v.RegisterYears
+				subAccountPrice = yearlyPrice * common.OneCkb / quote * v.RegisterYears
 			} else {
-				autoMintTotalPrice += yearlyPrice / quote * common.OneCkb * v.RegisterYears
+				subAccountPrice = yearlyPrice / quote * common.OneCkb * v.RegisterYears
 			}
+			autoMintTotalCapacity += subAccountPrice
+			subAccountPriceMap[v.AccountId] = subAccountPrice
 		}
 	}
 
-	autoMintCommissionPrice := autoMintTotalPrice * uint64(newRate) / common.PercentRateBase
-	ownerProfit := autoMintTotalPrice - autoMintCommissionPrice
+	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalCapacity, newRate)
 
-	registerCapacity := p.NewSubAccountPrice*manualTotalYears + autoMintCommissionPrice
-
-	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalPrice, newRate)
-
-	var change uint64
-	var balanceLiveCells []*indexer.LiveCell
-	if registerCapacity > 0 {
-		change, balanceLiveCells, err = s.getBalanceCell(&paramBalance{
-			taskInfo:     p.TaskInfo,
-			dasLock:      balanceDasLock,
-			dasType:      balanceDasType,
-			needCapacity: p.CommonFee + registerCapacity + ownerProfit,
+	var manualChange uint64
+	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
+	manualRegisterCapacity := p.NewSubAccountPrice * manualTotalYears
+	if manualRegisterCapacity > 0 {
+		if autoMintTotalCapacity == 0 {
+			manualRegisterCapacity += p.CommonFee
+		}
+		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
+			DasLock:      balanceDasLock,
+			DasType:      balanceDasType,
+			NeedCapacity: manualRegisterCapacity,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
 			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
-		change += p.CommonFee
+		if autoMintTotalCapacity == 0 {
+			manualChange += p.CommonFee
+		}
+	}
+
+	var autoChange uint64
+	autoBalanceLiveCells := make([]*indexer.LiveCell, 0)
+	if autoMintTotalCapacity > 0 {
+		autoChange, autoBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
+			DasLock:      p.BalanceDasLock,
+			DasType:      p.BalanceDasType,
+			NeedCapacity: autoMintTotalCapacity + p.CommonFee,
+		})
+		if err != nil {
+			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
+			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+		}
+		autoChange += p.CommonFee
 	}
 
 	// update smt status
@@ -214,9 +235,24 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			value := subAccountData.ToH256()
 			//var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
-				key,
-				value,
+				Key:   key,
+				Value: value,
 			})
+
+			if v.MintType == tables.MintTypeAutoMint {
+				subAccountNew.EditKey = common.EditKeyCustomRule
+				if config.Cfg.Server.ServerProviderAddress == "" {
+					subAccountNew.EditValue = make([]byte, 20)
+				} else {
+					subAccountNew.EditValue = s.ServerProviderScript.Args
+				}
+				subAccountPrice, ok := subAccountPriceMap[v.AccountId]
+				if !ok {
+					return nil, errors.New("data abnormal")
+				}
+				price := molecule.GoU64ToMoleculeU64(subAccountPrice)
+				subAccountNew.EditValue = append(subAccountNew.EditValue, price.AsSlice()...)
+			}
 
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
@@ -231,15 +267,13 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			} else {
 				key := smt.AccountIdToSmtH256(v.AccountId)
 				value := subAccountData.ToH256()
-				//var smtKvTemp []smt.SmtKv
 				smtKvTemp = append(smtKvTemp, smt.SmtKv{
-					key,
-					value,
+					Key:   key,
+					Value: value,
 				})
 			}
 			subAccountNewList = append(subAccountNewList, subAccountNew)
 		}
-
 	}
 
 	if res, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt); err != nil {
@@ -265,7 +299,12 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	})
 
 	// get balance cell
-	for _, v := range balanceLiveCells {
+	for _, v := range manualBalanceLiveCells {
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: v.OutPoint,
+		})
+	}
+	for _, v := range autoBalanceLiveCells {
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: v.OutPoint,
 		})
@@ -273,25 +312,32 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
-		Capacity: p.SubAccountCellOutput.Capacity + registerCapacity + ownerProfit,
+		Capacity: p.SubAccountCellOutput.Capacity + manualRegisterCapacity + autoMintTotalCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
-	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub account
+	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub_account
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
-	subDataDetail.DasProfit = subDataDetail.DasProfit + registerCapacity
-	subDataDetail.OwnerProfit = subDataDetail.OwnerProfit + ownerProfit
+	subDataDetail.DasProfit += manualRegisterCapacity + autoMintTotalCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
 	// change
-	if change > 0 {
+	if manualChange > 0 {
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: change,
+			Capacity: manualChange,
 			Lock:     balanceDasLock,
 			Type:     balanceDasType,
+		})
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+	}
+	if autoChange > 0 {
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: autoChange,
+			Lock:     p.BalanceDasLock,
+			Type:     p.BalanceDasType,
 		})
 		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
@@ -337,7 +383,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err != nil {
 		return nil, err
 	}
-	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 		if actionDataType == common.ActionDataTypeSubAccountPriceRules || actionDataType == common.ActionDataTypeSubAccountPreservedRules {
 			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
 		}
@@ -361,7 +407,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
 	)
-	for k, _ := range accountCharTypeMap {
+	for k := range accountCharTypeMap {
 		switch k {
 		case common.AccountCharTypeEmoji:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEmoji.ToCellDep())
@@ -482,11 +528,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	var change uint64
 	var balanceLiveCells []*indexer.LiveCell
 	if registerCapacity > 0 {
-		change, balanceLiveCells, err = s.getBalanceCell(&paramBalance{
-			taskInfo:     p.TaskInfo,
-			dasLock:      p.BalanceDasLock,
-			dasType:      p.BalanceDasType,
-			needCapacity: p.CommonFee + registerCapacity,
+		change, balanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
+			DasLock:      p.BalanceDasLock,
+			DasType:      p.BalanceDasType,
+			NeedCapacity: p.CommonFee + registerCapacity,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
@@ -501,7 +546,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
-	opt := smt.SmtOpt{true, true}
+	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTxForCustomScript:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
@@ -515,8 +560,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			value := subAccountData.ToH256()
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
-				key,
-				value,
+				Key:   key,
+				Value: value,
 			})
 			if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
 				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
@@ -542,8 +587,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			value := subAccountData.ToH256()
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
-				key,
-				value,
+				Key:   key,
+				Value: value,
 			})
 			if res, err := p.Tree.UpdateSmt(smtKvTemp, opt); err != nil {
 				return nil, fmt.Errorf("tree.Update err: %s", err.Error())
@@ -575,7 +620,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
-	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub account
+	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub_account
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
@@ -654,7 +699,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		soEth.ToCellDep(),
 		soTron.ToCellDep(),
 	)
-	for k, _ := range accountCharTypeMap {
+	for k := range accountCharTypeMap {
 		switch k {
 		case common.AccountCharTypeEmoji:
 			txParams.CellDeps = append(txParams.CellDeps, p.BaseInfo.ConfigCellEmoji.ToCellDep())

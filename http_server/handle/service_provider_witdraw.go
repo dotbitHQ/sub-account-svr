@@ -1,0 +1,306 @@
+package handle
+
+import (
+	"das_sub_account/config"
+	"das_sub_account/http_server/api_code"
+	"das_sub_account/internal"
+	"das_sub_account/tables"
+	"das_sub_account/txtool"
+	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
+	"github.com/dotbitHQ/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"github.com/scorpiotzh/toolib"
+	"github.com/shopspring/decimal"
+	"gopkg.in/errgo.v2/fmt/errors"
+	"gorm.io/gorm"
+	"net/http"
+	"time"
+)
+
+type ReqServiceProviderWithdraw struct {
+	ServiceProviderAccountId string `json:"service_provider_account_id"`
+}
+
+type RespServiceProviderWithdraw struct {
+	Hash   []string         `json:"hash"`
+	Action common.DasAction `json:"action"`
+}
+
+func (h *HttpHandle) ServiceProviderWithdraw(ctx *gin.Context) {
+	var (
+		funcName               = "ServiceProviderWithdraw"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqServiceProviderWithdraw
+		apiResp                api_code.ApiResp
+		err                    error
+	)
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
+
+	if err = h.doServiceProviderWithdraw(&req, &apiResp); err != nil {
+		log.Error("doServiceProviderPayment err:", err.Error(), funcName, clientIp)
+	}
+
+	ctx.JSON(http.StatusOK, apiResp)
+}
+
+func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, apiResp *api_code.ApiResp) error {
+	if err := h.checkSystemUpgrade(apiResp); err != nil {
+		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
+	}
+	if ok := internal.IsLatestBlockNumber(config.Cfg.Server.ParserUrl); !ok {
+		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
+		return fmt.Errorf("sync block number")
+	}
+
+	hashList, err := h.buildServiceProviderWithdraw(req)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
+
+	resp := &RespServiceProviderWithdraw{
+		Action: common.DasActionCollectSubAccountChannelProfit,
+		Hash:   hashList,
+	}
+
+	apiResp.ApiRespOK(resp)
+	return nil
+}
+
+func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdraw) ([]string, error) {
+	providers := make([]string, 0)
+	if req.ServiceProviderAccountId == "" {
+		list, err := h.DbDao.FindSubAccountAutoMintTotalProvider()
+		if err != nil {
+			return nil, err
+		}
+		if len(list) == 0 {
+			return nil, errors.New("no sub account auto mint info")
+		}
+	} else {
+		providers = append(providers, req.ServiceProviderAccountId)
+	}
+
+	parentAccountMap := make(map[string]map[string]decimal.Decimal)
+	for _, providerId := range providers {
+		history, err := h.DbDao.GetLatestSubAccountAutoMintWithdrawHistory(providerId)
+		if err != nil {
+			return nil, err
+		}
+		if history.Id > 0 {
+			list, err := h.DbDao.FindSubAccountAutoMintWithdrawHistoryByTaskId(history.TaskId)
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range list {
+				statementInfo, err := h.DbDao.GetSubAccountAutoMintByTxHash(v.TxHash)
+				if err != nil {
+					return nil, err
+				}
+				if statementInfo.Id == 0 {
+					return nil, fmt.Errorf("tx: %s not found in das-database, please wait last transaction completed", history.TxHash)
+				}
+			}
+		}
+
+		latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType(providerId, tables.SubAccountAutoMintTxTypeExpenditure)
+		if err != nil {
+			return nil, err
+		}
+		list, err := h.DbDao.FindSubAccountAutoMintStatements(providerId, tables.SubAccountAutoMintTxTypeIncome, latestExpenditure.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, v := range list {
+			tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(v.TxHash))
+			if err != nil {
+				return nil, err
+			}
+			builder := witness.SubAccountNewBuilder{}
+			dataBys := tx.Transaction.Witnesses[v.WitnessIndex][common.WitnessDasTableTypeEndIndex:]
+			subAccountNew, err := builder.ConvertSubAccountNewFromBytes(dataBys)
+			if err != nil {
+				return nil, err
+			}
+			price, err := molecule.Bytes2GoU64(subAccountNew.EditValue[20:])
+			if err != nil {
+				return nil, err
+			}
+
+			subAccountCell := tx.Transaction.Outputs[0]
+			parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
+
+			providerMap, ok := parentAccountMap[parentAccountId]
+			if !ok {
+				providerMap = make(map[string]decimal.Decimal)
+				parentAccountMap[parentAccountId] = providerMap
+			}
+			parentAccountMap[parentAccountId][providerId] = parentAccountMap[parentAccountId][providerId].Add(decimal.NewFromInt(int64(price)))
+		}
+	}
+
+	txParamsList := make([]*txbuilder.BuildTransactionParams, 0)
+	for parentAccountId, providerMap := range parentAccountMap {
+		txParams := &txbuilder.BuildTransactionParams{}
+
+		_, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
+			DasLock:      h.TxTool.ServerScript,
+			NeedCapacity: common.OneCkb,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(liveBalanceCell) == 0 {
+			return nil, errors.New("no balance cell")
+		}
+
+		// CellDeps
+		contractSubAccount, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		}
+		contractBalanceCell, err := core.GetDasContractInfo(common.DasContractNameBalanceCellType)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		}
+		configCellSubAcc, err := core.GetDasConfigCellInfo(common.ConfigCellTypeArgsSubAccount)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+		}
+		txParams.CellDeps = append(txParams.CellDeps,
+			contractSubAccount.ToCellDep(),
+			contractBalanceCell.ToCellDep(),
+			configCellSubAcc.ToCellDep(),
+		)
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: liveBalanceCell[0].OutPoint,
+		})
+
+		actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
+		if err != nil {
+			return nil, err
+		}
+		txParams.Witnesses = append(txParams.Witnesses, actionWitness)
+
+		subAccountCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+		if err != nil {
+			return nil, err
+		}
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: subAccountCell.OutPoint,
+		})
+		subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
+		if err != nil {
+			return nil, err
+		}
+
+		var total decimal.Decimal
+		for _, amount := range providerMap {
+			total = total.Add(amount)
+		}
+		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountCell.OutputData)
+		subAccountCellDetail.DasProfit -= uint64(total.IntPart())
+		subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.OutPoint.Index]
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: subAccountCellOutput.Capacity - uint64(total.IntPart()),
+			Lock:     subAccountCellOutput.Lock,
+			Type:     subAccountCellOutput.Type,
+		})
+		txParams.OutputsData = append(txParams.OutputsData, witness.BuildSubAccountCellOutputData(subAccountCellDetail))
+
+		for providerId, amount := range providerMap {
+			txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+				Capacity: uint64(amount.IntPart()),
+				Lock:     common.GetNormalLockScript(providerId),
+			})
+			txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		}
+
+		txParams.Outputs = append(txParams.Outputs, liveBalanceCell[0].Output)
+		txParams.OutputsData = append(txParams.OutputsData, liveBalanceCell[0].OutputData)
+
+		if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
+			if actionDataType == common.ActionDataTypeSubAccountPriceRules ||
+				actionDataType == common.ActionDataTypeSubAccountPreservedRules {
+				txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
+			}
+			return true, nil
+		}); err != nil {
+			return nil, err
+		}
+		txParamsList = append(txParamsList, txParams)
+	}
+
+	txBuilders := make([]*txbuilder.DasTxBuilder, 0, len(txParamsList))
+	txHashList := make([]string, 0, len(txParamsList))
+
+	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
+		for _, txParams := range txParamsList {
+			txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
+			if err := txBuilder.BuildTransaction(txParams); err != nil {
+				return fmt.Errorf("BuildTransaction err: %s", err.Error())
+			}
+			sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+			changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - 1000
+			txBuilder.Transaction.Outputs[0].Capacity = changeCapacity
+			txBuilders = append(txBuilders, txBuilder)
+
+			hashBytes, err := txBuilder.Transaction.Serialize()
+			if err != nil {
+				return err
+			}
+			hash := common.Bytes2Hex(hashBytes)
+			txHashList = append(txHashList, hash)
+			parentAccountId := common.Bytes2Hex(txBuilder.Transaction.Outputs[0].Type.Args)
+
+			taskInfo := &tables.TableTaskInfo{
+				TaskType:        tables.TaskTypeNormal,
+				ParentAccountId: parentAccountId,
+				Action:          common.DasActionCollectSubAccountChannelProfit,
+				Outpoint:        common.OutPoint2String(hash, 0),
+				Timestamp:       time.Now().UnixNano() / 1e6,
+				TxStatus:        tables.TxStatusPending,
+			}
+			taskInfo.InitTaskId()
+
+			if err := tx.Create(taskInfo).Error; err != nil {
+				return err
+			}
+
+			for i := 1; i < len(txParams.Outputs)-1; i++ {
+				tx.Create(&tables.TableSubAccountAutoMintWithdrawHistory{
+					TaskId:            taskInfo.TaskId,
+					ParentAccountId:   parentAccountId,
+					ServiceProviderId: common.Bytes2Hex(txBuilder.Transaction.Outputs[i].Lock.Args),
+					TxHash:            hash,
+					Price:             decimal.NewFromInt(int64(txBuilder.Transaction.Outputs[i].Capacity)),
+				})
+			}
+		}
+		return nil
+	}); err != nil {
+		log.Error("CreateTask err: ", err.Error())
+		return nil, err
+	}
+	for _, v := range txBuilders {
+		hash, err := v.SendTransaction()
+		if err != nil {
+			return nil, err
+		}
+		log.Errorf("SendTransaction hash: %s", hash.Hex())
+	}
+	return txHashList, nil
+}

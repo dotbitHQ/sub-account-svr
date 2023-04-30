@@ -310,3 +310,8 @@ func (d *DbDao) GetLatestTaskByParentAccountId(parentAccountId string, limit int
 		Order("id DESC").Limit(limit).Find(&list).Error
 	return
 }
+
+func (d *DbDao) UpdateTxStatusByOutpoint(outpoint string, txStatus tables.TxStatus) (err error) {
+	err = d.db.Model(&tables.TableTaskInfo{}).Where("outpoint=?", outpoint).Update("tx_status", txStatus).Error
+	return
+}

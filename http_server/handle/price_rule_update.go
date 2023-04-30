@@ -305,7 +305,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return nil, nil, err
 	}
-	if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte) (bool, error) {
+	if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 		if (len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType) &&
 			(actionDataType == common.ActionDataTypeSubAccountPriceRules ||
 				actionDataType == common.ActionDataTypeSubAccountPreservedRules) {

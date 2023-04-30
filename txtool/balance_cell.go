@@ -1,7 +1,6 @@
 package txtool
 
 import (
-	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -10,17 +9,16 @@ import (
 	"sync"
 )
 
-type paramBalance struct {
-	taskInfo     *tables.TableTaskInfo
-	dasLock      *types.Script
-	dasType      *types.Script
-	needCapacity uint64
+type ParamBalance struct {
+	DasLock      *types.Script
+	DasType      *types.Script
+	NeedCapacity uint64
 }
 
 var balanceLock sync.Mutex
 
-func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.LiveCell, error) {
-	if p.needCapacity == 0 {
+func (s *SubAccountTxTool) GetBalanceCell(p *ParamBalance) (uint64, []*indexer.LiveCell, error) {
+	if p.NeedCapacity == 0 {
 		return 0, nil, nil
 	}
 	balanceLock.Lock()
@@ -28,8 +26,8 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 
 	liveCells, total, err := s.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 		DasCache:          s.DasCache,
-		LockScript:        p.dasLock,
-		CapacityNeed:      p.needCapacity,
+		LockScript:        p.DasLock,
+		CapacityNeed:      p.NeedCapacity,
 		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
 		SearchOrder:       indexer.SearchOrderAsc,
 	})
@@ -43,5 +41,5 @@ func (s *SubAccountTxTool) getBalanceCell(p *paramBalance) (uint64, []*indexer.L
 	}
 	s.DasCache.AddOutPoint(outpoints)
 
-	return total - p.needCapacity, liveCells, nil
+	return total - p.NeedCapacity, liveCells, nil
 }
