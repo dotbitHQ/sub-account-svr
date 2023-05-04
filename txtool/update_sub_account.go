@@ -2,7 +2,6 @@ package txtool
 
 import (
 	"bytes"
-	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
 	"errors"
@@ -241,7 +240,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 			if v.MintType == tables.MintTypeAutoMint {
 				subAccountNew.EditKey = common.EditKeyCustomRule
-				if config.Cfg.Server.ServerProviderAddress == "" {
+				if s.ServerProviderScript == nil {
 					subAccountNew.EditValue = make([]byte, 20)
 				} else {
 					subAccountNew.EditValue = s.ServerProviderScript.Args

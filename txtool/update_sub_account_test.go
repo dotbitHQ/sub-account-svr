@@ -2,6 +2,7 @@ package txtool
 
 import (
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/influxdata/influxdb/pkg/testing/assert"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"testing"
 )
@@ -13,4 +14,12 @@ func TestAddress(t *testing.T) {
 	}
 	t.Log(len(parseAddress.Script.Args))
 	t.Log(common.Bytes2Hex(parseAddress.Script.Args))
+}
+
+func TestCreateCkbAddress(t *testing.T) {
+	res, err := address.GenerateShortAddress(address.Testnet)
+	assert.NoError(t, err)
+	t.Log(res.Address)
+	t.Log(res.LockArgs)
+	t.Log(res.PrivateKey)
 }
