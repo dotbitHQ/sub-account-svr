@@ -237,13 +237,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
 
-		if change > 0 {
-			txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-				Capacity: change,
-				Lock:     h.ServerScript,
-			})
-			txParams.OutputsData = append(txParams.OutputsData, []byte{})
-		}
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: change + common.OneCkb,
+			Lock:     h.ServerScript,
+		})
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 
 		if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 			if actionDataType == common.ActionDataTypeSubAccountPriceRules ||
