@@ -12,6 +12,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogf/gf/v2 v2.3.3
 	github.com/google/uuid v1.2.0
+	github.com/influxdata/influxdb v1.8.3
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect

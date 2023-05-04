@@ -34,6 +34,8 @@ type AccountData struct {
 	EnableSubAccount     tables.EnableSubAccount `json:"enable_sub_account"`
 	RenewSubAccountPrice uint64                  `json:"renew_sub_account_price"`
 	Nonce                uint64                  `json:"nonce"`
+	IsInWhitelist        bool                    `json:"is_in_whitelist"`
+	Avatar               string                  `json:"avatar"`
 }
 
 type RecordData struct {
@@ -113,6 +115,19 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 	for _, v := range list {
 		tmp := recordsInfoToRecordData(v)
 		resp.Records = append(resp.Records, tmp)
+		if v.Type == "custom_key" && v.Key == "avatar" {
+			resp.AccountInfo.Avatar = v.Value
+		}
+	}
+
+	// config cell
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; ok {
+		resp.AccountInfo.IsInWhitelist = true
 	}
 
 	apiResp.ApiRespOK(resp)

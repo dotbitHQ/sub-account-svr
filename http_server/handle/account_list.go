@@ -18,6 +18,7 @@ type ReqAccountList struct {
 	chainType common.ChainType
 	address   string
 	Category  tables.Category `json:"category"`
+	Keyword   string          `json:"keyword"`
 }
 
 type RespAccountList struct {
@@ -62,7 +63,7 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
 	// account list
-	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset(), req.Category)
+	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset(), req.Category, req.Keyword)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
 		return fmt.Errorf("GetAccountList err: %s", err.Error())
@@ -73,7 +74,7 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 
 	// total
-	count, err := h.DbDao.GetAccountListTotal(req.chainType, req.address, req.Category)
+	count, err := h.DbDao.GetAccountListTotal(req.chainType, req.address, req.Category, req.Keyword)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account total")
 		return fmt.Errorf("GetAccountListTotal err: %s", err.Error())

@@ -111,7 +111,7 @@ func (d *DbDao) GetSubAccountListTotalByParentAccountId(parentAccountId string, 
 	//return
 }
 
-func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int, category tables.Category) (list []tables.TableAccountInfo, err error) {
+func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int, category tables.Category, keyword string) (list []tables.TableAccountInfo, err error) {
 	//err = d.parserDb.Where(" owner_chain_type=? AND owner=? ", chainType, address).
 	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).
 	//	Order("account").Limit(limit).Offset(offset).Find(&list).Error
@@ -143,12 +143,16 @@ func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit
 		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
 	}
 
+	if keyword != "" {
+		db = db.Where("account LIKE ?", keyword+"%")
+	}
+
 	err = db.Order("account").Limit(limit).Offset(offset).Find(&list).Error
 
 	return
 }
 
-func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, category tables.Category) (count int64, err error) {
+func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, category tables.Category, keyword string) (count int64, err error) {
 	//err = d.parserDb.Model(tables.TableAccountInfo{}).Where(" owner_chain_type=? AND owner=? ", chainType, address).
 	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).Count(&count).Error
 	//return
@@ -176,6 +180,10 @@ func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, 
 	//	db = db.Where("expired_at<=? AND expired_at>=?", expiredAt, recycledAt)
 	case tables.CategoryEnableSubAccount:
 		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
+	}
+
+	if keyword != "" {
+		db = db.Where("account LIKE ?", keyword+"%")
 	}
 
 	err = db.Count(&count).Error
