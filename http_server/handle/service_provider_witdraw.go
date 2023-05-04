@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -12,7 +13,6 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
-	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -160,15 +160,12 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 	for parentAccountId, providerMap := range parentAccountMap {
 		txParams := &txbuilder.BuildTransactionParams{}
 
-		liveCells, totalBalanceCapacity, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-			DasCache:          h.DasCache,
-			LockScript:        h.ServerScript,
-			CapacityNeed:      common.OneCkb,
-			CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-			SearchOrder:       indexer.SearchOrderAsc,
+		change, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
+			DasLock:      h.TxTool.ServerScript,
+			NeedCapacity: common.OneCkb,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
+			return nil, err
 		}
 
 		// CellDeps
@@ -198,7 +195,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: subAccountCell.OutPoint,
 		})
-		for _, v := range liveCells {
+		for _, v := range liveBalanceCell {
 			txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 				PreviousOutput: v.OutPoint,
 			})
@@ -238,7 +235,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		}
 
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: totalBalanceCapacity,
+			Capacity: change + common.OneCkb,
 			Lock:     h.ServerScript,
 		})
 		txParams.OutputsData = append(txParams.OutputsData, []byte{})
