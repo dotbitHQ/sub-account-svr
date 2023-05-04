@@ -198,9 +198,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: subAccountCell.OutPoint,
 		})
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: liveBalanceCell[0].OutPoint,
-		})
+		for _, v := range liveBalanceCell {
+			txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+				PreviousOutput: v.OutPoint,
+			})
+		}
 
 		actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
 		if err != nil {
@@ -235,8 +237,10 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
 
-		txParams.Outputs = append(txParams.Outputs, liveBalanceCell[0].Output)
-		txParams.OutputsData = append(txParams.OutputsData, liveBalanceCell[0].OutputData)
+		for _, v := range liveBalanceCell {
+			txParams.Outputs = append(txParams.Outputs, v.Output)
+			txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		}
 
 		if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 			if actionDataType == common.ActionDataTypeSubAccountPriceRules ||
