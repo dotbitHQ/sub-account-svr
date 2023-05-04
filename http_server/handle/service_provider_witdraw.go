@@ -139,10 +139,17 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			if err != nil {
 				return nil, err
 			}
+			if common.Bytes2Hex(subAccountNew.EditValue[:20]) != providerId {
+				err = fmt.Errorf("data error txHash: %s, provider: %s", v.TxHash, providerId)
+				log.Error(err)
+				return nil, err
+			}
+
 			price, err := molecule.Bytes2GoU64(subAccountNew.EditValue[20:])
 			if err != nil {
 				return nil, err
 			}
+			log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price)
 
 			subAccountCell := tx.Transaction.Outputs[0]
 			parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
@@ -152,13 +159,16 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 				providerMap = make(map[string]decimal.Decimal)
 				parentAccountMap[parentAccountId] = providerMap
 			}
-			parentAccountMap[parentAccountId][providerId] = parentAccountMap[parentAccountId][providerId].Add(decimal.NewFromInt(int64(price)))
+			providerPrice := parentAccountMap[parentAccountId][providerId]
+			parentAccountMap[parentAccountId][providerId] = providerPrice.Add(decimal.NewFromInt(int64(price)))
 		}
 	}
 
 	txParamsList := make([]*txbuilder.BuildTransactionParams, 0)
 	for parentAccountId, providerMap := range parentAccountMap {
-		log.Infof("parentAccountId: %s, providerMap: %#v", parentAccountId, providerMap)
+		for k, v := range providerMap {
+			log.Infof("parentAccountId: %s, provider: %s, price: %d", parentAccountId, k, v.IntPart())
+		}
 
 		txParams := &txbuilder.BuildTransactionParams{}
 		// CellDeps
