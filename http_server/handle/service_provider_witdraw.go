@@ -23,7 +23,7 @@ import (
 )
 
 type ReqServiceProviderWithdraw struct {
-	ServiceProviderAccountId string `json:"service_provider_account_id"`
+	ServiceProviderAddress string `json:"service_provider_address"`
 }
 
 type RespServiceProviderWithdraw struct {
@@ -81,7 +81,7 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 
 func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdraw) ([]string, error) {
 	providers := make([]string, 0)
-	if req.ServiceProviderAccountId == "" {
+	if req.ServiceProviderAddress == "" {
 		list, err := h.DbDao.FindSubAccountAutoMintTotalProvider()
 		if err != nil {
 			return nil, err
@@ -90,7 +90,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			return nil, errors.New("no sub account auto mint info")
 		}
 	} else {
-		providers = append(providers, req.ServiceProviderAccountId)
+		providers = append(providers, req.ServiceProviderAddress)
 	}
 
 	parentAccountMap := make(map[string]map[string]decimal.Decimal)
@@ -122,6 +122,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		list, err := h.DbDao.FindSubAccountAutoMintStatements(providerId, tables.SubAccountAutoMintTxTypeIncome, latestExpenditure.Id)
 		if err != nil {
 			return nil, err
+		}
+		if len(list) == 0 {
+			continue
 		}
 
 		for _, v := range list {
