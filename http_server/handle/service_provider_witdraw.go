@@ -160,7 +160,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 	for parentAccountId, providerMap := range parentAccountMap {
 		txParams := &txbuilder.BuildTransactionParams{}
 
-		_, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
+		change, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
 			DasLock:      h.TxTool.ServerScript,
 			NeedCapacity: common.OneCkb,
 		})
@@ -237,8 +237,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
 
-		for _, v := range liveBalanceCell {
-			txParams.Outputs = append(txParams.Outputs, v.Output)
+		if change > 0 {
+			txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+				Capacity: change,
+				Lock:     h.ServerScript,
+			})
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
 
