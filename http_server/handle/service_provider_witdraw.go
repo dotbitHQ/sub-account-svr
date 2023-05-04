@@ -250,10 +250,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		txParamsList = append(txParamsList, txParams)
 	}
 
-	txBuilders := make([]*txbuilder.DasTxBuilder, 0, len(txParamsList))
 	txHashList := make([]string, 0, len(txParamsList))
-
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
+		txBuilders := make([]*txbuilder.DasTxBuilder, 0, len(txParamsList))
 		for _, txParams := range txParamsList {
 			txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 			if err := txBuilder.BuildTransaction(txParams); err != nil {
@@ -296,17 +295,18 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 				})
 			}
 		}
+
+		for _, v := range txBuilders {
+			hash, err := v.SendTransaction()
+			if err != nil {
+				return err
+			}
+			log.Errorf("SendTransaction hash: %s", hash.Hex())
+		}
 		return nil
 	}); err != nil {
 		log.Error("CreateTask err: ", err.Error())
 		return nil, err
-	}
-	for _, v := range txBuilders {
-		hash, err := v.SendTransaction()
-		if err != nil {
-			return nil, err
-		}
-		log.Errorf("SendTransaction hash: %s", hash.Hex())
 	}
 	return txHashList, nil
 }
