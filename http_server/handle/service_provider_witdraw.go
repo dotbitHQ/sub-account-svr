@@ -80,13 +80,14 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 }
 
 func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdraw) ([]string, error) {
+	var err error
 	providers := make([]string, 0)
 	if req.ServiceProviderAddress == "" {
-		list, err := h.DbDao.FindSubAccountAutoMintTotalProvider()
+		providers, err = h.DbDao.FindSubAccountAutoMintTotalProvider()
 		if err != nil {
 			return nil, err
 		}
-		if len(list) == 0 {
+		if len(providers) == 0 {
 			return nil, errors.New("no sub account auto mint info")
 		}
 	} else {
