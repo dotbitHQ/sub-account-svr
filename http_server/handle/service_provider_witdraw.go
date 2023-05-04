@@ -189,6 +189,15 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			contractBalanceCell.ToCellDep(),
 			configCellSubAcc.ToCellDep(),
 		)
+
+		// inputs cell
+		subAccountCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
+		if err != nil {
+			return nil, err
+		}
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: subAccountCell.OutPoint,
+		})
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: liveBalanceCell[0].OutPoint,
 		})
@@ -199,13 +208,6 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		}
 		txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
-		subAccountCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
-		if err != nil {
-			return nil, err
-		}
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: subAccountCell.OutPoint,
-		})
 		subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 		if err != nil {
 			return nil, err
