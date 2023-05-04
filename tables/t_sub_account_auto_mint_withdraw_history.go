@@ -15,3 +15,7 @@ type TableSubAccountAutoMintWithdrawHistory struct {
 	CreatedAt         time.Time       `json:"created_at" gorm:"column:created_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT ''"`
 	UpdatedAt         time.Time       `json:"updated_at" gorm:"column:updated_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''"`
 }
+
+func (t *TableSubAccountAutoMintWithdrawHistory) TableName() string {
+	return "t_sub_account_auto_mint_withdraw_history"
+}
