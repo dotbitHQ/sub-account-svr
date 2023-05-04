@@ -6,9 +6,13 @@ import (
 )
 
 func (d *DbDao) FindSubAccountAutoMintTotalProvider() (list []string, err error) {
-	err = d.parserDb.Model(&tables.TableSubAccountAutoMintStatement{}).Select("service_provider_id").Distinct("service_provider_id").Group("service_provider_id").Scan(&list).Error
+	res := make([]*tables.TableSubAccountAutoMintStatement, 0)
+	err = d.parserDb.Distinct("service_provider_id").Find(&res).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
+	}
+	for _, v := range res {
+		list = append(list, v.ServiceProviderId)
 	}
 	return
 }
