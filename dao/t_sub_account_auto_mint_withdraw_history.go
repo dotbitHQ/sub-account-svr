@@ -6,7 +6,7 @@ import (
 )
 
 func (d *DbDao) GetLatestSubAccountAutoMintWithdrawHistory(providerAccountId string) (a tables.TableSubAccountAutoMintWithdrawHistory, err error) {
-	err = d.db.Where("service_provider_account_id = ?", providerAccountId).Order("id desc").First(&a).Error
+	err = d.db.Where("service_provider_id = ?", providerAccountId).Order("id desc").First(&a).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
