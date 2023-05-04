@@ -158,6 +158,8 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 
 	txParamsList := make([]*txbuilder.BuildTransactionParams, 0)
 	for parentAccountId, providerMap := range parentAccountMap {
+		log.Infof("parentAccountId: %s, providerMap: %#v", parentAccountId, providerMap)
+
 		txParams := &txbuilder.BuildTransactionParams{}
 		// CellDeps
 		contractSubAccount, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
@@ -200,12 +202,6 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			})
 		}
 
-		actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
-		if err != nil {
-			return nil, err
-		}
-		txParams.Witnesses = append(txParams.Witnesses, actionWitness)
-
 		subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 		if err != nil {
 			return nil, err
@@ -240,6 +236,12 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			})
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
+
+		actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
+		if err != nil {
+			return nil, err
+		}
+		txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 		if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 			if actionDataType == common.ActionDataTypeSubAccountPriceRules ||
