@@ -121,13 +121,15 @@ func runServer(ctx *cli.Context) error {
 
 	// tx tool
 	txTool := &txtool.SubAccountTxTool{
-		Ctx:                  ctxServer,
-		DbDao:                dbDao,
-		DasCore:              dasCore,
-		DasCache:             dasCache,
-		ServerScript:         serverScript,
-		ServerProviderScript: parserAddress.Script,
-		TxBuilderBase:        txBuilderBase,
+		Ctx:           ctxServer,
+		DbDao:         dbDao,
+		DasCore:       dasCore,
+		DasCache:      dasCache,
+		ServerScript:  serverScript,
+		TxBuilderBase: txBuilderBase,
+	}
+	if parserAddress != nil {
+		txTool.ServerProviderScript = parserAddress.Script
 	}
 	log.Infof("tx tool ok")
 
