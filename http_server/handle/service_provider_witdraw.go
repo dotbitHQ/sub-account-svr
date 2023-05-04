@@ -259,8 +259,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 				return fmt.Errorf("BuildTransaction err: %s", err.Error())
 			}
 			sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-			changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - 1000
-			txBuilder.Transaction.Outputs[0].Capacity = changeCapacity
+			latestIndex := len(txBuilder.Transaction.Outputs) - 1
+			changeCapacity := txBuilder.Transaction.Outputs[latestIndex].Capacity - sizeInBlock - 1000
+			txBuilder.Transaction.Outputs[latestIndex].Capacity = changeCapacity
 			txBuilders = append(txBuilders, txBuilder)
 
 			hashBytes, err := txBuilder.Transaction.Serialize()
