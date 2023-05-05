@@ -319,7 +319,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			if err != nil {
 				return err
 			}
-			log.Errorf("SendTransaction hash: %s", hash.Hex())
+			log.Infof("SendTransaction hash: %s", hash.Hex())
 		}
 		return nil
 	}); err != nil {
