@@ -62,6 +62,13 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
+	// config cell
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+
 	// account list
 	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset(), req.Category, req.Keyword)
 	if err != nil {
@@ -70,6 +77,9 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 	for _, v := range list {
 		tmp := h.accountInfoToAccountData(v)
+		if _, ok := builder.ConfigCellSubAccountWhiteListMap[v.AccountId]; ok {
+			tmp.IsInWhitelist = true
+		}
 		resp.List = append(resp.List, tmp)
 	}
 

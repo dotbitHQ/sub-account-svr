@@ -19,9 +19,14 @@ type ReqAccountDetail struct {
 }
 
 type RespAccountDetail struct {
-	AccountInfo  AccountData  `json:"account_info"`
-	Records      []RecordData `json:"records"`
-	CustomScript string       `json:"custom_script"`
+	AccountInfo  AccountDataDetail `json:"account_info"`
+	Records      []RecordData      `json:"records"`
+	CustomScript string            `json:"custom_script"`
+}
+
+type AccountDataDetail struct {
+	AccountData
+	Avatar string `json:"avatar"`
 }
 
 type AccountData struct {
@@ -35,7 +40,6 @@ type AccountData struct {
 	RenewSubAccountPrice uint64                  `json:"renew_sub_account_price"`
 	Nonce                uint64                  `json:"nonce"`
 	IsInWhitelist        bool                    `json:"is_in_whitelist"`
-	Avatar               string                  `json:"avatar"`
 }
 
 type RecordData struct {
@@ -90,7 +94,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
 	}
-	resp.AccountInfo = h.accountInfoToAccountData(acc)
+	resp.AccountInfo.AccountData = h.accountInfoToAccountData(acc)
 
 	// custom-script
 	if acc.EnableSubAccount == tables.AccountEnableStatusOn {
