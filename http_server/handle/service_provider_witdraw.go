@@ -6,6 +6,7 @@ import (
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -16,14 +17,13 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
-	"gopkg.in/errgo.v2/fmt/errors"
 	"gorm.io/gorm"
 	"net/http"
 	"time"
 )
 
 type ReqServiceProviderWithdraw struct {
-	ServiceProviderAddress string `json:"service_provider_address"`
+	ServiceProviderAddress string `json:"service_provider_address" binding:"required"`
 }
 
 type RespServiceProviderWithdraw struct {
@@ -49,7 +49,7 @@ func (h *HttpHandle) ServiceProviderWithdraw(ctx *gin.Context) {
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
 	if err = h.doServiceProviderWithdraw(&req, &apiResp); err != nil {
-		log.Error("doServiceProviderPayment err:", err.Error(), funcName, clientIp)
+		log.Error("doServiceProviderWithdraw err:", err.Error(), funcName, clientIp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
@@ -64,7 +64,7 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 		return fmt.Errorf("sync block number")
 	}
 
-	hashList, err := h.buildServiceProviderWithdraw(req)
+	hashList, err := h.buildServiceProviderWithdraw(req.ServiceProviderAddress)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
@@ -79,100 +79,79 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 	return nil
 }
 
-func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdraw) ([]string, error) {
-	var err error
-	providers := make([]string, 0)
-	if req.ServiceProviderAddress == "" {
-		providers, err = h.DbDao.FindSubAccountAutoMintTotalProvider()
-		if err != nil {
-			return nil, err
-		}
-		if len(providers) == 0 {
-			return nil, errors.New("no sub account auto mint info")
-		}
-	} else {
-		providers = append(providers, req.ServiceProviderAddress)
+func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []string, err error) {
+	latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType(providerId, tables.SubAccountAutoMintTxTypeExpenditure)
+	if err != nil {
+		return nil, err
+	}
+	list, err := h.DbDao.FindSubAccountAutoMintStatements(providerId, tables.SubAccountAutoMintTxTypeIncome, latestExpenditure.BlockNumber)
+	if err != nil {
+		return nil, err
+	}
+	if len(list) == 0 {
+		return nil, errors.New("no income balance can withdraw")
 	}
 
-	parentAccountMap := make(map[string]map[string]decimal.Decimal)
-	for _, providerId := range providers {
-		history, err := h.DbDao.GetLatestSubAccountAutoMintWithdrawHistory(providerId)
+	skipParentMap := make(map[string]bool)
+	parentMap := make(map[string]decimal.Decimal)
+	for _, v := range list {
+		if skipParentMap[v.ParentAccountId] {
+			continue
+		}
+		history, err := h.DbDao.GetLatestSubAccountAutoMintWithdrawHistory(providerId, v.ParentAccountId)
 		if err != nil {
 			return nil, err
 		}
-		if history.Id > 0 {
-			list, err := h.DbDao.FindSubAccountAutoMintWithdrawHistoryByTaskId(history.TaskId)
-			if err != nil {
-				return nil, err
-			}
-			for _, v := range list {
-				statementInfo, err := h.DbDao.GetSubAccountAutoMintByTxHash(v.TxHash)
-				if err != nil {
-					return nil, err
-				}
-				if statementInfo.Id == 0 {
-					return nil, fmt.Errorf("tx: %s not found in das-database, please wait last transaction completed", history.TxHash)
-				}
-			}
-		}
-
-		latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType(providerId, tables.SubAccountAutoMintTxTypeExpenditure)
+		statementInfo, err := h.DbDao.GetSubAccountAutoMintByTxHash(history.TxHash)
 		if err != nil {
 			return nil, err
 		}
-		list, err := h.DbDao.FindSubAccountAutoMintStatements(providerId, tables.SubAccountAutoMintTxTypeIncome, latestExpenditure.Id)
-		if err != nil {
-			return nil, err
-		}
-		if len(list) == 0 {
+		if statementInfo.Id == 0 {
+			skipParentMap[v.ParentAccountId] = true
 			continue
 		}
 
-		for _, v := range list {
-			tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(v.TxHash))
-			if err != nil {
-				return nil, err
-			}
-			builder := witness.SubAccountNewBuilder{}
-			dataBys := tx.Transaction.Witnesses[v.WitnessIndex][common.WitnessDasTableTypeEndIndex:]
-			subAccountNew, err := builder.ConvertSubAccountNewFromBytes(dataBys)
-			if err != nil {
-				return nil, err
-			}
-			if common.Bytes2Hex(subAccountNew.EditValue[:20]) != providerId {
-				err = fmt.Errorf("data error txHash: %s, provider: %s", v.TxHash, providerId)
-				log.Error(err)
-				return nil, err
-			}
-
-			price, err := molecule.Bytes2GoU64(subAccountNew.EditValue[20:])
-			if err != nil {
-				return nil, err
-			}
-			log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price)
-
-			// TODO for test delete later
-			price = 61 * common.OneCkb
-
-			subAccountCell := tx.Transaction.Outputs[0]
-			parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
-
-			providerMap, ok := parentAccountMap[parentAccountId]
-			if !ok {
-				providerMap = make(map[string]decimal.Decimal)
-				parentAccountMap[parentAccountId] = providerMap
-			}
-			providerPrice := parentAccountMap[parentAccountId][providerId]
-			parentAccountMap[parentAccountId][providerId] = providerPrice.Add(decimal.NewFromInt(int64(price)))
+		tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(v.TxHash))
+		if err != nil {
+			return nil, err
 		}
+		builder := witness.SubAccountNewBuilder{}
+		dataBys := tx.Transaction.Witnesses[v.WitnessIndex][common.WitnessDasTableTypeEndIndex:]
+		subAccountNew, err := builder.ConvertSubAccountNewFromBytes(dataBys)
+		if err != nil {
+			return nil, err
+		}
+		if common.Bytes2Hex(subAccountNew.EditValue[:20]) != providerId {
+			err = fmt.Errorf("data error txHash: %s, provider: %s", v.TxHash, providerId)
+			log.Error(err)
+			return nil, err
+		}
+
+		price, err := molecule.Bytes2GoU64(subAccountNew.EditValue[20:])
+		if err != nil {
+			return nil, err
+		}
+		log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price)
+
+		subAccountCell := tx.Transaction.Outputs[0]
+		parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
+		parentMap[parentAccountId] = parentMap[parentAccountId].Add(decimal.NewFromInt(int64(price)))
+	}
+
+	parentMapNew := make(map[string]decimal.Decimal)
+	for k, v := range parentMap {
+		if uint64(v.IntPart()) < 61*common.OneCkb {
+			continue
+		}
+		parentMapNew[k] = v
+	}
+
+	if len(parentMapNew) == 0 {
+		return nil, errors.New("no income balance can withdraw")
 	}
 
 	txParamsList := make([]*txbuilder.BuildTransactionParams, 0)
-	for parentAccountId, providerMap := range parentAccountMap {
-		for k, v := range providerMap {
-			log.Infof("parentAccountId: %s, provider: %s, price: %d", parentAccountId, k, v.IntPart())
-		}
-
+	for parentAccountId, price := range parentMapNew {
 		txParams := &txbuilder.BuildTransactionParams{}
 		// CellDeps
 		contractSubAccount, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
@@ -220,29 +199,25 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			return nil, err
 		}
 
-		var total decimal.Decimal
-		for _, amount := range providerMap {
-			total = total.Add(amount)
-		}
-
+		// sub_account cell
 		subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.OutPoint.Index]
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: subAccountCellOutput.Capacity - uint64(total.IntPart()),
+			Capacity: subAccountCellOutput.Capacity - uint64(price.IntPart()),
 			Lock:     subAccountCellOutput.Lock,
 			Type:     subAccountCellOutput.Type,
 		})
 		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountCell.OutputData)
-		subAccountCellDetail.DasProfit -= uint64(total.IntPart())
+		subAccountCellDetail.DasProfit -= uint64(price.IntPart())
 		txParams.OutputsData = append(txParams.OutputsData, witness.BuildSubAccountCellOutputData(subAccountCellDetail))
 
-		for providerId, amount := range providerMap {
-			txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-				Capacity: uint64(amount.IntPart()),
-				Lock:     common.GetNormalLockScript(providerId),
-			})
-			txParams.OutputsData = append(txParams.OutputsData, []byte{})
-		}
+		// provider balance_cell
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: uint64(price.IntPart()),
+			Lock:     common.GetNormalLockScript(providerId),
+		})
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 
+		// change balance_cell
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 			Capacity: change + common.OneCkb,
 			Lock:     h.ServerScript,

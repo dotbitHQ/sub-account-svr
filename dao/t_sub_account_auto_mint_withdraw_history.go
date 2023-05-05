@@ -5,8 +5,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (d *DbDao) GetLatestSubAccountAutoMintWithdrawHistory(providerAccountId string) (a tables.TableSubAccountAutoMintWithdrawHistory, err error) {
-	err = d.db.Where("service_provider_id = ?", providerAccountId).Order("id desc").First(&a).Error
+func (d *DbDao) GetLatestSubAccountAutoMintWithdrawHistory(providerAccountId, parentAccountId string) (a tables.TableSubAccountAutoMintWithdrawHistory, err error) {
+	err = d.db.Where("service_provider_id = ? and parent_account_id = ?", providerAccountId, parentAccountId).Order("id desc").First(&a).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
