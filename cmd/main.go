@@ -111,14 +111,6 @@ func runServer(ctx *cli.Context) error {
 		return fmt.Errorf("Smt service is not available, err: ", err.Error())
 	}
 
-	var parserAddress *address.ParsedAddress
-	if config.Cfg.Server.ServerProviderAddress != "" {
-		parserAddress, err = address.Parse(config.Cfg.Server.ServerProviderAddress)
-		if err != nil {
-			return fmt.Errorf("parse server provider address err: %s", err.Error())
-		}
-	}
-
 	// tx tool
 	txTool := &txtool.SubAccountTxTool{
 		Ctx:           ctxServer,
@@ -127,9 +119,6 @@ func runServer(ctx *cli.Context) error {
 		DasCache:      dasCache,
 		ServerScript:  serverScript,
 		TxBuilderBase: txBuilderBase,
-	}
-	if parserAddress != nil {
-		txTool.ServerProviderScript = parserAddress.Script
 	}
 	log.Infof("tx tool ok")
 

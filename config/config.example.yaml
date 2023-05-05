@@ -9,7 +9,6 @@ server:
   smt_server: "http://10.143.1.180:10000"
   uni_pay_url: "http://127.0.0.1:9092"
   refund_switch: false
-  server_provider_address: "" # Replace the service provider with own ckb address
 das:
   max_register_years: 20
   max_create_count: 100

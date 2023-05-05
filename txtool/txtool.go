@@ -20,13 +20,12 @@ import (
 var log = mylog.NewLogger("txtool", mylog.LevelDebug)
 
 type SubAccountTxTool struct {
-	Ctx                  context.Context
-	DbDao                *dao.DbDao
-	DasCore              *core.DasCore
-	DasCache             *dascache.DasCache
-	ServerScript         *types.Script
-	ServerProviderScript *types.Script
-	TxBuilderBase        *txbuilder.DasTxBuilderBase
+	Ctx           context.Context
+	DbDao         *dao.DbDao
+	DasCore       *core.DasCore
+	DasCache      *dascache.DasCache
+	ServerScript  *types.Script
+	TxBuilderBase *txbuilder.DasTxBuilderBase
 }
 
 type ParamBuildTxs struct {

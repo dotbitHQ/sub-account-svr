@@ -240,11 +240,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 			if v.MintType == tables.MintTypeAutoMint {
 				subAccountNew.EditKey = common.EditKeyCustomRule
-				if s.ServerProviderScript == nil {
-					subAccountNew.EditValue = make([]byte, 20)
-				} else {
-					subAccountNew.EditValue = s.ServerProviderScript.Args
-				}
+				subAccountNew.EditValue = s.ServerScript.Args
 				subAccountPrice, ok := subAccountPriceMap[v.AccountId]
 				if !ok {
 					return nil, errors.New("data abnormal")

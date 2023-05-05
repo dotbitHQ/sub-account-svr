@@ -221,14 +221,15 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 		for _, amount := range providerMap {
 			total = total.Add(amount)
 		}
-		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountCell.OutputData)
-		subAccountCellDetail.DasProfit -= uint64(total.IntPart())
+
 		subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.OutPoint.Index]
 		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 			Capacity: subAccountCellOutput.Capacity - uint64(total.IntPart()),
 			Lock:     subAccountCellOutput.Lock,
 			Type:     subAccountCellOutput.Type,
 		})
+		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountCell.OutputData)
+		subAccountCellDetail.DasProfit -= uint64(total.IntPart())
 		txParams.OutputsData = append(txParams.OutputsData, witness.BuildSubAccountCellOutputData(subAccountCellDetail))
 
 		for providerId, amount := range providerMap {
@@ -239,13 +240,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
 
-		if change > 0 {
-			txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-				Capacity: change,
-				Lock:     h.ServerScript,
-			})
-			txParams.OutputsData = append(txParams.OutputsData, []byte{})
-		}
+		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+			Capacity: change + common.OneCkb,
+			Lock:     h.ServerScript,
+		})
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 
 		actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
 		if err != nil {
