@@ -218,26 +218,26 @@ func (h *HttpHandle) check(address, account string, apiResp *api_code.ApiResp) e
 		return err
 	}
 
-	_, accLen, err := common.GetDotBitAccountLength(account)
-	if err != nil {
-		err = errors.New("internal error")
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return err
-	}
-	if accLen < 8 {
-		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-		}
-
-		if builder.ConfigCellSubAccountWhiteListMap != nil {
-			if _, ok := builder.ConfigCellSubAccountWhiteListMap[accountId]; !ok {
-				err = errors.New("you no have sub account distribution permission")
-				apiResp.ApiRespErr(api_code.ApiCodeNoSubAccountDistributionPermission, err.Error())
-				return err
-			}
-		}
-	}
+	//_, accLen, err := common.GetDotBitAccountLength(account)
+	//if err != nil {
+	//	err = errors.New("internal error")
+	//	apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+	//	return err
+	//}
+	//if accLen < 8 {
+	//	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
+	//	if err != nil {
+	//		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+	//		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	//	}
+	//
+	//	if builder.ConfigCellSubAccountWhiteListMap != nil {
+	//		if _, ok := builder.ConfigCellSubAccountWhiteListMap[accountId]; !ok {
+	//			err = errors.New("you no have sub account distribution permission")
+	//			apiResp.ApiRespErr(api_code.ApiCodeNoSubAccountDistributionPermission, err.Error())
+	//			return err
+	//		}
+	//	}
+	//}
 	return nil
 }
