@@ -281,19 +281,18 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			txBuilder.Transaction.Outputs[latestIndex].Capacity = changeCapacity
 			txBuilders = append(txBuilders, txBuilder)
 
-			hashBytes, err := txBuilder.Transaction.Serialize()
+			txHash, err := txBuilder.Transaction.ComputeHash()
 			if err != nil {
 				return err
 			}
-			hash := common.Bytes2Hex(hashBytes)
-			txHashList = append(txHashList, hash)
+			txHashList = append(txHashList, txHash.String())
 			parentAccountId := common.Bytes2Hex(txBuilder.Transaction.Outputs[0].Type.Args)
 
 			taskInfo := &tables.TableTaskInfo{
 				TaskType:        tables.TaskTypeNormal,
 				ParentAccountId: parentAccountId,
 				Action:          common.DasActionCollectSubAccountChannelProfit,
-				Outpoint:        common.OutPoint2String(hash, 0),
+				Outpoint:        common.OutPoint2String(txHash.String(), 0),
 				Timestamp:       time.Now().UnixNano() / 1e6,
 				TxStatus:        tables.TxStatusPending,
 			}
