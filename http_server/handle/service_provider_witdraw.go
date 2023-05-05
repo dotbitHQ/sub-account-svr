@@ -151,6 +151,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 			}
 			log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price)
 
+			// TODO for test delete later
+			price = 61 * common.OneCkb
+
 			subAccountCell := tx.Transaction.Outputs[0]
 			parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
 
