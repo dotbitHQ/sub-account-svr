@@ -307,7 +307,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(req *ReqServiceProviderWithdra
 					TaskId:            taskInfo.TaskId,
 					ParentAccountId:   parentAccountId,
 					ServiceProviderId: common.Bytes2Hex(txBuilder.Transaction.Outputs[i].Lock.Args),
-					TxHash:            hash,
+					TxHash:            txHash.String(),
 					Price:             decimal.NewFromInt(int64(txBuilder.Transaction.Outputs[i].Capacity)),
 				})
 			}
