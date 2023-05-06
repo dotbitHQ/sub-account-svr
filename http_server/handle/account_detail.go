@@ -124,14 +124,24 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 		}
 	}
 
-	// config cell
-	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	}
-	if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; ok {
-		resp.AccountInfo.IsInWhitelist = true
+	if acc.ParentAccountId == "" {
+		_, accLen, err := common.GetDotBitAccountLength(req.Account)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get account len")
+			return fmt.Errorf("GetDotBitAccountLength err: %s", err.Error())
+		}
+		if accLen < 8 {
+			builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell whitelist")
+				return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+			}
+			if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; ok {
+				resp.AccountInfo.IsInWhitelist = true
+			}
+		} else {
+			resp.AccountInfo.IsInWhitelist = true
+		}
 	}
 
 	apiResp.ApiRespOK(resp)
