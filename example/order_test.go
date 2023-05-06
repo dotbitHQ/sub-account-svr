@@ -17,7 +17,7 @@ var (
 		KeyInfo: core.KeyInfo{
 			CoinType: common.CoinTypeEth,
 			ChainId:  "",
-			Key:      "0x15a33588908cF8Edb27D1AbE3852Bf287Abd3891",
+			Key:      "0xdeefc10a42cd84c072f2b0e2fa99061a74a0698c",
 		},
 	}
 )
@@ -25,7 +25,7 @@ var (
 func TestAutoAccountSearch(t *testing.T) {
 	req := handle.ReqAutoAccountSearch{
 		ChainTypeAddress: ctaETH,
-		SubAccount:       "03.sub-account-test.bit",
+		SubAccount:       "09.sub-account-test.bit",
 	}
 	data := handle.RespAutoAccountSearch{}
 	url := fmt.Sprintf("%s/auto/account/search", ApiUrl)
@@ -39,9 +39,9 @@ func TestAutoOrderCreate(t *testing.T) {
 	req := handle.ReqAutoOrderCreate{
 		ChainTypeAddress: ctaETH,
 		ActionType:       tables.ActionTypeMint,
-		SubAccount:       "04.sub-account-test.bit",
+		SubAccount:       "09.sub-account-test.bit",
 		TokenId:          tables.TokenIdErc20USDT,
-		Years:            1,
+		Years:            2,
 	}
 	data := handle.RespAutoOrderCreate{}
 	url := fmt.Sprintf("%s/auto/order/create", ApiUrl)
