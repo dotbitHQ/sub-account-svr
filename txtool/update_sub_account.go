@@ -329,12 +329,15 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 	if autoChange > 0 {
-		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: autoChange,
-			Lock:     p.BalanceDasLock,
-			Type:     p.BalanceDasType,
-		})
-		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		base := 1000 * common.OneCkb
+		splitList, err := core.SplitOutputCell2(autoChange, base, 10, p.BalanceDasLock, p.BalanceDasType, indexer.SearchOrderAsc)
+		if err != nil {
+			return nil, fmt.Errorf("SplitOutputCell2 err: %s", err.Error())
+		}
+		for i := range splitList {
+			txParams.Outputs = append(txParams.Outputs, splitList[i])
+			txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		}
 	}
 
 	// witness
