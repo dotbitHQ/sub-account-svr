@@ -109,13 +109,15 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerAddress string) (txHas
 		if err != nil {
 			return nil, err
 		}
-		statementInfo, err := h.DbDao.GetSubAccountAutoMintByTxHash(history.TxHash)
-		if err != nil {
-			return nil, err
-		}
-		if statementInfo.Id == 0 {
-			skipParentMap[v.ParentAccountId] = true
-			continue
+		if history.Id > 0 {
+			statementInfo, err := h.DbDao.GetSubAccountAutoMintByTxHash(history.TxHash)
+			if err != nil {
+				return nil, err
+			}
+			if statementInfo.Id == 0 {
+				skipParentMap[v.ParentAccountId] = true
+				continue
+			}
 		}
 
 		tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(v.TxHash))
