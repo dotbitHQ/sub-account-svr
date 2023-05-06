@@ -44,6 +44,21 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 
+	begin, err := time.Parse("2006-01-02", req.Begin)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+	end, err := time.Parse("2006-01-02", req.End)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+	req.Begin = begin.Format("2006-01-02 15:04:05")
+	req.End = end.Format("2006-01-02 15:04:05")
+
 	list, err := h.DbDao.FindOrderByPayment(req.Begin, req.End, req.Account)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
