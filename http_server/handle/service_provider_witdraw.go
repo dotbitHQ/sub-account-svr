@@ -14,6 +14,7 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -79,7 +80,13 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 	return nil
 }
 
-func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []string, err error) {
+func (h *HttpHandle) buildServiceProviderWithdraw(providerAddress string) (txHash []string, err error) {
+	parseAddress, err := address.Parse(providerAddress)
+	if err != nil {
+		return nil, err
+	}
+	providerId := common.Bytes2Hex(parseAddress.Script.Args)
+
 	latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType(providerId, tables.SubAccountAutoMintTxTypeExpenditure)
 	if err != nil {
 		return nil, err
@@ -273,6 +280,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []s
 				Timestamp:       time.Now().UnixNano() / 1e6,
 				SmtStatus:       tables.SmtStatusWriteComplete,
 				TxStatus:        tables.TxStatusPending,
+				SvrName:         config.Cfg.Slb.SvrName,
 			}
 			taskInfo.InitTaskId()
 
@@ -281,13 +289,15 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []s
 			}
 
 			for i := 1; i < len(txParams.Outputs)-1; i++ {
-				tx.Create(&tables.TableSubAccountAutoMintWithdrawHistory{
+				if err := tx.Create(&tables.TableSubAccountAutoMintWithdrawHistory{
 					TaskId:            taskInfo.TaskId,
 					ParentAccountId:   parentAccountId,
 					ServiceProviderId: common.Bytes2Hex(txBuilder.Transaction.Outputs[i].Lock.Args),
 					TxHash:            hashStr,
 					Price:             decimal.NewFromInt(int64(txBuilder.Transaction.Outputs[i].Capacity)),
-				})
+				}).Error; err != nil {
+					return err
+				}
 			}
 		}
 
