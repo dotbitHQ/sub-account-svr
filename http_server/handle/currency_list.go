@@ -3,9 +3,7 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
-	"das_sub_account/internal"
 	"das_sub_account/tables"
-	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
@@ -47,13 +45,6 @@ func (h *HttpHandle) CurrencyList(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiResp) error {
-	if err := h.checkSystemUpgrade(apiResp); err != nil {
-		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
-	}
-	if ok := internal.IsLatestBlockNumber(config.Cfg.Server.ParserUrl); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
-		return fmt.Errorf("sync block number")
-	}
 	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
