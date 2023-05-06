@@ -304,9 +304,12 @@ func (h *HttpHandle) doActionConfigSubAccount(req *ReqTransactionSend, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 	}
-	if _, err := txBuilder.SendTransaction(); err != nil {
+
+	hash, err := txBuilder.SendTransaction()
+	if err != nil {
 		return doSendTransactionError(err, apiResp)
 	}
+	resp.HashList = append(resp.HashList, hash.Hex())
 	return nil
 }
 
