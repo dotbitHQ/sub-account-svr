@@ -4,6 +4,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"gorm.io/gorm"
 )
 
 func (b *BlockParser) ActionCollectSubAccountChannelProfit(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -15,8 +16,12 @@ func (b *BlockParser) ActionCollectSubAccountChannelProfit(req FuncTransactionHa
 	}
 	log.Info("ActionCollectSubAccountChannelProfit:", req.BlockNumber, req.TxHash)
 
-	if err := b.DbDao.UpdateTxStatusByOutpoint(common.OutPoint2String(req.TxHash, 0), tables.TxStatusCommitted); err != nil {
-		resp.Err = fmt.Errorf("UpdateTxStatusByOutpoint err: %s", err.Error())
-	}
+	outpoint := common.OutPoint2String(req.TxHash, 0)
+	resp.Err = b.DbDao.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&tables.TableTaskInfo{}).Where("outpoint=?", outpoint).Updates(map[string]interface{}{
+			"tx_status":    tables.TxStatusCommitted,
+			"block_number": req.BlockNumber,
+		}).Error
+	})
 	return
 }

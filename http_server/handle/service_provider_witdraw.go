@@ -256,18 +256,20 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []s
 			txBuilder.Transaction.Outputs[latestIndex].Capacity = changeCapacity
 			txBuilders = append(txBuilders, txBuilder)
 
-			txHash, err := txBuilder.Transaction.ComputeHash()
+			hash, err := txBuilder.Transaction.ComputeHash()
 			if err != nil {
 				return err
 			}
-			txHashList = append(txHashList, txHash.String())
+			hashStr := hash.Hex()
+
+			txHashList = append(txHashList, hashStr)
 			parentAccountId := common.Bytes2Hex(txBuilder.Transaction.Outputs[0].Type.Args)
 
 			taskInfo := &tables.TableTaskInfo{
 				TaskType:        tables.TaskTypeNormal,
 				ParentAccountId: parentAccountId,
 				Action:          common.DasActionCollectSubAccountChannelProfit,
-				Outpoint:        common.OutPoint2String(txHash.String(), 0),
+				Outpoint:        common.OutPoint2String(hashStr, 0),
 				Timestamp:       time.Now().UnixNano() / 1e6,
 				TxStatus:        tables.TxStatusPending,
 			}
@@ -282,7 +284,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []s
 					TaskId:            taskInfo.TaskId,
 					ParentAccountId:   parentAccountId,
 					ServiceProviderId: common.Bytes2Hex(txBuilder.Transaction.Outputs[i].Lock.Args),
-					TxHash:            txHash.String(),
+					TxHash:            hashStr,
 					Price:             decimal.NewFromInt(int64(txBuilder.Transaction.Outputs[i].Capacity)),
 				})
 			}
