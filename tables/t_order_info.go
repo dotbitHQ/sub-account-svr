@@ -69,7 +69,7 @@ type OrderInfo struct {
 	PayStatus     PayStatus             `json:"pay_status" gorm:"column:pay_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-unpaid 1-paid';"`
 	OrderStatus   OrderStatus           `json:"order_status" gorm:"column:order_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-default 1-cancel';"`
 	Timestamp     int64                 `json:"timestamp" gorm:"column:timestamp; index:idx_timestamp; type:bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '';"`
-	AutoPaymentId string                `json:"auto_payment_id" gorm:"column:auto_payment_id; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
+	AutoPaymentId string                `json:"auto_payment_id" gorm:"column:auto_payment_id; index:idx_auto_payment_id; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	SvrName       string                `json:"svr_name" gorm:"column:svr_name; index:k_svr_name; type:varchar(255) NOT NULL DEFAULT '' COMMENT 'smt tree';"`
 	CreatedAt     time.Time             `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt     time.Time             `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`

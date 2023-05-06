@@ -50,7 +50,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	records := make(map[string]CsvRecord)
+	records := make(map[string]*CsvRecord)
 	for _, v := range list {
 		config, err := h.DbDao.GetUserPaymentConfig(v.AccountId)
 		if err != nil {
@@ -58,11 +58,9 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		cfg, ok := config.CfgMap[v.TokenId]
+		_, ok := config.CfgMap[v.TokenId]
 		if !ok {
-			continue
-		}
-		if !cfg.Enable {
+			log.Infof("account: %s, token_id: %s no config set, skip it", v.Account, v.TokenId)
 			continue
 		}
 		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", LabelSubDIDApp)
@@ -72,6 +70,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			return
 		}
 		if record.Id == 0 {
+			log.Infof("account: %s, token_id: %s no address set, skip it", v.Account, v.TokenId)
 			continue
 		}
 
@@ -89,20 +88,22 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		}
 		csvRecord, ok := records[v.Account+v.TokenId]
 		if !ok {
+			csvRecord = &CsvRecord{}
 			csvRecord.Account = v.Account
 			csvRecord.AccountId = v.AccountId
 			csvRecord.TokenId = v.TokenId
 			csvRecord.Address = record.Value
 			csvRecord.Decimals = token.Decimals
 			csvRecord.Ids = make([]uint64, 0)
+			records[v.Account+v.TokenId] = csvRecord
 		}
-		csvRecord.Amount.Add(v.Amount)
+		csvRecord.Amount = csvRecord.Amount.Add(v.Amount)
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
 	err = h.DbDao.Transaction(func(tx *gorm.DB) error {
 		for _, v := range records {
-			autoPaymentInfo := tables.AutoPaymentInfo{
+			autoPaymentInfo := &tables.AutoPaymentInfo{
 				Account:       v.Account,
 				AccountId:     v.AccountId,
 				TokenId:       v.TokenId,
