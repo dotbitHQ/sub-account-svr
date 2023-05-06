@@ -266,11 +266,12 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerId string) (txHash []s
 			parentAccountId := common.Bytes2Hex(txBuilder.Transaction.Outputs[0].Type.Args)
 
 			taskInfo := &tables.TableTaskInfo{
-				TaskType:        tables.TaskTypeNormal,
+				TaskType:        tables.TaskTypeChain,
 				ParentAccountId: parentAccountId,
 				Action:          common.DasActionCollectSubAccountChannelProfit,
 				Outpoint:        common.OutPoint2String(hashStr, 0),
 				Timestamp:       time.Now().UnixNano() / 1e6,
+				SmtStatus:       tables.SmtStatusWriteComplete,
 				TxStatus:        tables.TxStatusPending,
 			}
 			taskInfo.InitTaskId()
