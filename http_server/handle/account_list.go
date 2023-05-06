@@ -77,8 +77,19 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 	for _, v := range list {
 		tmp := h.accountInfoToAccountData(v)
-		if _, ok := builder.ConfigCellSubAccountWhiteListMap[v.AccountId]; ok {
-			tmp.IsInWhitelist = true
+		if v.ParentAccountId == "" {
+			_, accLen, err := common.GetDotBitAccountLength(v.Account)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get account len")
+				return fmt.Errorf("GetDotBitAccountLength err: %s", err.Error())
+			}
+			if accLen < 8 {
+				if _, ok := builder.ConfigCellSubAccountWhiteListMap[v.AccountId]; ok {
+					tmp.IsInWhitelist = true
+				}
+			} else {
+				tmp.IsInWhitelist = true
+			}
 		}
 		resp.List = append(resp.List, tmp)
 	}
