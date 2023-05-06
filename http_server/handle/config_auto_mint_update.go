@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -80,7 +81,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	signKey, signList, _, err := h.buildTx(&paramBuildTx{
+	signKey, signList, txHash, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -90,6 +91,19 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
 		return fmt.Errorf("buildTx err: %s", err.Error())
+	}
+
+	task := &tables.TableTaskInfo{
+		TaskType:        tables.TaskTypeChain,
+		ParentAccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
+		Action:          common.DasActionConfigSubAccount,
+		Outpoint:        common.OutPoint2String(txHash, 1),
+		SmtStatus:       tables.SmtStatusWriteComplete,
+		TxStatus:        tables.TxStatusPending,
+	}
+	task.InitTaskId()
+	if err := h.DbDao.CreateTask(task); err != nil {
+		return err
 	}
 
 	resp := RespConfigAutoMintUpdate{}
