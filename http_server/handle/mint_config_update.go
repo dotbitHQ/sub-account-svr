@@ -1,16 +1,19 @@
 package handle
 
 import (
+	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"time"
 )
 
 type ReqMintConfigUpdate struct {
@@ -65,19 +68,28 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 
-	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
-		Account:   req.Account,
-		AccountId: accountId,
-	}, tables.MintConfig{
-		Title:           req.Title,
-		Desc:            req.Desc,
-		Benefits:        req.Benefits,
-		Links:           req.Links,
-		BackgroundColor: req.BackgroundColor,
-	}); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update mint config")
-		return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
+	reqData, _ := json.Marshal(req)
+	reqDataStr := string(reqData)
+	signKey := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%d", reqDataStr, time.Now().UnixNano()))))
+	if err := h.RC.Red.Set(signKey, reqDataStr, time.Minute*10).Err(); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
 	}
+
+	signMsg := fmt.Sprintf("From .bit %s", common.Bytes2Hex(common.Blake2b([]byte(common.Bytes2Hex(common.Blake2b(reqData))))))
+	
+	apiResp.ApiRespOK(map[string]interface{}{
+		"sign_key": signKey,
+		"list": []map[string]interface{}{
+			{
+				"sign_list": []map[string]interface{}{
+					{
+						"sign_type": common.DasAlgorithmIdEth,
+						"sign_msg":  signMsg,
+					},
+				},
+			},
+		},
+	})
 	return nil
 }

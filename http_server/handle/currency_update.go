@@ -91,7 +91,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 
 	if time.UnixMilli(req.Timestamp).Add(time.Minute * 10).Before(time.Now()) {
 		apiResp.ApiRespErr(api_code.ApiCodeSignError, "signature expired")
-		return fmt.Errorf("timestamp invalid")
+		return fmt.Errorf("signature expired")
 	}
 
 	find := false
