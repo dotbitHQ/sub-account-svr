@@ -140,16 +140,11 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			}
 			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
 
-			color, ok := config.Cfg.Das.BackgroundColors[k]
-			if !ok {
-				return fmt.Errorf("token: %s corresponding background color does not exist", k)
-			}
-
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:            token.Symbol,
 				Total:           v.Div(decimals).String(),
 				Balance:         v.Sub(amount).Div(decimals).String(),
-				BackgroundColor: color,
+				BackgroundColor: config.Cfg.Das.BackgroundColors[k],
 			})
 		}
 		return nil
