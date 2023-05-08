@@ -32,6 +32,24 @@ func (d *DbDao) UpdateMintConfig(account string, mintConfig *tables.MintConfig) 
 	}).Error
 }
 
+func (d *DbDao) CreateUserConfigWithPaymentConfig(info tables.UserConfig, paymentConfig tables.PaymentConfig) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&info).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&tables.UserConfig{}).
+			Where("account_id=?", info.AccountId).
+			Updates(map[string]interface{}{
+				"payment_config": &paymentConfig,
+			}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (d *DbDao) UpdatePaymentConfig(account string, paymentConfig *tables.PaymentConfig) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 	return d.db.Model(&tables.UserConfig{}).Where("account_id=?", accountId).Updates(map[string]interface{}{
