@@ -25,11 +25,17 @@ func (d *DbDao) CreateUserConfigWithMintConfig(info tables.UserConfig, mintConfi
 	})
 }
 
-func (d *DbDao) UpdateMintConfig(account string, mintConfig *tables.MintConfig) error {
-	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
-	return d.db.Model(&tables.UserConfig{}).Where("account_id=?", accountId).Updates(map[string]interface{}{
-		"mint_config": mintConfig,
-	}).Error
+func (d *DbDao) GetMintConfig(accountId string) (mintConfig tables.MintConfig, err error) {
+	userCfg := &tables.UserConfig{}
+	err = d.db.Where("account_id=?", accountId).First(userCfg).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+		return
+	}
+	if userCfg.MintConfig != nil {
+		mintConfig = *userCfg.MintConfig
+	}
+	return
 }
 
 func (d *DbDao) CreateUserConfigWithPaymentConfig(info tables.UserConfig, paymentConfig tables.PaymentConfig) error {

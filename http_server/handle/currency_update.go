@@ -78,6 +78,8 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		signMsg = fmt.Sprintf("Disable %s on %d", token.Symbol, req.Timestamp)
 	}
 
+	log.Infof("signMsg: %s alg_id: %d address: %s", signMsg, res.DasAlgorithmId, res.AddressHex)
+
 	if _, err = doSignCheck(txbuilder.SignData{
 		SignType: res.DasAlgorithmId,
 		SignMsg:  signMsg,

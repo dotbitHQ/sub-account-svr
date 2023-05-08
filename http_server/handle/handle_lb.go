@@ -41,7 +41,7 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	log.Info("LBProxy:", serverKey, server.Name, server.Url, origin)
 	u, err := url.Parse(server.Url)
 	if err != nil {
-		log.Error("url.Parse err: %s", err.Error())
+		log.Errorf("url.Parse err: %s", err.Error())
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
 		return

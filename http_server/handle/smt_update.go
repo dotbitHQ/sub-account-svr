@@ -189,7 +189,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				tree := smt.NewSmtSrv(*h.SmtServerUrl, parentAccountId)
 				smtInfo, err := h.DbDao.GetSmtInfoByParentId(parentAccountId)
 				if err != nil {
-					log.Warn("GetSmtInfoByParentId err: %s", err.Error())
+					log.Warnf("GetSmtInfoByParentId err: %s", err.Error())
 					faildAcc.Store(parentAccountId, struct{}{})
 					continue
 				}
@@ -201,7 +201,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 						res, err := tree.UpdateSmt(smtKvTemp, opt)
 						smtKvTemp = []smt.SmtKv{}
 						if err != nil {
-							log.Warn("tree.Update err: %s", err.Error())
+							log.Warnf("tree.Update err: %s", err.Error())
 							faildAcc.Store(parentAccountId, struct{}{})
 							continue OutLoop
 						}
@@ -222,7 +222,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				if len(smtKvTemp) > 0 {
 					res, err := tree.UpdateSmt(smtKvTemp, opt)
 					if err != nil {
-						log.Warn("tree.Update err: %s", err.Error())
+						log.Warnf("tree.Update err: %s", err.Error())
 						faildAcc.Store(parentAccountId, struct{}{})
 						continue
 					}
@@ -232,7 +232,7 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				log.Info("sync success : ", parentAccountId)
 				contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
 				if err != nil {
-					log.Warn("GetDasContractInfo err: %s", err.Error())
+					log.Warnf("GetDasContractInfo err: %s", err.Error())
 					faildAcc.Store(parentAccountId, struct{}{})
 					continue
 				}
@@ -244,13 +244,13 @@ func (h *HttpHandle) doSmtSync(req *ReqSmtSync, apiResp *api_code.ApiResp) error
 				}
 				subAccLiveCells, err := h.DasCore.Client().GetCells(h.Ctx, &searchKey, indexer.SearchOrderDesc, 1, "")
 				if err != nil {
-					log.Warn("GetCells err: %s", err.Error())
+					log.Warnf("GetCells err: %s", err.Error())
 					faildAcc.Store(parentAccountId, struct{}{})
 					continue
 				}
 
 				if subLen := len(subAccLiveCells.Objects); subLen != 1 {
-					log.Warn("sub account outpoint len: %d", subLen)
+					log.Warnf("sub account outpoint len: %d", subLen)
 					faildAcc.Store(parentAccountId, struct{}{})
 					continue
 				}
