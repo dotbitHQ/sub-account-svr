@@ -60,6 +60,7 @@ func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.
 	}
 	resp := &RespAutoPaymentList{
 		Total: total,
+		List:  make([]AutoPaymentData, 0),
 	}
 
 	for _, v := range res {
