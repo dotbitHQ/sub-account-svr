@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -253,22 +252,11 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		if err != nil {
 			return nil, nil, err
 		}
-		// Assemble the split rules into one for easy hashing
-		rulesBuilder := molecule.NewSubAccountRulesBuilder()
+		rulesData := make([]byte, 0)
 		for _, v := range ruleData {
-			subAccountRules, err := molecule.SubAccountRulesFromSlice(v, true)
-			if err != nil {
-				return nil, nil, err
-			}
-			for i := uint(0); i < subAccountRules.ItemCount(); i++ {
-				subAccountRule := subAccountRules.Get(i)
-				rulesBuilder.Push(*subAccountRule)
-			}
+			rulesData = append(rulesData, v...)
 		}
-		rules := rulesBuilder.Build()
-		log.Infof("rule config: %s", common.Bytes2Hex(rules.AsSlice()))
-
-		hash, err := blake2b.Blake256(rules.AsSlice())
+		hash, err := blake2b.Blake256(rulesData)
 		if err != nil {
 			return nil, nil, err
 		}
