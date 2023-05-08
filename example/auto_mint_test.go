@@ -123,3 +123,16 @@ func TestCurrencyUpdate(t *testing.T) {
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
 }
+
+func TestPriceRuleList(t *testing.T) {
+	req := handle.ReqPriceRuleList{
+		ChainTypeAddress: ctaETH,
+		Account:          "20230504.bit",
+	}
+	data := handle.RespPriceRuleList{}
+	url := fmt.Sprintf("%s/price/rule/list", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+}

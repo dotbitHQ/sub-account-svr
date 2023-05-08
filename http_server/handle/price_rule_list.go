@@ -21,6 +21,10 @@ type ReqPriceRuleList struct {
 	Account string `json:"account" binding:"required"`
 }
 
+type RespPriceRuleList struct {
+	List interface{} `json:"list"`
+}
+
 func (h *HttpHandle) PriceRuleList(ctx *gin.Context) {
 	var (
 		funcName               = "PriceRuleList"
@@ -114,10 +118,8 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 		}
 	}
 
-	apiResp.ApiRespOK(struct {
-		List interface{} `json:"list"`
-	}{
-		List: subAccountEntity.Rules,
-	})
+	var resp RespPriceRuleList
+	resp.List = subAccountEntity.Rules
+	apiResp.ApiRespOK(resp)
 	return nil
 }
