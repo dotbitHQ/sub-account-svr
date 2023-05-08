@@ -243,16 +243,21 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		for _, v := range ruleData {
 			rulesData = append(rulesData, v...)
 		}
-		hash, err := blake2b.Blake256(rulesData)
-		if err != nil {
-			return nil, nil, err
+
+		hash := make([]byte, 10)
+		if len(rulesData) > 0 {
+			blakeHash, err := blake2b.Blake256(rulesData)
+			if err != nil {
+				return nil, nil, err
+			}
+			hash = blakeHash[:10]
 		}
 
 		switch inputActionDataType[0] {
 		case common.ActionDataTypeSubAccountPriceRules:
-			subAccountCellDetail.PriceRulesHash = hash[:10]
+			subAccountCellDetail.PriceRulesHash = hash
 		case common.ActionDataTypeSubAccountPreservedRules:
-			subAccountCellDetail.PreservedRulesHash = hash[:10]
+			subAccountCellDetail.PreservedRulesHash = hash
 		}
 
 		// add actionDataType to prefix
