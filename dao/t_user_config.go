@@ -17,7 +17,7 @@ func (d *DbDao) CreateUserConfigWithMintConfig(info tables.UserConfig, mintConfi
 		if err := tx.Model(&tables.UserConfig{}).
 			Where("account_id=?", info.AccountId).
 			Updates(map[string]interface{}{
-				"mint_config": mintConfig,
+				"mint_config": &mintConfig,
 			}).Error; err != nil {
 			return err
 		}
