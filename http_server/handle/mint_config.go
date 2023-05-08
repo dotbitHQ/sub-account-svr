@@ -68,8 +68,8 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 	if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
 		Account:       req.Account,
 		AccountId:     accountId,
-		MintConfig:    &tables.MintConfig{},
-		PaymentConfig: &tables.PaymentConfig{},
+		MintConfig:    &tables.MintConfig{Links: []tables.Link{}},
+		PaymentConfig: &tables.PaymentConfig{CfgMap: map[string]tables.PaymentConfigElement{}},
 	}, tables.MintConfig{
 		Title:    req.Title,
 		Desc:     req.Desc,
