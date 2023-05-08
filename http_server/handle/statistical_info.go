@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
@@ -16,6 +17,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type ReqStatisticalInfo struct {
@@ -28,12 +30,17 @@ type RespStatisticalInfo struct {
 	AddressNum    int64        `json:"address_num"`
 	IncomeInfo    []IncomeInfo `json:"income_info"`
 	CkbSpending   CkbSpending  `json:"ckb_spending"`
+	AutoMint      struct {
+		Enable          bool   `json:"enable"`
+		FirstEnableTime string `json:"first_enable_time"`
+	} `json:"auto_mint"`
 }
 
 type IncomeInfo struct {
-	Type    string `json:"type"`
-	Balance string `json:"balance"`
-	Total   string `json:"total"`
+	Type            string `json:"type"`
+	Balance         string `json:"balance"`
+	Total           string `json:"total"`
+	BackgroundColor string `json:"background_color"`
 }
 
 type CkbSpending struct {
@@ -133,10 +140,16 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			}
 			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
 
+			color, ok := config.Cfg.Das.BackgroundColors[k]
+			if !ok {
+				return fmt.Errorf("token: %s corresponding background color does not exist", k)
+			}
+
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
-				Type:    token.Symbol,
-				Total:   v.Div(decimals).String(),
-				Balance: v.Sub(amount).Div(decimals).String(),
+				Type:            token.Symbol,
+				Total:           v.Div(decimals).String(),
+				Balance:         v.Sub(amount).Div(decimals).String(),
+				BackgroundColor: color,
 			})
 		}
 		return nil
@@ -179,6 +192,37 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return err
 		}
 		resp.CkbSpending.Total = fmt.Sprintf("%d", total)
+		return nil
+	})
+
+	errG.Go(func() error {
+		baseInfo, err := h.TxTool.GetBaseInfo()
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+			return err
+		}
+		subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+			return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
+		}
+		subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+			return err
+		}
+		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+
+		if subAccountCellDetail.Flag == witness.FlagTypeCustomRule &&
+			subAccountCellDetail.AutoDistribution == witness.AutoDistributionEnable {
+			resp.AutoMint.Enable = true
+			first, err := h.DbDao.FirstEnableAutoMint(accountId)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+				return err
+			}
+			resp.AutoMint.FirstEnableTime = time.UnixMilli(first.Timestamp).Format("2006-01-02")
+		}
 		return nil
 	})
 

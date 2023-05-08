@@ -315,3 +315,13 @@ func (d *DbDao) UpdateTxStatusByOutpoint(outpoint string, txStatus tables.TxStat
 	err = d.db.Model(&tables.TableTaskInfo{}).Where("outpoint=?", outpoint).Update("tx_status", txStatus).Error
 	return
 }
+
+func (d *DbDao) FirstEnableAutoMint(parentId string) (list tables.TableTaskInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND action=? and smt_status=? and tx_status=?",
+		parentId, common.DasActionConfigSubAccount, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).
+		Order("id ASC").First(&list).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}

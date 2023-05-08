@@ -71,11 +71,12 @@ type CfgServer struct {
 		RefundSwitch           bool              `json:"refund_switch" yaml:"refund_switch"`
 	} `json:"server" yaml:"server"`
 	Das struct {
-		MaxRegisterYears    uint64   `json:"max_register_years" yaml:"max_register_years"`
-		MaxCreateCount      int      `json:"max_create_count" yaml:"max_create_count"`
-		MaxUpdateCount      int      `json:"max_update_count" yaml:"max_update_count"`
-		MaxRetry            int      `json:"max_retry" yaml:"max_retry"`
-		SupportPaymentToken []string `json:"support_payment_token" yaml:"support_payment_token"`
+		MaxRegisterYears    uint64            `json:"max_register_years" yaml:"max_register_years"`
+		MaxCreateCount      int               `json:"max_create_count" yaml:"max_create_count"`
+		MaxUpdateCount      int               `json:"max_update_count" yaml:"max_update_count"`
+		MaxRetry            int               `json:"max_retry" yaml:"max_retry"`
+		SupportPaymentToken []string          `json:"support_payment_token" yaml:"support_payment_token"`
+		BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
 	} `json:"das" yaml:"das"`
 	Origins          []string          `json:"origins" yaml:"origins"`
 	SubsidyWhitelist map[string]string `json:"subsidy_whitelist" yaml:"subsidy_whitelist"`
