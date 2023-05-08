@@ -8,16 +8,20 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"time"
 )
 
 type ReqCurrencyUpdate struct {
 	core.ChainTypeAddress
-	Account string `json:"account" binding:"required"`
-	TokenID string `json:"token_id" binding:"required"`
-	Enable  bool   `json:"enable"`
+	Account   string `json:"account" binding:"required"`
+	TokenId   string `json:"token_id" binding:"required"`
+	Enable    bool   `json:"enable" binding:"required"`
+	Timestamp int64  `json:"timestamp" binding:"required"`
+	Signature string `json:"signature" binding:"required"`
 }
 
 func (h *HttpHandle) CurrencyUpdate(ctx *gin.Context) {
@@ -51,7 +55,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
 		return fmt.Errorf("sync block number")
 	}
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return err
@@ -61,15 +65,42 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		return err
 	}
 
+	token, err := h.DbDao.GetTokenById(req.TokenId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return err
+	}
+
+	var signMsg string
+	if req.Enable {
+		signMsg = fmt.Sprintf("Enable %s on %d", token.Symbol, req.Timestamp)
+	} else {
+		signMsg = fmt.Sprintf("Disable %s on %d", token.Symbol, req.Timestamp)
+	}
+
+	if _, err = doSignCheck(txbuilder.SignData{
+		SignType: res.DasAlgorithmId,
+		SignMsg:  signMsg,
+	}, req.Signature, address, apiResp); err != nil {
+		return fmt.Errorf("doSignCheck err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
+	if time.UnixMilli(req.Timestamp).Add(time.Minute * 10).Before(time.Now()) {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "signature expired")
+		return fmt.Errorf("timestamp invalid")
+	}
+
 	find := false
 	for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
-		if v == req.TokenID {
+		if v == req.TokenId {
 			find = true
 			break
 		}
 	}
 	if !find {
-		err := fmt.Errorf("token_id: %s, no support now", req.TokenID)
+		err := fmt.Errorf("token_id: %s, no support now", req.TokenId)
 		apiResp.ApiRespErr(api_code.ApiCodeNoSupportPaymentToken, err.Error())
 		return err
 	}
@@ -80,7 +111,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}
-	paymentConfig.CfgMap[req.TokenID] = tables.PaymentConfigElement{
+	paymentConfig.CfgMap[req.TokenId] = tables.PaymentConfigElement{
 		Enable: req.Enable,
 	}
 	if err := h.DbDao.CreateUserConfigWithPaymentConfig(tables.UserConfig{

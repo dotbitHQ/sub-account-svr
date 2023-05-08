@@ -68,9 +68,14 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 		for _, v := range strings.Split(v, "_") {
 			splitToken[v] = true
 		}
-
+		token, err := h.DbDao.GetTokenById(v)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return err
+		}
 		cfg := tables.PaymentConfigElement{
 			TokenID: v,
+			Symbol:  token.Symbol,
 		}
 		if userPaymentCfg, ok := paymentConfig.CfgMap[v]; ok && userPaymentCfg.Enable {
 			cfg.Enable = true

@@ -35,6 +35,7 @@ type PaymentConfig struct {
 type PaymentConfigElement struct {
 	Enable     bool   `json:"enable"`
 	TokenID    string `json:"token_id,omitempty"`
+	Symbol     string `json:"symbol,omitempty"`
 	HaveRecord bool   `json:"have_record,omitempty"`
 }
 
