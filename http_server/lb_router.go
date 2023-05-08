@@ -33,6 +33,7 @@ func (h *LbHttpServer) initRouter() {
 		v1.POST("/config/auto_mint/get", h.H.LBProxy)
 		v1.POST("/price/rule/list", h.H.LBProxy)
 		v1.POST("/preserved/rule/list", h.H.LBProxy)
+		v1.POST("/auto/payment/list", h.H.LBProxy)
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		v1.POST("/sub/account/init", h.H.LBProxy) // enable_sub_account
