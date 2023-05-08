@@ -64,14 +64,18 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 
-	if err := h.DbDao.UpdateMintConfig(req.Account, &tables.MintConfig{
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
+		Account:   req.Account,
+		AccountId: accountId,
+	}, tables.MintConfig{
 		Title:    req.Title,
 		Desc:     req.Desc,
 		Benefits: req.Benefits,
 		Links:    req.Links,
 	}); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return err
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update mint config")
+		return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
 	}
 	return nil
 }

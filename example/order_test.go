@@ -17,7 +17,7 @@ var (
 		KeyInfo: core.KeyInfo{
 			CoinType: common.CoinTypeEth,
 			ChainId:  "",
-			Key:      "0xdeefc10a42cd84c072f2b0e2fa99061a74a0698c",
+			Key:      "0x15a33588908cF8Edb27D1AbE3852Bf287Abd3891",
 		},
 	}
 )
