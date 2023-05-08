@@ -15,8 +15,8 @@ import (
 
 type ReqPaymentReportExport struct {
 	Account string `json:"account"`
-	Begin   string `json:"begin" binding:"required"`
-	End     string `json:"end" binding:"required"`
+	//Begin   string `json:"begin" binding:"required"`
+	End string `json:"end" binding:"required"`
 }
 
 type CsvRecord struct {
@@ -44,22 +44,22 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 
-	begin, err := time.Parse("2006-01-02", req.Begin)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		ctx.JSON(http.StatusOK, apiResp)
-		return
-	}
+	//begin, err := time.Parse("2006-01-02", req.Begin)
+	//if err != nil {
+	//	apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+	//	ctx.JSON(http.StatusOK, apiResp)
+	//	return
+	//}
 	end, err := time.Parse("2006-01-02", req.End)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	req.Begin = begin.Format("2006-01-02 15:04:05")
+	//req.Begin = begin.Format("2006-01-02 15:04:05")
 	req.End = end.Format("2006-01-02 15:04:05")
 
-	list, err := h.DbDao.FindOrderByPayment(req.Begin, req.End, req.Account)
+	list, err := h.DbDao.FindOrderByPayment(req.End, req.Account)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
@@ -114,6 +114,20 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		}
 		csvRecord.Amount = csvRecord.Amount.Add(v.Amount)
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
+	}
+
+	recordsNew := make(map[string]*CsvRecord)
+	for k, v := range records {
+		token, err := h.DbDao.GetTokenById(v.TokenId)
+		if err != nil {
+			log.Error(err)
+			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		if v.Amount.Div(decimal.NewFromInt(int64(v.Decimals))).Mul(token.Price).LessThan(decimal.NewFromInt(50)) {
+			continue
+		}
+		recordsNew[k] = v
 	}
 
 	err = h.DbDao.Transaction(func(tx *gorm.DB) error {

@@ -14,10 +14,10 @@ func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err e
 	return
 }
 
-func (d *DbDao) FindOrderByPayment(begin, end string, account ...string) (list []*tables.OrderInfo, err error) {
-	db := d.db.Model(&tables.OrderInfo{}).Where("auto_payment_id = '' AND pay_status=? AND pay_time>=? AND pay_time<?", tables.PayStatusPaid, begin, end)
-	if len(account) > 0 && account[0] != "" {
-		db = db.Where("account=?", account[0])
+func (d *DbDao) FindOrderByPayment(end string, account string) (list []*tables.OrderInfo, err error) {
+	db := d.db.Model(&tables.OrderInfo{}).Where("auto_payment_id = '' AND pay_status=? AND pay_time<?", tables.PayStatusPaid, end)
+	if account != "" {
+		db = db.Where("account=?", account)
 	}
 	err = db.Find(&list).Error
 	if err == gorm.ErrRecordNotFound {
