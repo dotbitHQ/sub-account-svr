@@ -81,7 +81,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	} else if acc.Id == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
-	} else if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) ||
+	} else if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) &&
 		(req.chainType != acc.ManagerChainType && !strings.EqualFold(req.address, acc.Manager)) {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
