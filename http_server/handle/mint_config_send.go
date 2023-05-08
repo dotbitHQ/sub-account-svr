@@ -4,6 +4,8 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
+	"das_sub_account/tables"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -68,6 +70,17 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 		return errors.New("sign expired")
 	}
 
+	signData := &ReqMintConfigUpdate{}
+	if err := json.Unmarshal([]byte(signMsg), signData); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "data error")
+		return errors.New("data error")
+	}
+
+	if req.KeyInfo.Key != signData.ChainTypeAddress.KeyInfo.Key {
+		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "no operation permission")
+		return errors.New("no operation permission")
+	}
+
 	signMsg = fmt.Sprintf("From .bit %s", common.Bytes2Hex(common.Blake2b([]byte(common.Bytes2Hex(common.Blake2b([]byte(signMsg)))))))
 
 	if _, err = doSignCheck(txbuilder.SignData{
@@ -77,6 +90,22 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
+	}
+	h.RC.Red.Del(req.SignKey)
+
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(signData.Account))
+	if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
+		Account:   signData.Account,
+		AccountId: accountId,
+	}, tables.MintConfig{
+		Title:           signData.Title,
+		Desc:            signData.Desc,
+		Benefits:        signData.Benefits,
+		Links:           signData.Links,
+		BackgroundColor: signData.BackgroundColor,
+	}); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update mint config")
+		return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
 	}
 
 	apiResp.ApiRespOK(nil)
