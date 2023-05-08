@@ -73,7 +73,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	}
 
 	switch req.Action {
-	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript:
+	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
 		if err := h.doActionNormal(req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -82,12 +82,6 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	case common.DasActionUpdateSubAccount:
 		if err := h.doActionUpdateSubAccount(req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionUpdateSubAccount err: %s", err.Error())
-		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-			return nil
-		}
-	case common.DasActionConfigSubAccount:
-		if err := h.doActionConfigSubAccount(req, apiResp, &resp); err != nil {
-			return fmt.Errorf("doActionConfigSubAccount err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
@@ -280,36 +274,6 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
 	}
-	return nil
-}
-
-func (h *HttpHandle) doActionConfigSubAccount(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
-	var sic SignInfoCache
-	txStr, err := h.RC.GetSignTxCache(req.SignKey)
-	if err != nil {
-		if err == redis.Nil {
-			apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
-		} else {
-			apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
-		}
-		return fmt.Errorf("GetSignTxCache err: %s", err.Error())
-	}
-	if err := json.Unmarshal([]byte(txStr), &sic); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
-		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
-	}
-
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
-	if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
-		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
-	}
-
-	hash, err := txBuilder.SendTransaction()
-	if err != nil {
-		return doSendTransactionError(err, apiResp)
-	}
-	resp.HashList = append(resp.HashList, hash.Hex())
 	return nil
 }
 

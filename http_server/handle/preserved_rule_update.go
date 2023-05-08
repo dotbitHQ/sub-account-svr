@@ -82,19 +82,6 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	log.Info("doPreservedRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
-		task := &tables.TableTaskInfo{
-			TaskType:        tables.TaskTypeChain,
-			ParentAccountId: common.Bytes2Hex(common.GetAccountIdByAccount(req.Account)),
-			Action:          common.DasActionConfigSubAccount,
-			Outpoint:        common.OutPoint2String(txHash, 1),
-			SmtStatus:       tables.SmtStatusWriteComplete,
-			TxStatus:        tables.TxStatusPending,
-		}
-		task.InitTaskId()
-		if err := tx.Create(task).Error; err != nil {
-			return err
-		}
-
 		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePreservedRules).
 			Delete(tables.RuleWhitelist{}).Error; err != nil {
 			return err
