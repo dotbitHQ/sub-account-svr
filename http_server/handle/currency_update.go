@@ -81,7 +81,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	if _, err = doSignCheck(txbuilder.SignData{
 		SignType: res.DasAlgorithmId,
 		SignMsg:  signMsg,
-	}, req.Signature, address, apiResp); err != nil {
+	}, req.Signature, req.KeyInfo.Key, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
