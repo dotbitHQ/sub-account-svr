@@ -24,7 +24,7 @@ das:
       tron_trx: "#eff6ff"
       bsc_bnb: "#fefce8"
     payment_min_price: 50
-    service_fee_ratio: "10%"
+    service_fee_ratio: 0.1
 origins:
   - ""
 subsidy_whitelist:

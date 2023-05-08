@@ -79,7 +79,7 @@ type CfgServer struct {
 			SupportPaymentToken []string          `json:"support_payment_token" yaml:"support_payment_token"`
 			BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
 			PaymentMinPrice     uint64            `json:"payment_min_price" yaml:"payment_min_price"`
-			ServiceFeeRatio     string            `json:"service_fee_ratio" yaml:"service_fee_ratio"`
+			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
 		} `json:"auto_mint" yaml:"auto_mint"`
 	} `json:"das" yaml:"das"`
 	Origins          []string          `json:"origins" yaml:"origins"`

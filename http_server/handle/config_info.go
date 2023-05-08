@@ -63,7 +63,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
 
 	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
-	resp.AutoMint.ServiceFeeRatio = config.Cfg.Das.AutoMint.ServiceFeeRatio
+	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
 	apiResp.ApiRespOK(resp)
 	return nil
 }
