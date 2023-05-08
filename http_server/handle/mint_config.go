@@ -66,8 +66,10 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
-		Account:   req.Account,
-		AccountId: accountId,
+		Account:       req.Account,
+		AccountId:     accountId,
+		MintConfig:    &tables.MintConfig{},
+		PaymentConfig: &tables.PaymentConfig{},
 	}, tables.MintConfig{
 		Title:    req.Title,
 		Desc:     req.Desc,
