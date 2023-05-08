@@ -17,10 +17,11 @@ type UserConfig struct {
 }
 
 type MintConfig struct {
-	Title    string `json:"title"`
-	Desc     string `json:"desc"`
-	Benefits string `json:"benefits"`
-	Links    []Link `json:"links"`
+	Title           string `json:"title"`
+	Desc            string `json:"desc"`
+	Benefits        string `json:"benefits"`
+	Links           []Link `json:"links"`
+	BackgroundColor string `json:"background_color"`
 }
 
 type Link struct {

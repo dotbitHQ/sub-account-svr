@@ -19,7 +19,7 @@ type ReqCurrencyUpdate struct {
 	core.ChainTypeAddress
 	Account   string `json:"account" binding:"required"`
 	TokenId   string `json:"token_id" binding:"required"`
-	Enable    bool   `json:"enable" binding:"required"`
+	Enable    bool   `json:"enable"`
 	Timestamp int64  `json:"timestamp" binding:"required"`
 	Signature string `json:"signature" binding:"required"`
 }
