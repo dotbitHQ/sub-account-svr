@@ -25,15 +25,12 @@
 
 Please familiarize yourself with the meaning of some common parameters before reading the API list:
 
-| param                                                                                    | description                                                         |
-| :-------------------------                                                               | :------------------------------------------------------------------ |
-| type                                                                                     | Filled with "blockchain" for now                                    |
-| coin\_type <sup>[1](https://github.com/satoshilabs/slips/blob/master/slip-0044.md)</sup> | 60: eth, 195: trx, 9006: bsc, 966: matic                             |
-| chain\_id <sup>[2](https://github.com/ethereum-lists/chains)</sup>                       | 1: eth, 56: bsc, 137: polygon; 5: goerli, 97: bsct, 80001: mumbai   |
-| account                                                                                  | Contains the suffix `.bit` in it                                    |
-| key                                                                                      | Generally refers to the blockchain address for now                  |
-
-_You can provide either `coin_type` or `chain_id`. The `coin_type` will be used, if you provide both_
+| param                                                                                    | description                                        |
+| :-------------------------                                                               |:---------------------------------------------------|
+| type                                                                                     | Filled with "blockchain" for now                   |
+| coin\_type <sup>[1](https://github.com/satoshilabs/slips/blob/master/slip-0044.md)</sup> | 60: eth, 195: trx, 9006: bsc, 966: matic, 3: doge  |
+| account                                                                                  | Contains the suffix `.bit` in it                   |
+| key                                                                                      | Generally refers to the blockchain address for now |
 
 ### Get Config Info
 
@@ -75,7 +72,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111...",
     "category": 6
   }
@@ -96,7 +92,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
           "type": "blockchain",
           "key_info": {
             "coin_type": "60",
-            "chain_id": "1",
             "key": "0x111..."
           }
         },
@@ -104,7 +99,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
           "type": "blockchain",
           "key_info": {
             "coin_type": "60",
-            "chain_id": "1",
             "key": "0x111..."
           }
         },
@@ -145,7 +139,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
         "type": "blockchain",
         "key_info": {
           "coin_type": "60",
-          "chain_id": "1",
           "key": "0x111..."
         }
       },
@@ -153,7 +146,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
         "type": "blockchain",
         "key_info": {
           "coin_type": "60",
-          "chain_id": "1",
           "key": "0x111..."
         }
       },
@@ -203,7 +195,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "keyword": "",
@@ -231,7 +222,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
           "type": "blockchain",
           "key_info": {
             "coin_type": "60",
-            "chain_id": "1",
             "key": "0x111..."
           }
         },
@@ -239,7 +229,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
           "type": "blockchain",
           "key_info": {
             "coin_type": "60",
-            "chain_id": "1",
             "key": "0x111..."
           }
         },
@@ -266,7 +255,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": ""
@@ -309,7 +297,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": "",
@@ -339,7 +326,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "type": "blockchain",
       "key_info": {
         "coin_type": "60",
-        "chain_id": "1",
         "key": "0x111..."
       }
     }
@@ -363,7 +349,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
         "type": "blockchain",
         "key_info": {
           "coin_type": "60",
-          "chain_id": "1",
           "key": "0x111..."
         },
         "status": 1,
@@ -386,7 +371,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111"
   },
   "account": "",
@@ -416,7 +400,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "type": "blockchain",
       "key_info": {
         "coin_type": "60",
-        "chain_id": "1",
         "key": "0x111..."
       }
     }
@@ -460,7 +443,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": "",
@@ -470,7 +452,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "type": "blockchain",
       "key_info": {
         "coin_type": "60",
-        "chain_id": "1",
         "key": "0x111..."
       }
     },
@@ -478,7 +459,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "type": "blockchain",
       "key_info": {
         "coin_type": "60",
-        "chain_id": "1",
         "key": "0x111..."
       }
     },
@@ -564,7 +544,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "action": "enable_sub_account",
@@ -652,7 +631,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": "test.bit",
@@ -753,7 +731,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": "tzh2022070601.bit"
@@ -779,7 +756,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111..."
   },
   "account": "tzh2022070601.bit"
@@ -808,7 +784,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "type": "blockchain",
   "key_info": {
     "coin_type": "60",
-    "chain_id": "1",
     "key": "0x111"
   },
   "account": "",
@@ -837,7 +812,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "type": "blockchain",
       "key_info": {
         "coin_type": "60",
-        "chain_id": "1",
         "key": "0x111..."
       }
     }
