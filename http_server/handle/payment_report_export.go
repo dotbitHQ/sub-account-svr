@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"encoding/csv"
@@ -131,12 +132,14 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	}
 
 	err = h.DbDao.Transaction(func(tx *gorm.DB) error {
-		for _, v := range records {
+		for k, v := range recordsNew {
+			amount := v.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
+			recordsNew[k].Amount = amount
 			autoPaymentInfo := &tables.AutoPaymentInfo{
 				Account:       v.Account,
 				AccountId:     v.AccountId,
 				TokenId:       v.TokenId,
-				Amount:        v.Amount,
+				Amount:        amount,
 				Address:       v.Address,
 				PaymentDate:   time.Now(),
 				PaymentStatus: tables.PaymentStatusSuccess,
@@ -171,7 +174,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 	for _, v := range records {
-		amount := v.Amount.Sub(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))))
+		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))), v.Decimals)
 		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount.String()}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)

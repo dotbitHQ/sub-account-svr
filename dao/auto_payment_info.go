@@ -6,7 +6,7 @@ import (
 )
 
 func (d *DbDao) FindAutoPaymentInfo(parentAccountId string, page, size int) (resp []tables.AutoPaymentInfo, total int64, err error) {
-	db := d.db.Model(&tables.AutoPaymentInfo{}).Where("account_id=?", parentAccountId).Order("id desc")
+	db := d.db.Model(&tables.AutoPaymentInfo{}).Where("account_id=? and payment_status=?", parentAccountId, tables.PaymentStatusSuccess).Order("id desc")
 	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}

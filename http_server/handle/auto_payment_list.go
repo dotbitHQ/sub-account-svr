@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
+	"math"
 	"net/http"
 )
 
@@ -69,7 +70,7 @@ func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}
-		amount := v.Amount.Div(decimal.NewFromInt(int64(token.Decimals)))
+		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
 		resp.List = append(resp.List, AutoPaymentData{
 			Time:   v.CreatedAt.Format("2006-01-02 15:04"),
 			Amount: fmt.Sprintf("%s %s", amount.String(), token.Symbol),
