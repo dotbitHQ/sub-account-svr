@@ -80,7 +80,7 @@ type CfgServer struct {
 			BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
 			PaymentMinPrice     uint64            `json:"payment_min_price" yaml:"payment_min_price"`
 			ServiceFeeRatio     string            `json:"service_fee_ratio" yaml:"service_fee_ratio"`
-		} `json:"auto_mint"`
+		} `json:"auto_mint" yaml:"auto_mint"`
 	} `json:"das" yaml:"das"`
 	Origins          []string          `json:"origins" yaml:"origins"`
 	SubsidyWhitelist map[string]string `json:"subsidy_whitelist" yaml:"subsidy_whitelist"`
