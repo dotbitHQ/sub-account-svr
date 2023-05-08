@@ -211,11 +211,14 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		if subAccountCellDetail.Flag == witness.FlagTypeCustomRule &&
 			subAccountCellDetail.AutoDistribution == witness.AutoDistributionEnable {
 			resp.AutoMint.Enable = true
-			first, err := h.DbDao.FirstEnableAutoMint(accountId)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-				return err
-			}
+		}
+
+		first, err := h.DbDao.FirstEnableAutoMint(accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+			return err
+		}
+		if first.Id > 0 {
 			resp.AutoMint.FirstEnableTime = time.UnixMilli(first.Timestamp).Format("2006-01-02")
 		}
 		return nil
