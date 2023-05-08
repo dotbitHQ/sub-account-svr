@@ -18,6 +18,10 @@ das:
     - "eth_eth"
     - "tron_trx"
     - "bsc_bnb"
+  background_colors:
+    eth_eth: "#f0fdf4"
+    tron_trx: "#eff6ff"
+    bsc_bnb: "#fefce8"
 origins:
   - ""
 subsidy_whitelist:
