@@ -168,13 +168,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	manualRegisterCapacity := p.NewSubAccountPrice * manualTotalYears
 	if manualRegisterCapacity > 0 {
+		needCapacity := manualRegisterCapacity
 		if autoMintTotalCapacity == 0 {
-			manualRegisterCapacity += p.CommonFee
+			needCapacity += p.CommonFee
 		}
 		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      balanceDasLock,
 			DasType:      balanceDasType,
-			NeedCapacity: manualRegisterCapacity,
+			NeedCapacity: needCapacity,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
