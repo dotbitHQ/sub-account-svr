@@ -14,8 +14,8 @@ import (
 type ReqAutoPaymentList struct {
 	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
-	Page    int    `json:"page" binding:"required"`
-	Size    int    `json:"size" binding:"required"`
+	Page    int    `json:"page" binding:"required,min=1"`
+	Size    int    `json:"size" binding:"required,min=1,max=100"`
 }
 
 type RespAutoPaymentList struct {
