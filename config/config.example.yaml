@@ -14,14 +14,17 @@ das:
   max_create_count: 100
   max_update_count: 100
   max_retry: 10
-  support_payment_token:
-    - "eth_eth"
-    - "tron_trx"
-    - "bsc_bnb"
-  background_colors:
-    eth_eth: "#f0fdf4"
-    tron_trx: "#eff6ff"
-    bsc_bnb: "#fefce8"
+  auto_mint:
+    support_payment_token:
+      - "eth_eth"
+      - "tron_trx"
+      - "bsc_bnb"
+    background_colors:
+      eth_eth: "#f0fdf4"
+      tron_trx: "#eff6ff"
+      bsc_bnb: "#fefce8"
+    payment_min_price: 50
+    service_fee_ratio: "10%"
 origins:
   - ""
 subsidy_whitelist:

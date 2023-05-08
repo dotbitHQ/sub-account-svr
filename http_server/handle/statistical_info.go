@@ -144,7 +144,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 				Type:            token.Symbol,
 				Total:           v.Div(decimals).String(),
 				Balance:         v.Sub(amount).Div(decimals).String(),
-				BackgroundColor: config.Cfg.Das.BackgroundColors[k],
+				BackgroundColor: config.Cfg.Das.AutoMint.BackgroundColors[k],
 			})
 		}
 		return nil

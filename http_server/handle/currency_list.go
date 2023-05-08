@@ -63,7 +63,7 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 	}
 
 	result := make([]tables.PaymentConfigElement, 0)
-	for _, v := range config.Cfg.Das.SupportPaymentToken {
+	for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
 		splitToken := map[string]bool{}
 		for _, v := range strings.Split(v, "_") {
 			splitToken[v] = true

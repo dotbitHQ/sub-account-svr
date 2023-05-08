@@ -62,7 +62,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	}
 
 	find := false
-	for _, v := range config.Cfg.Das.SupportPaymentToken {
+	for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
 		if v == req.TokenID {
 			find = true
 			break

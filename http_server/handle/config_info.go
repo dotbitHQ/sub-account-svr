@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -17,6 +18,10 @@ type RespConfigInfo struct {
 	SubAccountRenewSubAccountPrice uint64 `json:"sub_account_renew_sub_account_price"`
 	SubAccountCommonFee            uint64 `json:"sub_account_common_fee"`
 	CkbQuote                       string `json:"ckb_quote"`
+	AutoMint                       struct {
+		PaymentMinPrice uint64 `json:"payment_min_price"`
+		ServiceFeeRatio string `json:"service_fee_ratio"`
+	} `json:"auto_mint"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -57,6 +62,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	quote := decimal.NewFromInt(int64(quoteCell.Quote()))
 	resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
 
+	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
+	resp.AutoMint.ServiceFeeRatio = config.Cfg.Das.AutoMint.ServiceFeeRatio
 	apiResp.ApiRespOK(resp)
 	return nil
 }
