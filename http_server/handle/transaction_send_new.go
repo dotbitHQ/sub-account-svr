@@ -122,7 +122,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
-			SignMsg:  data.SigMsg2(),
+			SignMsg:  data.SignMsg(),
 		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
