@@ -171,7 +171,7 @@ func (h *HttpHandle) CurrencyUpdateV2(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
-	if err = h.doCurrencyUpdate(&req, &apiResp); err != nil {
+	if err = h.doCurrencyUpdateV2(&req, &apiResp); err != nil {
 		log.Error("doCurrencyUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
