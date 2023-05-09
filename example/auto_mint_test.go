@@ -38,24 +38,42 @@ func TestDistributionList(t *testing.T) {
 	fmt.Println("data:", toolib.JsonString(&data))
 }
 
+var (
+	private = ""
+)
+
 func TestMintConfigUpdate(t *testing.T) {
 	req := handle.ReqMintConfigUpdate{
 		ChainTypeAddress: ctaETH,
 		Account:          "20230504.bit",
-		Title:            "title test",
+		Title:            "title test1",
 		Desc:             "desc test",
 		Benefits:         "benefits test",
 		Links: []tables.Link{{
 			App:  "Twiter",
 			Link: "https://twiter.com",
+		}, {
+			App:  "Telegram",
+			Link: "https://telegram.com",
 		}},
+		BackgroundColor: "",
+		Timestamp:       time.Now().UnixMilli(),
 	}
-	data := ""
+	data := handle.RespMintConfigUpdate{}
 	url := fmt.Sprintf("%s/mint/config/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
+	if err := doSign2(data.SignInfoList, private, false); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestConfigAutoMintUpdate(t *testing.T) {
@@ -106,10 +124,6 @@ func TestCurrencyList(t *testing.T) {
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
 }
-
-var (
-	private = ""
-)
 
 func TestCurrencyUpdate(t *testing.T) {
 	req := handle.ReqCurrencyUpdate{
