@@ -6,6 +6,7 @@ import (
 	"das_sub_account/tables"
 	"encoding/csv"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -16,8 +17,7 @@ import (
 
 type ReqPaymentReportExport struct {
 	Account string `json:"account"`
-	//Begin   string `json:"begin" binding:"required"`
-	End string `json:"end" binding:"required"`
+	End     string `json:"end" binding:"required"`
 }
 
 type CsvRecord struct {
@@ -45,19 +45,12 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 
-	//begin, err := time.Parse("2006-01-02", req.Begin)
-	//if err != nil {
-	//	apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-	//	ctx.JSON(http.StatusOK, apiResp)
-	//	return
-	//}
 	end, err := time.Parse("2006-01-02", req.End)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	//req.Begin = begin.Format("2006-01-02 15:04:05")
 	req.End = end.Format("2006-01-02 15:04:05")
 
 	list, err := h.DbDao.FindOrderByPayment(req.End, req.Account)
@@ -68,18 +61,19 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	}
 	records := make(map[string]*CsvRecord)
 	for _, v := range list {
-		config, err := h.DbDao.GetUserPaymentConfig(v.AccountId)
+		token, err := h.DbDao.GetTokenById(v.TokenId)
 		if err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		_, ok := config.CfgMap[v.TokenId]
+		recordKeys, ok := common.TokenId2RecordKeyMap[v.TokenId]
 		if !ok {
-			log.Infof("account: %s, token_id: %s no config set, skip it", v.Account, v.TokenId)
-			continue
+			_ = ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("token id: [%s] to record key mapping failed", v.TokenId))
+			return
 		}
-		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", LabelSubDIDApp)
+
+		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", LabelSubDIDApp, recordKeys)
 		if err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -90,18 +84,6 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			continue
 		}
 
-		token, err := h.DbDao.GetTokenById(v.TokenId)
-		if err != nil {
-			log.Error(err)
-			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		if token.Id == 0 {
-			err = fmt.Errorf("token_id: %s no exist", v.TokenId)
-			log.Error(err)
-			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
 		csvRecord, ok := records[v.Account+v.TokenId]
 		if !ok {
 			csvRecord = &CsvRecord{}
@@ -125,10 +107,19 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		if v.Amount.Div(decimal.NewFromInt(int64(v.Decimals))).Mul(token.Price).LessThan(decimal.NewFromInt(50)) {
+		if v.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals))))).
+			Mul(token.Price).LessThan(decimal.NewFromInt(config.Cfg.Das.AutoMint.PaymentMinPrice)) {
+			log.Warnf("account: %s, token_id: %s, amount: %s less than min price: %s, skip it",
+				req.Account, v.TokenId, v.Amount, config.Cfg.Das.AutoMint.PaymentMinPrice)
 			continue
 		}
 		recordsNew[k] = v
+	}
+
+	if config.Cfg.Das.AutoMint.ServiceFeeRatio < 0 || config.Cfg.Das.AutoMint.ServiceFeeRatio >= 1 {
+		log.Errorf("service fee ratio: %f invalid", config.Cfg.Das.AutoMint.ServiceFeeRatio)
+		_ = ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("service fee ratio: %f invalid", config.Cfg.Das.AutoMint.ServiceFeeRatio))
+		return
 	}
 
 	err = h.DbDao.Transaction(func(tx *gorm.DB) error {
@@ -140,6 +131,8 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 				AccountId:     v.AccountId,
 				TokenId:       v.TokenId,
 				Amount:        amount,
+				OriginAmount:  v.Amount,
+				FeeRate:       decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio),
 				Address:       v.Address,
 				PaymentDate:   time.Now(),
 				PaymentStatus: tables.PaymentStatusSuccess,

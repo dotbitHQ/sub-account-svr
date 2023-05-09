@@ -19,7 +19,7 @@ type RespConfigInfo struct {
 	SubAccountCommonFee            uint64 `json:"sub_account_common_fee"`
 	CkbQuote                       string `json:"ckb_quote"`
 	AutoMint                       struct {
-		PaymentMinPrice uint64 `json:"payment_min_price"`
+		PaymentMinPrice int64  `json:"payment_min_price"`
 		ServiceFeeRatio string `json:"service_fee_ratio"`
 	} `json:"auto_mint"`
 	MintCostsManually  uint64 `json:"mint_costs_manually"`
