@@ -4,9 +4,7 @@ import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/http_api"
-	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/toolib"
 	"testing"
@@ -28,10 +26,9 @@ func TestStatisticalInfo(t *testing.T) {
 
 func TestDistributionList(t *testing.T) {
 	req := handle.ReqDistributionList{
-		ChainTypeAddress: ctaETH,
-		Account:          "sub-account-test.bit",
-		Page:             1,
-		Size:             10,
+		Account: "sub-account-test.bit",
+		Page:    1,
+		Size:    10,
 	}
 	data := handle.RespDistributionList{}
 	url := fmt.Sprintf("%s/distribution/list", ApiUrl)
@@ -60,10 +57,6 @@ func TestMintConfigUpdate(t *testing.T) {
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
 }
-
-var (
-	private = ""
-)
 
 func TestConfigAutoMintUpdate(t *testing.T) {
 	req := handle.ReqConfigAutoMintUpdate{
@@ -113,31 +106,40 @@ func TestCurrencyList(t *testing.T) {
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
 }
+
+var (
+	private = ""
+)
+
 func TestCurrencyUpdate(t *testing.T) {
 	req := handle.ReqCurrencyUpdate{
 		ChainTypeAddress: ctaETH,
 		Account:          "20230504.bit",
 		TokenId:          string(tables.TokenIdBnb),
-		Enable:           true,
+		Enable:           false,
 		Timestamp:        time.Now().UnixMilli(),
-		Signature:        "",
 	}
-	sigMsg := req.SigMsg("BNB")
-	sig, _ := sign.PersonalSignature([]byte(sigMsg), "")
-	req.Signature = common.Bytes2Hex(sig)
 
-	data := ""
+	data := handle.RespCurrencyUpdate{}
 	url := fmt.Sprintf("%s/currency/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
+	if err := doSign2(data.SignInfoList, private, false); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPriceRuleList(t *testing.T) {
 	req := handle.ReqPriceRuleList{
-		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
+		Account: "20230504.bit",
 	}
 	data := handle.RespPriceRuleList{}
 	url := fmt.Sprintf("%s/price/rule/list", ApiUrl)
