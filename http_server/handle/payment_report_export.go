@@ -51,9 +51,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	req.End = end.Format("2006-01-02 15:04:05")
-
-	list, err := h.DbDao.FindOrderByPayment(req.End, req.Account)
+	list, err := h.DbDao.FindOrderByPayment(end.Unix(), req.Account)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
