@@ -4,14 +4,13 @@ go 1.16
 
 require (
 	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230509043051-f1bf98c3bf74
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230509115723-a20de5cd4e04
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogf/gf/v2 v2.3.3
-	github.com/google/uuid v1.2.0
 	github.com/influxdata/influxdb v1.8.3
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
