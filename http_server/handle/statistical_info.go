@@ -129,18 +129,25 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			paymentInfo[order.TokenId] = paymentInfo[order.TokenId].Add(order.Amount)
 		}
 
+		paymentInfoNew := make(map[string]decimal.Decimal)
+		for k, v := range paymentInfo {
+			if v.GreaterThan(decimal.NewFromInt(0)) {
+				paymentInfoNew[k] = v
+			}
+		}
+
 		paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
 		if err != nil {
 			return err
 		}
 
 		for k, v := range paymentConfig.CfgMap {
-			if _, ok := paymentInfo[k]; !ok && v.Enable {
-				paymentInfo[k] = decimal.NewFromInt(0)
+			if _, ok := paymentInfoNew[k]; !ok && v.Enable {
+				paymentInfoNew[k] = decimal.NewFromInt(0)
 			}
 		}
 
-		for k, v := range paymentInfo {
+		for k, v := range paymentInfoNew {
 			token, err := h.DbDao.GetTokenById(k)
 			if err != nil {
 				return err
