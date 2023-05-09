@@ -171,20 +171,21 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
 	orderInfo := tables.OrderInfo{
-		OrderId:     res.OrderId,
-		ActionType:  req.ActionType,
-		Account:     req.SubAccount,
-		AccountId:   subAccountId,
-		Years:       req.Years,
-		AlgorithmId: hexAddr.DasAlgorithmId,
-		PayAddress:  hexAddr.AddressHex,
-		TokenId:     string(req.TokenId),
-		Amount:      amount,
-		USDAmount:   usdAmount,
-		PayStatus:   tables.PayStatusUnpaid,
-		OrderStatus: tables.OrderStatusDefault,
-		Timestamp:   time.Now().Unix(),
-		SvrName:     config.Cfg.Slb.SvrName,
+		OrderId:         res.OrderId,
+		ActionType:      req.ActionType,
+		Account:         req.SubAccount,
+		AccountId:       subAccountId,
+		ParentAccountId: parentAccountId,
+		Years:           req.Years,
+		AlgorithmId:     hexAddr.DasAlgorithmId,
+		PayAddress:      hexAddr.AddressHex,
+		TokenId:         string(req.TokenId),
+		Amount:          amount,
+		USDAmount:       usdAmount,
+		PayStatus:       tables.PayStatusUnpaid,
+		OrderStatus:     tables.OrderStatusDefault,
+		Timestamp:       time.Now().Unix(),
+		SvrName:         config.Cfg.Slb.SvrName,
 	}
 	if err = h.DbDao.CreateOrderInfo(orderInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")

@@ -64,3 +64,16 @@ func TestAutoOrderHash(t *testing.T) {
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
 }
+
+func TestOrderInfo(t *testing.T) {
+	req := handle.ReqAutoOrderInfo{
+		ChainTypeAddress: ctaETH,
+		OrderId:          "af7054eaf87de38a592bec32ff853fa6",
+	}
+	data := handle.RespAutoOrderInfo{}
+	url := fmt.Sprintf("%s/auto/order/info", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+}
