@@ -85,11 +85,68 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
+	case ActionCurrencyUpdate:
+		if err := h.doActionAutoMint(req, apiResp); err != nil {
+			return fmt.Errorf("doActionNormal err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistConfirmAction, fmt.Sprintf("not exist action[%s]", req.Action))
 		return nil
 	}
 	apiResp.ApiRespOK(resp)
+	return nil
+}
+
+func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	switch req.Action {
+	case ActionCurrencyUpdate:
+		var data ReqCurrencyUpdate
+		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		} else if err = json.Unmarshal([]byte(txStr), &data); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+		res, err := data.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
+		}
+
+		if _, err := doSignCheck(txbuilder.SignData{
+			SignType: req.List[0].SignList[0].SignType,
+			SignMsg:  data.SigMsg2(),
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
+			return fmt.Errorf("doSignCheck err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(data.Account))
+		paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return err
+		}
+		paymentConfig.CfgMap[data.TokenId] = tables.PaymentConfigElement{
+			Enable: data.Enable,
+		}
+		if err := h.DbDao.CreateUserConfigWithPaymentConfig(tables.UserConfig{
+			Account:   data.Account,
+			AccountId: accountId,
+		}, paymentConfig); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update payment config")
+			return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
+		}
+	default:
+	}
 	return nil
 }
 
