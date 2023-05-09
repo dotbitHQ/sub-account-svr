@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -16,7 +15,6 @@ import (
 )
 
 type ReqDistributionList struct {
-	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
 	Page    int    `json:"page" binding:"gte=1"`
 	Size    int    `json:"size" binding:"gte=1,lte=50"`
@@ -59,16 +57,6 @@ func (h *HttpHandle) DistributionList(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_code.ApiResp) error {
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return err
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.check(address, req.Account, apiResp); err != nil {
-		return err
-	}
-
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
 	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByActions(accountId, []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount}, req.Page, req.Size)
