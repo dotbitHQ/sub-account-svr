@@ -1,9 +1,9 @@
 package tables
 
 import (
-	"github.com/google/uuid"
+	"crypto/md5"
+	"fmt"
 	"github.com/shopspring/decimal"
-	"strings"
 	"time"
 )
 
@@ -39,11 +39,7 @@ func (m *AutoPaymentInfo) TableName() string {
 }
 
 func (m *AutoPaymentInfo) GenAutoPaymentId() error {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		return err
-	}
-	uidStr := strings.ReplaceAll(uid.String(), "-", "")
-	m.AutoPaymentId = uidStr
+	paymentId := fmt.Sprintf("%s%s%s%s%s%d", m.Amount, m.TokenId, m.Amount, m.FeeRate, m.Address, time.Now().UnixNano())
+	m.AutoPaymentId = fmt.Sprintf("%x", md5.Sum([]byte(paymentId)))
 	return nil
 }
