@@ -35,6 +35,7 @@ func (h *LbHttpServer) initRouter() {
 		v1.POST("/preserved/rule/list", h.H.LBProxy)
 		v1.POST("/auto/payment/list", h.H.LBProxy)
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
+		v1.POST("/mint/config/get", h.H.LBProxy)
 
 		v1.POST("/sub/account/init", h.H.LBProxy) // enable_sub_account
 		v1.POST("/custom/script/set", h.H.LBProxy)
@@ -49,7 +50,6 @@ func (h *LbHttpServer) initRouter() {
 		//v1.POST("/auto/order/create", h.H.LBProxy)
 		v1.POST("/auto/order/hash", h.H.LBProxy)
 		v1.POST("/currency/update", h.H.LBProxy)
-		v1.POST("/mint/config/send", h.H.LBProxy)
 
 		v1.POST("/sub/account/create", h.H.LBSubAccountCreate) // create_sub_account
 		v1.POST("/transaction/send", h.H.LBTransactionSend)
