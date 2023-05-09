@@ -29,7 +29,7 @@ type RespDistributionList struct {
 }
 
 type DistributionListElement struct {
-	Time    string `json:"time"`
+	Time    int64  `json:"time"`
 	Account string `json:"account"`
 	Year    uint64 `json:"year"`
 	Amount  string `json:"amount"`
@@ -98,7 +98,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 			errG.Go(func() error {
 				record := recordInfo[idx]
 				list[idx] = DistributionListElement{
-					Time:    record.CreatedAt.Format("2006-01-02 15:04"),
+					Time:    record.CreatedAt.UnixMilli(),
 					Account: record.Account,
 					Year:    record.RegisterYears + record.RenewYears,
 				}
