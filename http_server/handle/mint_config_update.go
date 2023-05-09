@@ -6,6 +6,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -76,8 +77,8 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 
-	signMsg := fmt.Sprintf("From .bit %s", common.Bytes2Hex(common.Blake2b([]byte(common.Bytes2Hex(common.Blake2b(reqData))))))
-	
+	signMsg := common.DotBitPrefix + hex.EncodeToString(common.Blake2b(reqData))
+
 	apiResp.ApiRespOK(map[string]interface{}{
 		"sign_key": signKey,
 		"list": []map[string]interface{}{

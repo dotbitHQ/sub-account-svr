@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,8 +81,7 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "no operation permission")
 		return errors.New("no operation permission")
 	}
-
-	signMsg = fmt.Sprintf("From .bit %s", common.Bytes2Hex(common.Blake2b([]byte(common.Bytes2Hex(common.Blake2b([]byte(signMsg)))))))
+	signMsg = common.DotBitPrefix + hex.EncodeToString(common.Blake2b([]byte(signMsg)))
 
 	if _, err = doSignCheck(txbuilder.SignData{
 		SignType: res.DasAlgorithmId,
