@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -87,7 +88,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			continue
 		}
 
-		csvRecord, ok := records[v.Account+v.TokenId]
+		csvRecord, ok := records[v.ParentAccountId+v.TokenId]
 		if !ok {
 			csvRecord = &CsvRecord{}
 			csvRecord.Account = v.Account
@@ -169,9 +170,11 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	for _, v := range records {
+	for _, v := range recordsNew {
+		accounts := strings.Split(v.Account, ".")
+		account := accounts[len(accounts)-2] + "." + accounts[len(accounts)-1]
 		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))), v.Decimals)
-		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount.String()}); err != nil {
+		if err := w.Write([]string{account, v.Address, v.TokenId, amount.String()}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
