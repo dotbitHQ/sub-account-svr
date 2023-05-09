@@ -51,7 +51,9 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	list, err := h.DbDao.FindOrderByPayment(end.Unix(), req.Account)
+
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	list, err := h.DbDao.FindOrderByPayment(end.Unix(), accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
@@ -71,14 +73,14 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			return
 		}
 
-		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", LabelSubDIDApp, recordKeys)
+		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.ParentAccountId, "address", LabelSubDIDApp, recordKeys)
 		if err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		if record.Id == 0 {
-			log.Infof("account: %s, token_id: %s no address set, skip it", v.Account, v.TokenId)
+			log.Warnf("account: %s, token_id: %s no address set, skip it", v.Account, v.TokenId)
 			continue
 		}
 
