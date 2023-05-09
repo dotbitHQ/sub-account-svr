@@ -35,9 +35,9 @@ type PaymentConfig struct {
 
 type PaymentConfigElement struct {
 	Enable     bool   `json:"enable"`
-	TokenID    string `json:"token_id,omitempty"`
-	Symbol     string `json:"symbol,omitempty"`
-	HaveRecord bool   `json:"have_record,omitempty"`
+	TokenID    string `json:"token_id"`
+	Symbol     string `json:"symbol"`
+	HaveRecord bool   `json:"have_record"`
 }
 
 func (m *UserConfig) TableName() string {

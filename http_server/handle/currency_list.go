@@ -74,8 +74,10 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 			return err
 		}
 		cfg := tables.PaymentConfigElement{
-			TokenID: v,
-			Symbol:  token.Symbol,
+			Enable:     false,
+			TokenID:    v,
+			Symbol:     token.Symbol,
+			HaveRecord: false,
 		}
 		if userPaymentCfg, ok := paymentConfig.CfgMap[v]; ok && userPaymentCfg.Enable {
 			cfg.Enable = true
