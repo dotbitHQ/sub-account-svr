@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -114,4 +115,27 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 
 func (d *DbDao) CreateOrderInfo(info tables.OrderInfo) error {
 	return d.db.Create(&info).Error
+}
+
+type OrderAmountInfo struct {
+	TokenId string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	Amount  decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
+}
+
+func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]decimal.Decimal, err error) {
+	list := make([]*OrderAmountInfo, 0)
+	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, sum(amount) as amount").Where("account_id=?", accountId)
+	if paid {
+		db = db.Where("auto_payment_id != ''")
+	}
+	err = db.Group("token_id").Find(&list).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+
+	result = make(map[string]decimal.Decimal)
+	for _, v := range list {
+		result[v.TokenId] = result[v.TokenId].Add(v.Amount)
+	}
+	return
 }

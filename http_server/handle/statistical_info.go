@@ -115,53 +115,43 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		smtRecords, err := h.DbDao.FindSmtRecordInfoByMintType(accountId, tables.MintTypeAutoMint, []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount})
+		totalAmount, err := h.DbDao.GetOrderAmount(accountId, false)
 		if err != nil {
 			return err
 		}
-
-		paymentInfo := make(map[string]decimal.Decimal)
-		for _, record := range smtRecords {
-			order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
-			if err != nil {
-				return err
-			}
-			paymentInfo[order.TokenId] = paymentInfo[order.TokenId].Add(order.Amount)
-		}
-
-		paymentInfoNew := make(map[string]decimal.Decimal)
-		for k, v := range paymentInfo {
-			if v.GreaterThan(decimal.NewFromInt(0)) {
-				paymentInfoNew[k] = v
-			}
+		paidAmount, err := h.DbDao.GetOrderAmount(accountId, true)
+		if err != nil {
+			return err
 		}
 
 		paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
 		if err != nil {
 			return err
 		}
-
 		for k, v := range paymentConfig.CfgMap {
-			if _, ok := paymentInfoNew[k]; !ok && v.Enable {
-				paymentInfoNew[k] = decimal.NewFromInt(0)
+			if _, ok := totalAmount[k]; !ok && v.Enable {
+				totalAmount[k] = decimal.NewFromInt(0)
 			}
 		}
 
-		for k, v := range paymentInfoNew {
+		for k, v := range totalAmount {
 			token, err := h.DbDao.GetTokenById(k)
 			if err != nil {
 				return err
 			}
-			amount, err := h.DbDao.GetAutoPaymentAmount(accountId, k, tables.PaymentStatusSuccess)
-			if err != nil {
-				return err
+
+			if v.Sub(paidAmount[k]).LessThanOrEqual(decimal.NewFromInt(0)) &&
+				!paymentConfig.CfgMap[k].Enable {
+				continue
 			}
 			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
+			total := v.Mul(decimal.NewFromFloat(1-config.Cfg.Das.AutoMint.ServiceFeeRatio)).DivRound(decimals, token.Decimals)
+			balance := v.Sub(paidAmount[k]).Mul(decimal.NewFromFloat(1-config.Cfg.Das.AutoMint.ServiceFeeRatio)).DivRound(decimals, token.Decimals)
 
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:            token.Symbol,
-				Total:           v.Div(decimals).String(),
-				Balance:         v.Sub(amount).Div(decimals).String(),
+				Total:           total.String(),
+				Balance:         balance.String(),
 				BackgroundColor: config.Cfg.Das.AutoMint.BackgroundColors[k],
 			})
 		}
