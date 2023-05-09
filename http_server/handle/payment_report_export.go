@@ -133,7 +133,6 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	err = h.DbDao.Transaction(func(tx *gorm.DB) error {
 		for k, v := range recordsNew {
 			amount := v.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
-			recordsNew[k].Amount = amount
 			autoPaymentInfo := &tables.AutoPaymentInfo{
 				Account:       v.Account,
 				AccountId:     v.AccountId,
@@ -148,6 +147,8 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			if err := autoPaymentInfo.GenAutoPaymentId(); err != nil {
 				return err
 			}
+			recordsNew[k].Amount = amount
+
 			if err := tx.Create(autoPaymentInfo).Error; err != nil {
 				return err
 			}
