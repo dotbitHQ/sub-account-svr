@@ -64,6 +64,8 @@ func (d *DbDao) UpdatePaymentConfig(account string, paymentConfig *tables.Paymen
 }
 
 func (d *DbDao) GetUserPaymentConfig(accountId string) (paymentConfig tables.PaymentConfig, err error) {
+	paymentConfig.CfgMap = make(map[string]tables.PaymentConfigElement)
+
 	userCfg := &tables.UserConfig{}
 	err = d.db.Where("account_id=?", accountId).First(userCfg).Error
 	if err == gorm.ErrRecordNotFound {
@@ -72,8 +74,6 @@ func (d *DbDao) GetUserPaymentConfig(accountId string) (paymentConfig tables.Pay
 	}
 	if userCfg.PaymentConfig != nil && userCfg.PaymentConfig.CfgMap != nil {
 		paymentConfig = *userCfg.PaymentConfig
-	} else {
-		paymentConfig.CfgMap = make(map[string]tables.PaymentConfigElement)
 	}
 	return
 }
