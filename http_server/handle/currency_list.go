@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
-	"strings"
 )
 
 const (
@@ -64,10 +63,6 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 
 	result := make([]tables.PaymentConfigElement, 0)
 	for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
-		splitToken := map[string]bool{}
-		for _, v := range strings.Split(v, "_") {
-			splitToken[v] = true
-		}
 		token, err := h.DbDao.GetTokenById(v)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
@@ -81,18 +76,18 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 		}
 		if userPaymentCfg, ok := paymentConfig.CfgMap[v]; ok && userPaymentCfg.Enable {
 			cfg.Enable = true
-			records, err := h.DbDao.GetRecordsByAccountIdAndLabel(accountId, LabelSubDIDApp)
+		}
+
+		if recordKeys, ok := common.TokenId2RecordKeyMap[v]; ok {
+			record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(accountId, "address", LabelSubDIDApp, recordKeys)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 				return err
-			}
-			for _, record := range records {
-				if splitToken[record.Key] {
-					cfg.HaveRecord = true
-					break
-				}
+			} else if record.Id > 0 {
+				cfg.HaveRecord = true
 			}
 		}
+
 		result = append(result, cfg)
 	}
 	apiResp.ApiRespOK(result)
