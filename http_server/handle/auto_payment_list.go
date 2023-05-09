@@ -25,7 +25,7 @@ type RespAutoPaymentList struct {
 }
 
 type AutoPaymentData struct {
-	Time   string `json:"time"`
+	Time   int64  `json:"time"`
 	Amount string `json:"amount"`
 }
 
@@ -72,7 +72,7 @@ func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.
 		}
 		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
 		resp.List = append(resp.List, AutoPaymentData{
-			Time:   v.CreatedAt.Format("2006-01-02 15:04"),
+			Time:   v.CreatedAt.UnixMilli(),
 			Amount: fmt.Sprintf("%s %s", amount.String(), token.Symbol),
 		})
 	}
