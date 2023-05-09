@@ -71,23 +71,6 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		recordKeys, ok := common.TokenId2RecordKeyMap[v.TokenId]
-		if !ok {
-			_ = ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("token id: [%s] to record key mapping failed", v.TokenId))
-			return
-		}
-
-		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.ParentAccountId, "address", LabelSubDIDApp, recordKeys)
-		if err != nil {
-			log.Error(err)
-			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		if record.Id == 0 {
-			log.Warnf("account: %s, token_id: %s no address set, skip it", v.Account, v.TokenId)
-			continue
-		}
-
 		recordKey := v.ParentAccountId + v.TokenId
 		csvRecord, ok := records[recordKey]
 		if !ok {
@@ -97,7 +80,6 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			csvRecord.Account = account
 			csvRecord.AccountId = v.ParentAccountId
 			csvRecord.TokenId = v.TokenId
-			csvRecord.Address = record.Value
 			csvRecord.Decimals = token.Decimals
 			csvRecord.Ids = make([]uint64, 0)
 			records[recordKey] = csvRecord
@@ -121,7 +103,26 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 				v.Amount, v.TokenId, price, config.Cfg.Das.AutoMint.PaymentMinPrice)
 			continue
 		}
+
+		recordKeys, ok := common.TokenId2RecordKeyMap[v.TokenId]
+		if !ok {
+			_ = ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("token id: [%s] to record key mapping failed", v.TokenId))
+			return
+		}
+		record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", LabelSubDIDApp, recordKeys)
+		if err != nil {
+			log.Error(err)
+			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		if record.Id == 0 {
+			log.Warnf("account: %s, token_id: %s no address set, skip it", v.Account, v.TokenId)
+			continue
+		}
+		v.Address = record.Value
 		recordsNew[k] = v
+
+		log.Infof("account: %s, token_id: %s, amount: %s, price: %s$", v.Account, v.TokenId, v.Amount, price)
 	}
 
 	if config.Cfg.Das.AutoMint.ServiceFeeRatio < 0 || config.Cfg.Das.AutoMint.ServiceFeeRatio >= 1 {

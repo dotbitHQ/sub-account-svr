@@ -17,6 +17,7 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
 	"net/http"
+	"strings"
 )
 
 type ReqPriceRuleUpdate struct {
@@ -128,6 +129,13 @@ type Whitelist struct {
 }
 
 func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp, inputActionDataType []common.ActionDataType, enableSwitch ...witness.AutoDistribution) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return nil, nil, err
+	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
+
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	baseInfo, err := h.TxTool.GetBaseInfo()
 	if err != nil {
@@ -270,7 +278,13 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
 	// witness
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionConfigSubAccount, common.Hex2Bytes(common.ParamOwner))
+	var witnessParams []byte
+	if strings.EqualFold(accountInfo.Owner, address) {
+		witnessParams = common.Hex2Bytes(common.ParamOwner)
+	} else if strings.EqualFold(accountInfo.Manager, address) {
+		witnessParams = common.Hex2Bytes(common.ParamManager)
+	}
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionConfigSubAccount, witnessParams)
 	if err != nil {
 		return nil, nil, err
 	}
