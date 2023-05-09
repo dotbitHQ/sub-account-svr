@@ -91,9 +91,11 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		recordKey := v.ParentAccountId + v.TokenId
 		csvRecord, ok := records[recordKey]
 		if !ok {
+			accounts := strings.Split(v.Account, ".")
+			account := accounts[len(accounts)-2] + "." + accounts[len(accounts)-1]
 			csvRecord = &CsvRecord{}
-			csvRecord.Account = v.Account
-			csvRecord.AccountId = v.AccountId
+			csvRecord.Account = account
+			csvRecord.AccountId = v.ParentAccountId
 			csvRecord.TokenId = v.TokenId
 			csvRecord.Address = record.Value
 			csvRecord.Decimals = token.Decimals
@@ -114,11 +116,9 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		}
 
 		price := v.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals))))).Mul(token.Price)
-		accounts := strings.Split(v.Account, ".")
-		account := accounts[len(accounts)-2] + "." + accounts[len(accounts)-1]
 		if price.LessThan(decimal.NewFromInt(config.Cfg.Das.AutoMint.PaymentMinPrice)) {
 			log.Warnf("account: %s, token_id: %s, amount: %s$ less than min price: %d$, skip it",
-				account, v.TokenId, price, config.Cfg.Das.AutoMint.PaymentMinPrice)
+				v.Amount, v.TokenId, price, config.Cfg.Das.AutoMint.PaymentMinPrice)
 			continue
 		}
 		recordsNew[k] = v
@@ -176,10 +176,8 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 	for _, v := range recordsNew {
-		accounts := strings.Split(v.Account, ".")
-		account := accounts[len(accounts)-2] + "." + accounts[len(accounts)-1]
 		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))), v.Decimals)
-		if err := w.Write([]string{account, v.Address, v.TokenId, amount.String()}); err != nil {
+		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount.String()}); err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
