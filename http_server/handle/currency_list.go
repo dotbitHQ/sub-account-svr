@@ -73,6 +73,8 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 			TokenID:    v,
 			Symbol:     token.Symbol,
 			HaveRecord: false,
+			Price:      token.Price,
+			Decimals:   token.Decimals,
 		}
 		if userPaymentCfg, ok := paymentConfig.CfgMap[v]; ok && userPaymentCfg.Enable {
 			cfg.Enable = true

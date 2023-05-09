@@ -3,6 +3,7 @@ package tables
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -34,10 +35,12 @@ type PaymentConfig struct {
 }
 
 type PaymentConfigElement struct {
-	Enable     bool   `json:"enable"`
-	TokenID    string `json:"token_id"`
-	Symbol     string `json:"symbol"`
-	HaveRecord bool   `json:"have_record"`
+	Enable     bool            `json:"enable"`
+	TokenID    string          `json:"token_id"`
+	Symbol     string          `json:"symbol"`
+	HaveRecord bool            `json:"have_record"`
+	Price      decimal.Decimal `json:"price"`
+	Decimals   int32           `json:"decimals"`
 }
 
 func (m *UserConfig) TableName() string {
