@@ -156,7 +156,6 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 			if err := h.DbDao.UpdateAutoPaymentIdById(v.Ids, autoPaymentInfo.AutoPaymentId); err != nil {
 				return err
 			}
-			return nil
 		}
 		return nil
 	})
