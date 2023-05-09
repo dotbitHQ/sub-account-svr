@@ -52,7 +52,10 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 		return
 	}
 
-	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	var accountId string
+	if req.Account != "" {
+		accountId = common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	}
 	list, err := h.DbDao.FindOrderByPayment(end.Unix(), accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
