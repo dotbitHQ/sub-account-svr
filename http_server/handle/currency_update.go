@@ -238,5 +238,7 @@ func (h *HttpHandle) doCurrencyUpdateV2(req *ReqCurrencyUpdate, apiResp *api_cod
 		}},
 	})
 
+	apiResp.ApiRespOK(resp)
+
 	return nil
 }
