@@ -27,6 +27,7 @@ type RespAutoAccountSearch struct {
 	MaxYear uint64          `json:"max_year"`
 	Status  AccStatus       `json:"status"`
 	IsSelf  bool            `json:"is_self"`
+	OrderId string          `json:"order_id"`
 }
 
 type AccStatus int
@@ -86,7 +87,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 
 	// check sub account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	resp.Status, resp.IsSelf, err = h.checkSubAccount(apiResp, hexAddr, subAccountId)
+	resp.Status, resp.IsSelf, resp.OrderId, err = h.checkSubAccount(apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -153,7 +154,7 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 	return &parentAccount, nil
 }
 
-func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, e error) {
+func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, e error) {
 	accStatus = AccStatusUnMinted
 	subAccount, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
 	if err != nil {
@@ -171,7 +172,7 @@ func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.Da
 		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
 		return
 	} else if orderInfo.Id > 0 {
-		isSelf, accStatus = true, AccStatusMinting
+		isSelf, orderId, accStatus = true, orderInfo.OrderId, AccStatusMinting
 		return
 	}
 	// check order of others

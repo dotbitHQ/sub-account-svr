@@ -167,3 +167,9 @@ func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint6
 	}
 	return
 }
+
+func (d *DbDao) GetSmtRecordByOrderId(orderId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("order_id=?", orderId).
+		Order("id DESC").Limit(1).Find(&info).Error
+	return
+}

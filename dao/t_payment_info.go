@@ -17,8 +17,9 @@ func (d *DbDao) FindPaymentInfoByOrderId(orderID string) (list []tables.PaymentI
 }
 
 func (d *DbDao) GetPaymentInfoByOrderId(orderID string) (payment tables.PaymentInfo, err error) {
-	err = d.db.Where("order_id=? and pay_hash_status=? and refund_status=?",
-		orderID, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).First(&payment).Error
+	err = d.db.Where("order_id=?", orderID).
+		Order("timestamp DESC").Limit(1).
+		Find(&payment).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
