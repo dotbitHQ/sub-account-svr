@@ -85,7 +85,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
-	case ActionCurrencyUpdate:
+	case ActionCurrencyUpdate, ActionMintConfigUpdate:
 		if err := h.doActionAutoMint(req, apiResp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -119,10 +119,11 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 		}
+		_, signMsg, _ := data.GetSignInfo()
 
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
-			SignMsg:  data.SignMsg(),
+			SignMsg:  signMsg,
 		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -143,6 +144,49 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 			AccountId: accountId,
 		}, paymentConfig); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update payment config")
+			return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
+		}
+	case ActionMintConfigUpdate:
+		var data ReqMintConfigUpdate
+		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		} else if err = json.Unmarshal([]byte(txStr), &data); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+		res, err := data.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
+		}
+		_, signMsg, _ := data.GetSignInfo()
+
+		if _, err := doSignCheck(txbuilder.SignData{
+			SignType: req.List[0].SignList[0].SignType,
+			SignMsg:  signMsg,
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
+			return fmt.Errorf("doSignCheck err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(data.Account))
+		if err := h.DbDao.CreateUserConfigWithMintConfig(tables.UserConfig{
+			Account:   data.Account,
+			AccountId: accountId,
+		}, tables.MintConfig{
+			Title:           data.Title,
+			Desc:            data.Desc,
+			Benefits:        data.Benefits,
+			Links:           data.Links,
+			BackgroundColor: data.BackgroundColor,
+		}); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update mint config")
 			return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())
 		}
 	default:

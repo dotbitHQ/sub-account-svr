@@ -6,6 +6,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -32,20 +33,12 @@ const (
 	ActionCurrencyUpdate string = "Update-Currency"
 )
 
-func (r *ReqCurrencyUpdate) SignKey() string {
-	key := fmt.Sprintf("%s%s%s%t%d", r.ChainTypeAddress.KeyInfo.Key, r.Account, r.TokenId, r.Enable, time.Now().UnixNano())
-	return fmt.Sprintf("%x", md5.Sum([]byte(key)))
-}
-
-func (r *ReqCurrencyUpdate) SignMsg() string {
-	sigMsg := ""
-	if r.Enable {
-		sigMsg = fmt.Sprintf("Enable %s on %d", r.TokenId, r.Timestamp)
-	} else {
-		sigMsg = fmt.Sprintf("Disable %s on %d", r.TokenId, r.Timestamp)
-	}
-	log.Info("SigMsg2:", sigMsg)
-	return common.DotBitPrefix + hex.EncodeToString(common.Blake2b([]byte(sigMsg)))
+func (r *ReqCurrencyUpdate) GetSignInfo() (signKey, signMsg, reqDataStr string) {
+	reqData, _ := json.Marshal(r)
+	reqDataStr = string(reqData)
+	signKey = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%d", reqDataStr, time.Now().UnixNano()))))
+	signMsg = common.DotBitPrefix + hex.EncodeToString(common.Blake2b(reqData))
+	return
 }
 
 func (h *HttpHandle) CurrencyUpdate(ctx *gin.Context) {
@@ -110,12 +103,17 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		return err
 	}
 
+	//
+	signKey, signMsg, reqDataStr := req.GetSignInfo()
+	if err := h.RC.Red.Set(signKey, reqDataStr, time.Minute*10).Err(); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
+
 	// cache
-	signKey := req.SignKey()
-	cacheStr := toolib.JsonString(req)
-	if err = h.RC.SetSignTxCache(signKey, cacheStr); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeSignError, "signature expired")
-		return fmt.Errorf("signature expired")
+	if err = h.RC.SetSignTxCache(signKey, reqDataStr); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
 	}
 
 	//
@@ -128,11 +126,10 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	resp.List = append(resp.List, SignInfo{
 		SignList: []txbuilder.SignData{{
 			SignType: signType,
-			SignMsg:  req.SignMsg(),
+			SignMsg:  signMsg,
 		}},
 	})
 
 	apiResp.ApiRespOK(resp)
-
 	return nil
 }

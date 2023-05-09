@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -25,6 +26,23 @@ type ReqMintConfigUpdate struct {
 	Benefits        string        `json:"benefits" binding:"required"`
 	Links           []tables.Link `json:"links"`
 	BackgroundColor string        `json:"background_color"`
+	Timestamp       int64         `json:"timestamp" binding:"required"`
+}
+
+type RespMintConfigUpdate struct {
+	SignInfoList
+}
+
+const (
+	ActionMintConfigUpdate string = "Update-Mint-Config"
+)
+
+func (r *ReqMintConfigUpdate) GetSignInfo() (signKey, signMsg, reqDataStr string) {
+	reqData, _ := json.Marshal(r)
+	reqDataStr = string(reqData)
+	signKey = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%d", reqDataStr, time.Now().UnixNano()))))
+	signMsg = common.DotBitPrefix + hex.EncodeToString(common.Blake2b(reqData))
+	return
 }
 
 func (h *HttpHandle) MintConfigUpdate(ctx *gin.Context) {
@@ -51,6 +69,9 @@ func (h *HttpHandle) MintConfigUpdate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_code.ApiResp) error {
+	var resp RespMintConfigUpdate
+	resp.List = make([]SignInfo, 0)
+
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -69,28 +90,38 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 
-	reqData, _ := json.Marshal(req)
-	reqDataStr := string(reqData)
-	signKey := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%d", reqDataStr, time.Now().UnixNano()))))
+	if time.UnixMilli(req.Timestamp).Add(time.Minute * 10).Before(time.Now()) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params timestamp invalid")
+		return nil
+	}
+
+	//
+	signKey, signMsg, reqDataStr := req.GetSignInfo()
 	if err := h.RC.Red.Set(signKey, reqDataStr, time.Minute*10).Err(); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
 	}
 
-	signMsg := common.DotBitPrefix + hex.EncodeToString(common.Blake2b(reqData))
+	// cache
+	if err = h.RC.SetSignTxCache(signKey, reqDataStr); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
+	}
 
-	apiResp.ApiRespOK(map[string]interface{}{
-		"sign_key": signKey,
-		"list": []map[string]interface{}{
-			{
-				"sign_list": []map[string]interface{}{
-					{
-						"sign_type": common.DasAlgorithmIdEth,
-						"sign_msg":  signMsg,
-					},
-				},
-			},
-		},
+	//
+	signType := res.DasAlgorithmId
+	if signType == common.DasAlgorithmIdEth712 {
+		signType = common.DasAlgorithmIdEth
+	}
+	resp.Action = ActionMintConfigUpdate
+	resp.SignKey = signKey
+	resp.List = append(resp.List, SignInfo{
+		SignList: []txbuilder.SignData{{
+			SignType: signType,
+			SignMsg:  signMsg,
+		}},
 	})
+
+	apiResp.ApiRespOK(resp)
 	return nil
 }
