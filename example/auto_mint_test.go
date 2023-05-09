@@ -4,9 +4,13 @@ import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/tables"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/toolib"
 	"testing"
+	"time"
 )
 
 func TestStatisticalInfo(t *testing.T) {
@@ -113,9 +117,15 @@ func TestCurrencyUpdate(t *testing.T) {
 	req := handle.ReqCurrencyUpdate{
 		ChainTypeAddress: ctaETH,
 		Account:          "20230504.bit",
-		TokenID:          string(tables.TokenIdBnb),
+		TokenId:          string(tables.TokenIdBnb),
 		Enable:           true,
+		Timestamp:        time.Now().UnixMilli(),
+		Signature:        "",
 	}
+	sigMsg := req.SigMsg("BNB")
+	sig, _ := sign.PersonalSignature([]byte(sigMsg), "")
+	req.Signature = common.Bytes2Hex(sig)
+
 	data := ""
 	url := fmt.Sprintf("%s/currency/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
@@ -131,6 +141,47 @@ func TestPriceRuleList(t *testing.T) {
 	}
 	data := handle.RespPriceRuleList{}
 	url := fmt.Sprintf("%s/price/rule/list", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+}
+
+func TestPreservedRuleList(t *testing.T) {
+	req := handle.ReqPreservedRuleList{
+		ChainTypeAddress: ctaETH,
+		Account:          "20230504.bit",
+	}
+	data := handle.RespPriceRuleList{}
+	url := fmt.Sprintf("%s/preserved/rule/list", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+}
+
+func TestPriceRuleUpdate(t *testing.T) {
+	req := handle.ReqPriceRuleUpdate{
+		ChainTypeAddress: ctaETH,
+		Account:          "20230504.bit",
+		List: witness.SubAccountRuleSlice{{
+			Index: 0,
+			Name:  "test",
+			Note:  "test",
+			Price: 1e6,
+			Ast: witness.AstExpression{
+				Type:        witness.Operator,
+				Name:        "",
+				Symbol:      "",
+				Value:       nil,
+				ValueType:   "",
+				Arguments:   nil,
+				Expressions: nil,
+			},
+		}},
+	}
+	data := handle.RespConfigAutoMintUpdate{}
+	url := fmt.Sprintf("%s/price/rule/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
 	}

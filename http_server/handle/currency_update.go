@@ -24,6 +24,14 @@ type ReqCurrencyUpdate struct {
 	Signature string `json:"signature" binding:"required"`
 }
 
+func (r *ReqCurrencyUpdate) SigMsg(symbol string) string {
+	if r.Enable {
+		return fmt.Sprintf("Enable %s on %d", symbol, r.Timestamp)
+	} else {
+		return fmt.Sprintf("Disable %s on %d", symbol, r.Timestamp)
+	}
+}
+
 func (h *HttpHandle) CurrencyUpdate(ctx *gin.Context) {
 	var (
 		funcName               = "CurrencyUpdate"
@@ -70,13 +78,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}
-
-	var signMsg string
-	if req.Enable {
-		signMsg = fmt.Sprintf("Enable %s on %d", token.Symbol, req.Timestamp)
-	} else {
-		signMsg = fmt.Sprintf("Disable %s on %d", token.Symbol, req.Timestamp)
-	}
+	signMsg := req.SigMsg(token.Symbol)
 
 	log.Infof("signMsg: %s alg_id: %d address: %s", signMsg, res.DasAlgorithmId, res.AddressHex)
 

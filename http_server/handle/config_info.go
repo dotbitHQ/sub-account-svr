@@ -22,6 +22,9 @@ type RespConfigInfo struct {
 		PaymentMinPrice uint64 `json:"payment_min_price"`
 		ServiceFeeRatio string `json:"service_fee_ratio"`
 	} `json:"auto_mint"`
+	MintCostsManually  uint64 `json:"mint_costs_manually"`
+	RenewCostsManually uint64 `json:"renew_costs_manually"`
+	ManagementTimes    uint64 `json:"management_times"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -53,6 +56,9 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.SubAccountNewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	resp.SubAccountRenewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
 	resp.SubAccountCommonFee, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.CommonFee().RawData())
+	resp.MintCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	resp.RenewCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+	resp.ManagementTimes = 10000
 
 	quoteCell, err := h.DasCore.GetQuoteCell()
 	if err != nil {
