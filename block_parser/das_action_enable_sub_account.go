@@ -95,7 +95,7 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 
 		if err := tx.Model(&tables.RuleWhitelist{}).
 			Where("parent_account_id=? and tx_status=?", parentAccountId, tables.TxStatusPending).
-			Delete(&tables.RuleWhitelist{}).Error; err != nil {
+			Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
 		}
 		return nil
