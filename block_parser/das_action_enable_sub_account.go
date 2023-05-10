@@ -88,7 +88,9 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 		if err := tx.Model(&tables.RuleWhitelist{}).
 			Where("tx_hash=? and tx_status=?", req.TxHash, tables.TxStatusPending).
 			Updates(map[string]interface{}{
-				"tx_status": tables.TxStatusCommitted,
+				"tx_status":       tables.TxStatusCommitted,
+				"block_number":    req.BlockNumber,
+				"block_timestamp": req.BlockTimestamp,
 			}).Error; err != nil {
 			return err
 		}
