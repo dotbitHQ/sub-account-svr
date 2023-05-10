@@ -5,7 +5,6 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -16,7 +15,6 @@ const (
 )
 
 type ReqCurrencyList struct {
-	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
 }
 
@@ -44,15 +42,6 @@ func (h *HttpHandle) CurrencyList(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiResp) error {
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return err
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.check(address, req.Account, apiResp); err != nil {
-		return err
-	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
 	paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
