@@ -25,7 +25,7 @@ var (
 func TestAutoAccountSearch(t *testing.T) {
 	req := handle.ReqAutoAccountSearch{
 		ChainTypeAddress: ctaETH,
-		SubAccount:       "09.sub-account-test.bit",
+		SubAccount:       "001.20230504.bit",
 	}
 	data := handle.RespAutoAccountSearch{}
 	url := fmt.Sprintf("%s/auto/account/search", ApiUrl)
