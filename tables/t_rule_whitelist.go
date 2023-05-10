@@ -18,6 +18,7 @@ type RuleWhitelist struct {
 	RuleIndex       int       `gorm:"column:rule_index;type:int(11);comment:规则索引;NOT NULL" json:"rule_index"`
 	Account         string    `gorm:"column:account;type:varchar(255);comment:账号;NOT NULL" json:"account"`
 	AccountId       string    `gorm:"index:idx_tx_hash_acc_id;column:account_id;type:varchar(255);comment:账号id;NOT NULL" json:"account_id"`
+	TxStatus        TxStatus  `gorm:"column:tx_status;type:int(11);comment:交易状态;NOT NULL" json:"tx_status"`
 	CreatedAt       time.Time `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"updated_at"`
 }

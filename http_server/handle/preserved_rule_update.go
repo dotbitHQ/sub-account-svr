@@ -82,12 +82,8 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	log.Info("doPreservedRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePreservedRules).
-			Delete(tables.RuleWhitelist{}).Error; err != nil {
-			return err
-		}
 		for accountId, whiteList := range whiteListMap {
-			if err := tx.Create(tables.RuleWhitelist{
+			if err := tx.Create(&tables.RuleWhitelist{
 				TxHash:          txHash,
 				ParentAccount:   req.Account,
 				ParentAccountId: parentAccountId,
@@ -95,6 +91,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 				RuleIndex:       whiteList.Index,
 				Account:         whiteList.Account,
 				AccountId:       accountId,
+				TxStatus:        tables.TxStatusPending,
 			}).Error; err != nil {
 				return err
 			}

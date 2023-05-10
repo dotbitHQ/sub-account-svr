@@ -96,12 +96,8 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	log.Info("doPriceRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("parent_account_id=? and rule_type=?", parentAccountId, tables.RuleTypePriceRules).
-			Delete(&tables.RuleWhitelist{}).Error; err != nil {
-			return err
-		}
 		for accountId, whiteList := range whiteListMap {
-			if err := tx.Create(tables.RuleWhitelist{
+			if err := tx.Create(&tables.RuleWhitelist{
 				TxHash:          txHash,
 				ParentAccount:   req.Account,
 				ParentAccountId: parentAccountId,
@@ -109,6 +105,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 				RuleIndex:       whiteList.Index,
 				Account:         whiteList.Account,
 				AccountId:       accountId,
+				TxStatus:        tables.TxStatusPending,
 			}).Error; err != nil {
 				return err
 			}
@@ -234,10 +231,12 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 				accWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
 				for _, v := range accWhitelist {
-					accId := common.Bytes2Hex(common.GetAccountIdByAccount(v))
+					accountSlice := strings.Split(v, ".")
+					account := accountSlice[0] + "." + req.Account
+					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 					whiteListMap[accId] = Whitelist{
 						Index:   idx,
-						Account: v,
+						Account: accountSlice[0],
 					}
 				}
 			}
