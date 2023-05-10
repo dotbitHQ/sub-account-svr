@@ -66,7 +66,7 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 	}
 
 	if err := b.DbDao.Transaction(func(tx *gorm.DB) error {
-		task := tables.TableTaskInfo{
+		task := &tables.TableTaskInfo{
 			TaskType:        tables.TaskTypeChain,
 			ParentAccountId: accBuilder.AccountId,
 			Action:          req.Action,
@@ -78,7 +78,7 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 		}
 		task.InitTaskId()
 		if err := tx.Where("ref_outpoint='' AND outpoint=?", task.Outpoint).
-			Delete(&tables.TableTaskInfo{}).Error; err != nil {
+			Delete(&tables.TableTaskInfo{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
 		}
 		if err := tx.Create(task).Error; err != nil {
