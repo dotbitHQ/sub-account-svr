@@ -17,7 +17,6 @@ import (
 	"math"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type ReqStatisticalInfo struct {
@@ -31,8 +30,8 @@ type RespStatisticalInfo struct {
 	IncomeInfo    []IncomeInfo `json:"income_info"`
 	CkbSpending   CkbSpending  `json:"ckb_spending"`
 	AutoMint      struct {
-		Enable          bool   `json:"enable"`
-		FirstEnableTime string `json:"first_enable_time"`
+		Enable          bool  `json:"enable"`
+		FirstEnableTime int64 `json:"first_enable_time"`
 	} `json:"auto_mint"`
 }
 
@@ -213,6 +212,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 			return err
+
 		}
 		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 
@@ -227,7 +227,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return err
 		}
 		if first.Id > 0 {
-			resp.AutoMint.FirstEnableTime = time.UnixMilli(first.Timestamp).Format("2006-01-02")
+			resp.AutoMint.FirstEnableTime = first.Timestamp
 		}
 		return nil
 	})
