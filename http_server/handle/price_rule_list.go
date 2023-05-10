@@ -73,27 +73,28 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 	for idx, v := range subAccountEntity.Rules {
 		if v.Ast.Type == witness.Function &&
 			v.Ast.Name == string(witness.FunctionInList) &&
-			v.Ast.Expressions[0].Type == witness.Variable &&
-			v.Ast.Expressions[0].Name == string(witness.Account) &&
-			v.Ast.Expressions[1].Type == witness.Value &&
-			v.Ast.Expressions[1].ValueType == witness.BinaryArray {
+			v.Ast.Arguments[0].Type == witness.Variable &&
+			v.Ast.Arguments[0].Name == string(witness.Account) &&
+			v.Ast.Arguments[1].Type == witness.Value &&
+			v.Ast.Arguments[1].ValueType == witness.BinaryArray {
 
-			accIdWhitelist := gconv.Strings(v.Ast.Expressions[1].Value)
-			accWhitelist := make([]string, 0, len(accIdWhitelist))
-			for _, v := range accIdWhitelist {
-				rule, err := h.DbDao.GetRulesBySubAccountId(parentAccountId, tables.RuleTypePriceRules, v)
-				if err != nil {
-					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-					return err
-				}
-				if rule.Id == 0 {
-					err := errors.New("data aberrant")
-					apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
-					return err
-				}
-				accWhitelist = append(accWhitelist, rule.Account)
+			accIdWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
+			rules, err := h.DbDao.GetRulesBySubAccountIds(parentAccountId, tables.RuleTypePriceRules, accIdWhitelist)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+				return err
 			}
-			subAccountEntity.Rules[idx].Ast.Expressions[1].Value = accWhitelist
+			if len(rules) != len(accIdWhitelist) {
+				err := errors.New("data aberrant")
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+				return err
+			}
+
+			accWhitelist := make([]string, 0, len(accIdWhitelist))
+			for _, v := range rules {
+				accWhitelist = append(accWhitelist, v.Account)
+			}
+			subAccountEntity.Rules[idx].Ast.Arguments[1].Value = accWhitelist
 		}
 	}
 
