@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -231,12 +232,18 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 				accWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
 				for _, v := range accWhitelist {
-					accountSlice := strings.Split(v, ".")
-					account := accountSlice[0] + "." + req.Account
+					v = strings.TrimSpace(v)
+					accountName := strings.Split(v, ".")[0]
+					if accountName == "" {
+						err = errors.New("account can not be empty")
+						apiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())
+						return nil, nil, err
+					}
+					account := accountName + "." + req.Account
 					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 					whiteListMap[accId] = Whitelist{
 						Index:   idx,
-						Account: accountSlice[0],
+						Account: accountName,
 					}
 				}
 			}

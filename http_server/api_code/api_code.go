@@ -60,6 +60,7 @@ const (
 	ApiCodeNoSubAccountDistributionPermission ApiCode = 40030
 	ApiCodeSubAccountNoEnable                 ApiCode = 40031
 	ApiCodeAutoDistributionClosed             ApiCode = 40032
+	ApiCodeAccountCanNotBeEmpty               ApiCode = 40033
 )
 
 const (
