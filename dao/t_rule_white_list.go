@@ -10,8 +10,8 @@ func (d *DbDao) CreateRuleWhitelist(rl tables.RuleWhitelist) error {
 }
 
 func (d *DbDao) GetRulesBySubAccountIds(parentAccountId string, ruleType tables.RuleType, accountIds []string) (list []*tables.RuleWhitelist, err error) {
-	err = d.db.Where("parent_account_id=? and rule_type=? and account_id in (?) and tx_status=?",
-		parentAccountId, ruleType, accountIds, tables.TxStatusCommitted).Find(&list).Error
+	err = d.db.Where("parent_account_id=? and account_id in (?) and rule_type=? and tx_status=?",
+		parentAccountId, accountIds, ruleType, tables.TxStatusCommitted).Find(&list).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
