@@ -12,6 +12,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -266,6 +267,6 @@ func (h *HttpHandle) getRulePrice(parentAccountId, subAccount string, apiResp *a
 		apiResp.ApiRespErr(api_code.ApiCodeNoTSetRules, "not set price rules")
 		return
 	}
-	price = decimal.NewFromInt(int64(rulePrice.Rules[index].Price))
+	price = decimal.NewFromInt(int64(rulePrice.Rules[index].Price)).Div(decimal.NewFromFloat(math.Pow10(6)))
 	return
 }
