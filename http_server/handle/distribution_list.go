@@ -67,9 +67,14 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}
+
 	resp := &RespDistributionList{
 		Page:  req.Page,
 		Total: total,
+	}
+	if total == 0 {
+		apiResp.ApiRespOK(resp)
+		return nil
 	}
 
 	ch := make(chan int, 10)
@@ -105,10 +110,9 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						return err
 					}
 					if order.Id == 0 {
-						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-						return errors.New("db error")
+						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, "order no exist")
+						return errors.New("order no exist")
 					}
-
 					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
 
 					token, err := h.DbDao.GetTokenById(order.TokenId)
@@ -118,9 +122,6 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 					}
 					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
 					list[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
-				default:
-					apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-					return errors.New("db error")
 				}
 				return nil
 			})
