@@ -36,7 +36,7 @@ func (d *DbDao) UpdateAutoPaymentIdById(ids []uint64, paymentId string) error {
 	}).Error
 }
 
-func (d *DbDao) UpdateOrderStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo, smtRecord tables.TableSmtRecordInfo) (rowsAffected int64, e error) {
+func (d *DbDao) UpdateOrderPayStatusOkWithSmtRecord(paymentInfo tables.PaymentInfo, smtRecord tables.TableSmtRecordInfo) (rowsAffected int64, e error) {
 	e = d.db.Transaction(func(tx *gorm.DB) error {
 		tmpTx := tx.Model(tables.OrderInfo{}).
 			Where("order_id=? AND pay_status=?",
@@ -138,4 +138,35 @@ func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]d
 		result[v.TokenId] = result[v.TokenId].Add(v.Amount)
 	}
 	return
+}
+
+func (d *DbDao) GetNeedCheckOrderList() (list []tables.OrderInfo, err error) {
+	timestamp := tables.GetEfficientOrderTimestamp()
+	err = d.db.Where("timestamp>=? AND pay_status=? AND order_status=?",
+		timestamp, tables.PayStatusPaid, tables.OrderStatusDefault).
+		Order("timestamp").Limit(100).Find(&list).Error
+	return
+}
+
+func (d *DbDao) UpdateOrderStatus(orderId string, oldStatus, newStatus tables.OrderStatus) error {
+	return d.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND order_status=?", orderId, oldStatus).
+			Updates(map[string]interface{}{
+				"order_status": newStatus,
+			}).Error; err != nil {
+			return err
+		}
+		if newStatus == tables.OrderStatusFail {
+			if err := tx.Model(tables.PaymentInfo{}).
+				Where("order_id=? AND pay_hash_status=? AND refund_status=?",
+					orderId, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).
+				Updates(map[string]interface{}{
+					"refund_status": tables.RefundStatusUnRefund,
+				}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

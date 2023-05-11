@@ -12,6 +12,29 @@ import (
 	"time"
 )
 
+func (t *ToolUniPay) RunConfirmStatus() {
+	tickerSearchStatus := time.NewTicker(time.Minute * 5)
+
+	t.Wg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-tickerSearchStatus.C:
+				log.Info("doConfirmStatus start")
+				if err := t.doConfirmStatus(); err != nil {
+					log.Errorf("doConfirmStatus err: %s", err.Error())
+					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmStatus", err.Error())
+				}
+				log.Info("doConfirmStatus end")
+			case <-t.Ctx.Done():
+				log.Info("RunRefund done")
+				t.Wg.Done()
+				return
+			}
+		}
+	}()
+}
+
 func (t *ToolUniPay) doConfirmStatus() error {
 	// for check order pay status
 	pendingList, err := t.DbDao.GetPayHashStatusPendingList()
@@ -67,7 +90,6 @@ func (t *ToolUniPay) doConfirmStatus() error {
 			}
 			if err = DoPaymentConfirm(t.DasCore, t.DbDao, v.OrderId, v.PayHash); err != nil {
 				log.Errorf("DoPaymentConfirm err: %s", err.Error())
-				// todo
 			}
 		}
 	}
@@ -83,7 +105,6 @@ func (t *ToolUniPay) doConfirmStatus() error {
 		}
 		if err = t.DbDao.UpdateRefundStatusToRefunded(paymentInfo.PayHash, paymentInfo.OrderId, paymentInfo.RefundHash); err != nil {
 			log.Error("UpdateRefundStatusToRefunded err: ", err.Error())
-			// todo
 		}
 	}
 
@@ -102,7 +123,7 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		PayHash:       payHash,
 		OrderId:       orderId,
 		PayHashStatus: tables.PayHashStatusConfirmed,
-		Timestamp:     time.Now().Unix(),
+		Timestamp:     time.Now().UnixMilli(),
 	}
 
 	owner := core.DasAddressHex{
@@ -138,9 +159,9 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		SubAction:       common.SubActionCreate,
 	}
 
-	rowsAffected, err := dbDao.UpdateOrderStatusOkWithSmtRecord(paymentInfo, smtRecord)
+	rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithSmtRecord(paymentInfo, smtRecord)
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusOkWithSmtRecord err: %s", err.Error())
+		return fmt.Errorf("UpdateOrderPayStatusOkWithSmtRecord err: %s", err.Error())
 	} else if rowsAffected == 0 {
 		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
 		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", orderId)

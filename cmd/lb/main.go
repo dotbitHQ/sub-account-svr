@@ -119,7 +119,9 @@ func runServer(ctx *cli.Context) error {
 		DbDao:   dbDao,
 		DasCore: dasCore,
 	}
-	toolUniPay.RunUniPay()
+	toolUniPay.RunConfirmStatus()
+	toolUniPay.RunOrderRefund()
+	toolUniPay.RunOrderCheck()
 
 	// redis
 	red, err := toolib.NewRedisClient(config.Cfg.Cache.Redis.Addr, config.Cfg.Cache.Redis.Password, config.Cfg.Cache.Redis.DbNum)

@@ -184,7 +184,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		USDAmount:       usdAmount,
 		PayStatus:       tables.PayStatusUnpaid,
 		OrderStatus:     tables.OrderStatusDefault,
-		Timestamp:       time.Now().Unix(),
+		Timestamp:       time.Now().UnixMilli(),
 		SvrName:         config.Cfg.Slb.SvrName,
 	}
 	if err = h.DbDao.CreateOrderInfo(orderInfo); err != nil {

@@ -122,8 +122,8 @@ func TestConfigAutoMintGet(t *testing.T) {
 
 func TestCurrencyList(t *testing.T) {
 	req := handle.ReqCurrencyList{
-		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
+		//ChainTypeAddress: ctaETH,
+		Account: "20230504.bit",
 	}
 	data := make([]tables.PaymentConfigElement, 0)
 	url := fmt.Sprintf("%s/currency/list", ApiUrl)
@@ -310,4 +310,8 @@ func TestAutoPaymentList(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
+}
+
+func TestTime2(t *testing.T) {
+	fmt.Println(tables.GetEfficientOrderTimestamp())
 }

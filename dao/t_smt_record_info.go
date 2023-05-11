@@ -173,3 +173,9 @@ func (d *DbDao) GetSmtRecordByOrderId(orderId string) (info tables.TableSmtRecor
 		Order("id DESC").Limit(1).Find(&info).Error
 	return
 }
+
+func (d *DbDao) GetSmtRecordCreateByAccountId(accountId string, timestamp int64) (list []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND sub_action=? AND timestamp>?",
+		accountId, common.SubActionCreate, timestamp).Find(&list).Error
+	return
+}

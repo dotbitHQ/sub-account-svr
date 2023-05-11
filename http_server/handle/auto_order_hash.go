@@ -73,7 +73,7 @@ func (h *HttpHandle) doAutoOrderHash(req *ReqAutoOrderHash, apiResp *api_code.Ap
 		PayHash:       req.Hash,
 		OrderId:       req.OrderId,
 		PayHashStatus: tables.PayHashStatusPending,
-		Timestamp:     time.Now().Unix(),
+		Timestamp:     time.Now().UnixMilli(),
 	}
 	if err := h.DbDao.CreatePaymentInfo(paymentInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, fmt.Sprintf("Failed to write back hash: %s", req.OrderId))

@@ -4,7 +4,6 @@ import (
 	"das_sub_account/tables"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 func (d *DbDao) FindPaymentInfoByOrderId(orderID string) (list []tables.PaymentInfo, err error) {
@@ -33,7 +32,7 @@ func (d *DbDao) CreatePaymentInfo(info tables.PaymentInfo) error {
 }
 
 func (d *DbDao) GetUnRefundList() (list []tables.PaymentInfo, err error) {
-	timestamp := getPaymentInfoTimestamp()
+	timestamp := tables.GetPaymentInfoTimestamp()
 	err = d.db.Where("timestamp>=? AND pay_hash_status=? AND refund_status=?",
 		timestamp, tables.PayHashStatusConfirmed, tables.RefundStatusUnRefund).Find(&list).Error
 	return
@@ -59,19 +58,15 @@ func (d *DbDao) UpdateRefundStatusToRefunded(payHash, orderId, refundHash string
 }
 
 func (d *DbDao) GetPayHashStatusPendingList() (list []tables.PaymentInfo, err error) {
-	timestamp := getPaymentInfoTimestamp()
+	timestamp := tables.GetPaymentInfoTimestamp()
 	err = d.db.Where("timestamp>=? AND pay_hash_status=?",
 		timestamp, tables.PayHashStatusPending).Find(&list).Error
 	return
 }
 
 func (d *DbDao) GetRefundStatusRefundingList() (list []tables.PaymentInfo, err error) {
-	timestamp := getPaymentInfoTimestamp()
+	timestamp := tables.GetPaymentInfoTimestamp()
 	err = d.db.Where("timestamp>=? AND pay_hash_status=? AND refund_status=?",
 		timestamp, tables.PayHashStatusConfirmed, tables.RefundStatusRefunding).Find(&list).Error
 	return
-}
-
-func getPaymentInfoTimestamp() int64 {
-	return time.Now().Add(-time.Hour * 24 * 3).Unix()
 }
