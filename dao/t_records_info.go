@@ -10,6 +10,15 @@ func (d *DbDao) GetRecordsByAccountId(accountId string) (list []tables.TableReco
 	return
 }
 
+func (d *DbDao) GetAvatarRecordsByAccountIds(accountIds []string) (list []tables.TableRecordsInfo, err error) {
+	if len(accountIds) == 0 {
+		return
+	}
+	err = d.parserDb.Where("account_id IN(?) AND `type`='custom_key' AND key='avatar' ",
+		accountIds).Find(&list).Error
+	return
+}
+
 func (d *DbDao) GetRecordsByAccountIdAndLabel(accountId, label string) (list []tables.TableRecordsInfo, err error) {
 	err = d.parserDb.Where("account_id=? and label=?", accountId, label).Find(&list).Error
 	if err == gorm.ErrRecordNotFound {

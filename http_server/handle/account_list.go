@@ -75,6 +75,8 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query account list")
 		return fmt.Errorf("GetAccountList err: %s", err.Error())
 	}
+
+	var accountIds []string
 	for _, v := range list {
 		tmp := h.accountInfoToAccountData(v)
 		if v.ParentAccountId == "" {
@@ -90,8 +92,25 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 			} else {
 				tmp.IsInWhitelist = true
 			}
+			accountIds = append(accountIds, v.AccountId)
 		}
 		resp.List = append(resp.List, tmp)
+	}
+
+	// records
+	records, err := h.DbDao.GetAvatarRecordsByAccountIds(accountIds)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get records")
+		return fmt.Errorf("GetAvatarRecordsByAccountIds err: %s", err.Error())
+	}
+	var mapRecord = make(map[string]string)
+	for _, v := range records {
+		mapRecord[v.AccountId] = v.Value
+	}
+	for i, v := range resp.List {
+		if r, ok := mapRecord[v.AccountId]; ok {
+			resp.List[i].Avatar = r
+		}
 	}
 
 	// total

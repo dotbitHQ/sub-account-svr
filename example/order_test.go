@@ -39,9 +39,9 @@ func TestAutoOrderCreate(t *testing.T) {
 	req := handle.ReqAutoOrderCreate{
 		ChainTypeAddress: ctaETH,
 		ActionType:       tables.ActionTypeMint,
-		SubAccount:       "09.sub-account-test.bit",
-		TokenId:          tables.TokenIdErc20USDT,
-		Years:            2,
+		SubAccount:       "001.20230504.bit",
+		TokenId:          tables.TokenIdBnb,
+		Years:            1,
 	}
 	data := handle.RespAutoOrderCreate{}
 	url := fmt.Sprintf("%s/auto/order/create", ApiUrl)
@@ -68,7 +68,7 @@ func TestAutoOrderHash(t *testing.T) {
 func TestOrderInfo(t *testing.T) {
 	req := handle.ReqAutoOrderInfo{
 		ChainTypeAddress: ctaETH,
-		OrderId:          "af7054eaf87de38a592bec32ff853fa6",
+		OrderId:          "af17fa3bc6b89ed8704c69a3c157d18b",
 	}
 	data := handle.RespAutoOrderInfo{}
 	url := fmt.Sprintf("%s/auto/order/info", ApiUrl)

@@ -19,17 +19,13 @@ type ReqAccountDetail struct {
 }
 
 type RespAccountDetail struct {
-	AccountInfo  AccountDataDetail `json:"account_info"`
-	Records      []RecordData      `json:"records"`
-	CustomScript string            `json:"custom_script"`
-}
-
-type AccountDataDetail struct {
-	AccountData
-	Avatar string `json:"avatar"`
+	AccountInfo  AccountData  `json:"account_info"`
+	Records      []RecordData `json:"records"`
+	CustomScript string       `json:"custom_script"`
 }
 
 type AccountData struct {
+	AccountId            string                  `json:"account_id"`
 	Account              string                  `json:"account"`
 	Owner                core.ChainTypeAddress   `json:"owner"`
 	Manager              core.ChainTypeAddress   `json:"manager"`
@@ -40,6 +36,7 @@ type AccountData struct {
 	RenewSubAccountPrice uint64                  `json:"renew_sub_account_price"`
 	Nonce                uint64                  `json:"nonce"`
 	IsInWhitelist        bool                    `json:"is_in_whitelist"`
+	Avatar               string                  `json:"avatar"`
 }
 
 type RecordData struct {
@@ -94,7 +91,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
 	}
-	resp.AccountInfo.AccountData = h.accountInfoToAccountData(acc)
+	resp.AccountInfo = h.accountInfoToAccountData(acc)
 
 	// custom-script
 	if acc.EnableSubAccount == tables.AccountEnableStatusOn {
@@ -168,6 +165,7 @@ func (h *HttpHandle) accountInfoToAccountData(acc tables.TableAccountInfo) Accou
 	manager = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, managerHex.AddressNormal)
 
 	return AccountData{
+		AccountId:            acc.AccountId,
 		Account:              acc.Account,
 		Owner:                owner,
 		Manager:              manager,

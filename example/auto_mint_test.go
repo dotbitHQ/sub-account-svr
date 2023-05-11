@@ -138,7 +138,7 @@ func TestCurrencyUpdate(t *testing.T) {
 		ChainTypeAddress: ctaETH,
 		Account:          "20230504.bit",
 		TokenId:          string(tables.TokenIdBnb),
-		Enable:           false,
+		Enable:           true,
 		Timestamp:        time.Now().UnixMilli(),
 	}
 
@@ -232,15 +232,15 @@ func TestPriceRuleUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
-	//if err := doSign2(data.SignInfoList, private, false); err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if err := doTransactionSendNew(handle.ReqTransactionSend{
-	//	SignInfoList: data.SignInfoList,
-	//}); err != nil {
-	//	t.Fatal(err)
-	//}
+	if err := doSign2(data.SignInfoList, private, false); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPreservedRuleUpdate(t *testing.T) {
@@ -271,7 +271,7 @@ func TestPreservedRuleUpdate(t *testing.T) {
 					Type:        witness.Value,
 					Name:        "",
 					Symbol:      "",
-					Value:       3,
+					Value:       4,
 					ValueType:   witness.Uint8,
 					Arguments:   nil,
 					Expressions: nil,
