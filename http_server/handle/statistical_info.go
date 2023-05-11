@@ -216,6 +216,8 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		}
 		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
 
+		log.Info("doStatisticalInfo:", subAccountCell.OutPoint.TxHash.String(), subAccountCell.OutPoint.Index)
+
 		if subAccountCellDetail.Flag == witness.FlagTypeCustomRule &&
 			subAccountCellDetail.AutoDistribution == witness.AutoDistributionEnable {
 			resp.AutoMint.Enable = true
