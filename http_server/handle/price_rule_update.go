@@ -75,7 +75,6 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 
 	txParams, whiteListMap, err := h.rulesTxAssemble(req, apiResp, []common.ActionDataType{common.ActionDataTypeSubAccountPriceRules})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
 		return err
 	}
 
@@ -239,14 +238,13 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 
 		for idx, v := range ruleEntity.Rules {
-
 			if inputActionDataType[0] == common.ActionDataTypeSubAccountPriceRules {
 				if v.Price <= 0 {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
 					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}
-				price := decimal.NewFromInt(int64(v.Price)).Div(token.Price).Mul(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
+				price := decimal.NewFromInt(int64(v.Price)).Div(token.Price).Mul(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
 				if uint64(price.IntPart()) < newSubAccountPrice {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
 					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
