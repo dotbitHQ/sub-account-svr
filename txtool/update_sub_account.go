@@ -150,7 +150,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 
 			quote := p.BaseInfo.QuoteCell.Quote()
-			yearlyPrice := subAccountRule.Rules[idx].Price
+			yearlyPrice := uint64(subAccountRule.Rules[idx].Price)
 			subAccountPrice := uint64(0)
 			if yearlyPrice < quote {
 				subAccountPrice = yearlyPrice * common.OneCkb / quote * v.RegisterYears
