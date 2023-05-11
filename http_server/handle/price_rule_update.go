@@ -99,6 +99,10 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	log.Info("doPriceRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("tx_hash=? and tx_status=?", txHash, tables.TxStatusPending).
+			Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
 		for accountId, whiteList := range whiteListMap {
 			if err := tx.Create(&tables.RuleWhitelist{
 				TxHash:          txHash,
