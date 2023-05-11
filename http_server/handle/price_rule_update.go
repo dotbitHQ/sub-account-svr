@@ -248,6 +248,13 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}
+
+				if math.Round(v.Price*100)/100 != v.Price {
+					err = errors.New("price most be two decimal places")
+					apiResp.ApiRespErr(api_code.ApiCodePriceMostReserveTwoDecimal, err.Error())
+					return nil, nil, err
+				}
+
 				price := decimal.NewFromFloat(v.Price).Div(token.Price).Mul(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
 				if uint64(price.IntPart()) < newSubAccountPrice {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)

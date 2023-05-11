@@ -62,6 +62,7 @@ const (
 	ApiCodeAutoDistributionClosed             ApiCode = 40032
 	ApiCodeAccountCanNotBeEmpty               ApiCode = 40033
 	ApiCodePriceRulePriceNotBeLessThanMin     ApiCode = 40034
+	ApiCodePriceMostReserveTwoDecimal         ApiCode = 40035
 )
 
 const (
