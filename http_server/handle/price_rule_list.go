@@ -75,7 +75,9 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 	}
 
 	for idx, v := range subAccountEntity.Rules {
+		ruleType := tables.RuleTypePreservedRules
 		if actionDataType == common.ActionDataTypeSubAccountPriceRules {
+			ruleType = tables.RuleTypePriceRules
 			subAccountEntity.Rules[idx].Price /= math.Pow10(6)
 		}
 
@@ -87,7 +89,7 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 			v.Ast.Arguments[1].ValueType == witness.BinaryArray {
 
 			accIdWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
-			rules, err := h.DbDao.GetRulesBySubAccountIds(parentAccountId, tables.RuleTypePriceRules, accIdWhitelist)
+			rules, err := h.DbDao.GetRulesBySubAccountIds(parentAccountId, ruleType, accIdWhitelist)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 				return err
