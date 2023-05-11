@@ -76,7 +76,6 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		Account:          req.Account,
 	}, apiResp, []common.ActionDataType{}, enable)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx error")
 		return err
 	}
 
