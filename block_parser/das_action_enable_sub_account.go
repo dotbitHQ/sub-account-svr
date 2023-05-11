@@ -85,21 +85,28 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 			return err
 		}
 
-		if err := tx.Model(&tables.RuleWhitelist{}).
-			Where("tx_hash=? and tx_status=?", req.TxHash, tables.TxStatusPending).
-			Updates(map[string]interface{}{
-				"tx_status":       tables.TxStatusCommitted,
-				"block_number":    req.BlockNumber,
-				"block_timestamp": req.BlockTimestamp,
-			}).Error; err != nil {
+		whiteList := &tables.RuleWhitelist{}
+		if err := tx.Where("tx_hash=?", req.TxHash).First(whiteList).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
+		}
+		if whiteList.Id > 0 {
+			if err := tx.Model(&tables.RuleWhitelist{}).
+				Where("tx_hash=? and tx_status=?", req.TxHash, tables.TxStatusPending).
+				Updates(map[string]interface{}{
+					"tx_status":       tables.TxStatusCommitted,
+					"block_number":    req.BlockNumber,
+					"block_timestamp": req.BlockTimestamp,
+				}).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Model(&tables.RuleWhitelist{}).
+				Where("parent_account_id=? and tx_hash!=?", parentAccountId, req.TxHash).
+				Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
 		}
 
-		if err := tx.Model(&tables.RuleWhitelist{}).
-			Where("parent_account_id=? and tx_hash!=?", parentAccountId, req.TxHash).
-			Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
-			return err
-		}
 		return nil
 	}); err != nil {
 		resp.Err = err
