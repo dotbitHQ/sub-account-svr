@@ -30,7 +30,7 @@ type RespDistributionList struct {
 type DistributionListElement struct {
 	Time    int64  `json:"time"`
 	Account string `json:"account"`
-	Year    uint64 `json:"year"`
+	Years   uint64 `json:"years"`
 	Amount  string `json:"amount"`
 }
 
@@ -97,7 +97,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 				list[idx] = DistributionListElement{
 					Time:    record.CreatedAt.UnixMilli(),
 					Account: strings.Split(record.Account, ".")[0],
-					Year:    record.RegisterYears + record.RenewYears,
+					Years:   record.RegisterYears + record.RenewYears,
 				}
 
 				switch record.MintType {
