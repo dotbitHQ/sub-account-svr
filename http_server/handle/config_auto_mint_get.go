@@ -81,7 +81,7 @@ func (h *HttpHandle) doConfigAutoMintGet(req *ReqConfigAutoMintGet, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return err
 	}
-	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
 
 	resp := RespConfigAutoMintGet{
 		Enable: false,
