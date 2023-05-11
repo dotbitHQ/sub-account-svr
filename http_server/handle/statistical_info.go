@@ -214,7 +214,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return err
 
 		}
-		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.TxIndex])
+		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
 
 		log.Info("doStatisticalInfo:", subAccountCell.OutPoint.TxHash.String(), subAccountCell.OutPoint.Index)
 
