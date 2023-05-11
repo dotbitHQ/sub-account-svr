@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"math"
 	"net/http"
+	"strings"
 )
 
 type ReqDistributionList struct {
@@ -95,7 +96,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 				record := recordInfo[idx]
 				list[idx] = DistributionListElement{
 					Time:    record.CreatedAt.UnixMilli(),
-					Account: record.Account,
+					Account: strings.Split(record.Account, ".")[0],
 					Year:    record.RegisterYears + record.RenewYears,
 				}
 
