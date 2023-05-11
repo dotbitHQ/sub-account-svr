@@ -47,6 +47,9 @@ func (h *HttpHandle) PriceRuleList(ctx *gin.Context) {
 
 func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPriceRuleList, apiResp *api_code.ApiResp) error {
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(parentAccountId, apiResp); err != nil {
+		return err
+	}
 
 	baseInfo, err := h.TxTool.GetBaseInfo()
 	if err != nil {
@@ -106,5 +109,28 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 	var resp RespPriceRuleList
 	resp.List = subAccountEntity.Rules
 	apiResp.ApiRespOK(resp)
+	return nil
+}
+
+func (h *HttpHandle) checkForSearch(parentAccountId string, apiResp *api_code.ApiResp) error {
+	acc, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
+		return fmt.Errorf("SearchAccount err: %s", err.Error())
+	}
+	if acc.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
+		return fmt.Errorf("account not exist: %s", parentAccountId)
+	}
+	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
+		return fmt.Errorf("SearchAccount err: %s", err.Error())
+	}
+	if accountInfo.EnableSubAccount != tables.AccountEnableStatusOn {
+		err = errors.New("sub account no enable, please enable sub_account before use")
+		apiResp.ApiRespErr(api_code.ApiCodeSubAccountNoEnable, err.Error())
+		return err
+	}
 	return nil
 }

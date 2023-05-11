@@ -43,6 +43,9 @@ func (h *HttpHandle) CurrencyList(ctx *gin.Context) {
 
 func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(accountId, apiResp); err != nil {
+		return err
+	}
 
 	paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"das_sub_account/http_server/api_code"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -13,7 +12,6 @@ import (
 )
 
 type ReqAutoPaymentList struct {
-	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
 	Page    int    `json:"page" binding:"required,min=1"`
 	Size    int    `json:"size" binding:"required,min=1,max=100"`
@@ -54,6 +52,10 @@ func (h *HttpHandle) AutoPaymentList(ctx *gin.Context) {
 
 func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(accountId, apiResp); err != nil {
+		return err
+	}
+
 	res, total, err := h.DbDao.FindAutoPaymentInfo(accountId, req.Page, req.Size)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())

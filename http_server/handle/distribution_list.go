@@ -58,6 +58,9 @@ func (h *HttpHandle) DistributionList(ctx *gin.Context) {
 
 func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(accountId, apiResp); err != nil {
+		return err
+	}
 
 	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByActions(accountId, []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount}, req.Page, req.Size)
 	if err != nil {

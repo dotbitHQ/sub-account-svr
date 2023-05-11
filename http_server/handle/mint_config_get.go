@@ -37,6 +37,10 @@ func (h *HttpHandle) MintConfigGet(ctx *gin.Context) {
 
 func (h *HttpHandle) doMintConfigGet(req *ReqMintConfigGet, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(accountId, apiResp); err != nil {
+		return err
+	}
+
 	mintConfig, err := h.DbDao.GetMintConfig(accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
