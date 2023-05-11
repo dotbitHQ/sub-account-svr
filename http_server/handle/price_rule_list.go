@@ -8,6 +8,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
+	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/scorpiotzh/toolib"
 	"math"
 	"net/http"
@@ -85,7 +86,7 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 			v.Ast.Arguments[1].Type == witness.Value &&
 			v.Ast.Arguments[1].ValueType == witness.BinaryArray {
 
-			accIdWhitelist := v.Ast.Arguments[1].Value.([]string)
+			accIdWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
 			rules, err := h.DbDao.GetRulesBySubAccountIds(parentAccountId, tables.RuleTypePriceRules, accIdWhitelist)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
