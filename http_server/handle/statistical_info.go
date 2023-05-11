@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"math"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -154,6 +155,10 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 				BackgroundColor: config.Cfg.Das.AutoMint.BackgroundColors[k],
 			})
 		}
+
+		sort.Slice(resp.IncomeInfo, func(i, j int) bool {
+			return resp.IncomeInfo[i].Type < resp.IncomeInfo[j].Type
+		})
 		return nil
 	})
 
