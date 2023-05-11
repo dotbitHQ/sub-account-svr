@@ -61,6 +61,7 @@ const (
 	ApiCodeSubAccountNoEnable                 ApiCode = 40031
 	ApiCodeAutoDistributionClosed             ApiCode = 40032
 	ApiCodeAccountCanNotBeEmpty               ApiCode = 40033
+	ApiCodePriceRulePriceNotBeLessThanMin     ApiCode = 40034
 )
 
 const (

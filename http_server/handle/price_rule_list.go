@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/scorpiotzh/toolib"
+	"math"
 	"net/http"
 )
 
@@ -71,6 +72,10 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 	}
 
 	for idx, v := range subAccountEntity.Rules {
+		if actionDataType == common.ActionDataTypeSubAccountPriceRules {
+			subAccountEntity.Rules[idx].Price /= math.Pow10(6)
+		}
+
 		if v.Ast.Type == witness.Function &&
 			v.Ast.Name == string(witness.FunctionInList) &&
 			v.Ast.Arguments[0].Type == witness.Variable &&

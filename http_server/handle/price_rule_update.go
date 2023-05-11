@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,9 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"math"
 	"net/http"
 	"strings"
 )
@@ -222,7 +225,36 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			return nil, nil, err
 		}
 
+		token, err := h.DbDao.GetTokenById("ckb_ckb")
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil, nil, err
+		}
+
+		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil, nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+		}
+		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+
 		for idx, v := range ruleEntity.Rules {
+
+			if inputActionDataType[0] == common.ActionDataTypeSubAccountPriceRules {
+				if v.Price <= 0 {
+					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
+					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+					return nil, nil, err
+				}
+				price := decimal.NewFromInt(int64(v.Price)).Div(token.Price).Mul(decimal.NewFromInt(int64(token.Decimals)))
+				if uint64(price.IntPart()) < newSubAccountPrice {
+					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
+					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+					return nil, nil, err
+				}
+				ruleEntity.Rules[idx].Price *= math.Pow10(6)
+			}
+
 			if v.Ast.Type == witness.Function &&
 				v.Ast.Name == string(witness.FunctionInList) &&
 				v.Ast.Arguments[0].Type == witness.Variable &&
