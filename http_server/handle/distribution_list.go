@@ -110,8 +110,9 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						return err
 					}
 					if order.Id == 0 {
-						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, "order no exist")
-						return errors.New("order no exist")
+						err = fmt.Errorf("order: %s no exist", record.OrderID)
+						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, err.Error())
+						return err
 					}
 					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
 
