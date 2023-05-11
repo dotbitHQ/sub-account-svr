@@ -245,6 +245,9 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 					return nil, nil, err
 				}
 				price := decimal.NewFromInt(int64(v.Price)).Div(token.Price).Mul(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
+
+				log.Infof("price: %s new_sub_account_price: %d", price.String(), newSubAccountPrice)
+
 				if uint64(price.IntPart()) < newSubAccountPrice {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
 					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
