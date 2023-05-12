@@ -72,7 +72,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 	resp := &RespDistributionList{
 		Page:  req.Page,
 		Total: total,
-		List:  make([]DistributionListElement, total),
+		List:  make([]DistributionListElement, len(recordInfo)),
 	}
 	if total == 0 {
 		apiResp.ApiRespOK(resp)
