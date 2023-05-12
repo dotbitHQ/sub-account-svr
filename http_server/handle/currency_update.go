@@ -81,7 +81,9 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		return err
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.check(address, req.Account, apiResp); err != nil {
+
+	action := ActionCurrencyUpdate
+	if err := h.check(address, req.Account, action, apiResp); err != nil {
 		return err
 	}
 
@@ -121,7 +123,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	if signType == common.DasAlgorithmIdEth712 {
 		signType = common.DasAlgorithmIdEth
 	}
-	resp.Action = ActionCurrencyUpdate
+	resp.Action = action
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: []txbuilder.SignData{{

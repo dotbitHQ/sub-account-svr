@@ -1,12 +1,9 @@
 package handle
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
-	"das_sub_account/internal"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
@@ -14,7 +11,6 @@ import (
 )
 
 type ReqConfigAutoMintGet struct {
-	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
 }
 
@@ -46,24 +42,10 @@ func (h *HttpHandle) ConfigAutoMintGet(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doConfigAutoMintGet(req *ReqConfigAutoMintGet, apiResp *api_code.ApiResp) error {
-	if err := h.checkSystemUpgrade(apiResp); err != nil {
-		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
-	}
-	if ok := internal.IsLatestBlockNumber(config.Cfg.Server.ParserUrl); !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
-		return fmt.Errorf("sync block number")
-	}
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return err
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-
-	if err := h.check(address, req.Account, apiResp); err != nil {
-		return err
-	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(parentAccountId, apiResp); err != nil {
+		return err
+	}
 
 	baseInfo, err := h.TxTool.GetBaseInfo()
 	if err != nil {

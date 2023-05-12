@@ -63,6 +63,7 @@ const (
 	ApiCodeAccountCanNotBeEmpty               ApiCode = 40033
 	ApiCodePriceRulePriceNotBeLessThanMin     ApiCode = 40034
 	ApiCodePriceMostReserveTwoDecimal         ApiCode = 40035
+	ApiCodeConfigSubAccountPending            ApiCode = 40036
 )
 
 const (

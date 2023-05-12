@@ -86,7 +86,9 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 		return err
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.check(address, req.Account, apiResp); err != nil {
+
+	action := ActionMintConfigUpdate
+	if err := h.check(address, req.Account, action, apiResp); err != nil {
 		return err
 	}
 
@@ -113,7 +115,7 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 	if signType == common.DasAlgorithmIdEth712 {
 		signType = common.DasAlgorithmIdEth
 	}
-	resp.Action = ActionMintConfigUpdate
+	resp.Action = action
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: []txbuilder.SignData{{

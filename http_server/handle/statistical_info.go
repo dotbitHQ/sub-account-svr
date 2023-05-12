@@ -21,7 +21,6 @@ import (
 )
 
 type ReqStatisticalInfo struct {
-	core.ChainTypeAddress
 	Account string `json:"account" binding:"required"`
 }
 
@@ -72,16 +71,10 @@ func (h *HttpHandle) StatisticalInfo(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_code.ApiResp) error {
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return err
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-	if err := h.check(address, req.Account, apiResp); err != nil {
-		return err
-	}
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	if err := h.checkForSearch(accountId, apiResp); err != nil {
+		return err
+	}
 
 	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -246,7 +239,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	return nil
 }
 
-func (h *HttpHandle) check(address, account string, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) check(address, account string, action common.DasAction, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -275,26 +268,17 @@ func (h *HttpHandle) check(address, account string, apiResp *api_code.ApiResp) e
 		return err
 	}
 
-	//_, accLen, err := common.GetDotBitAccountLength(account)
-	//if err != nil {
-	//	err = errors.New("internal error")
-	//	apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-	//	return err
-	//}
-	//if accLen < 8 {
-	//	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
-	//	if err != nil {
-	//		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-	//		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	//	}
-	//
-	//	if builder.ConfigCellSubAccountWhiteListMap != nil {
-	//		if _, ok := builder.ConfigCellSubAccountWhiteListMap[accountId]; !ok {
-	//			err = errors.New("you no have sub account distribution permission")
-	//			apiResp.ApiRespErr(api_code.ApiCodeNoSubAccountDistributionPermission, err.Error())
-	//			return err
-	//		}
-	//	}
-	//}
+	if action == common.DasActionConfigSubAccount {
+		task, err := h.DbDao.GetLatestTask(accountId, common.DasActionConfigSubAccount)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return err
+		}
+		if task.Id > 0 && task.TxStatus == tables.TxStatusPending {
+			err = errors.New("sub account pending, please wait")
+			apiResp.ApiRespErr(api_code.ApiCodeConfigSubAccountPending, err.Error())
+			return err
+		}
+	}
 	return nil
 }

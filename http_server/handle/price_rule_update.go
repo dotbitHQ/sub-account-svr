@@ -68,7 +68,8 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if err := h.check(address, req.Account, apiResp); err != nil {
+	action := common.DasActionConfigSubAccount
+	if err := h.check(address, req.Account, action, apiResp); err != nil {
 		return err
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
@@ -82,7 +83,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
-		action:    common.DasActionConfigSubAccount,
+		action:    action,
 		account:   req.Account,
 	})
 	if err != nil {
@@ -91,7 +92,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 
 	resp := RespConfigAutoMintUpdate{}
-	resp.Action = common.DasActionConfigSubAccount
+	resp.Action = action
 	resp.SignKey = signKey
 	resp.List = append(resp.List, SignInfo{
 		SignList: signList,
