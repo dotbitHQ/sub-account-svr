@@ -139,7 +139,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	tokenPrice, err := h.DbDao.GetTokenById(string(req.TokenId))
+	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
 		return fmt.Errorf("GetTokenById err: %s", err.Error())

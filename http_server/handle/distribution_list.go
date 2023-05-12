@@ -3,7 +3,6 @@ package handle
 import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
-	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
@@ -81,6 +80,12 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 		return nil
 	}
 
+	tokens, err := h.DbDao.FindTokens()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return err
+	}
+
 	ch := make(chan int, 10)
 	errG := errgroup.Group{}
 	errG.Go(func() error {
@@ -117,12 +122,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						return err
 					}
 					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
-
-					token, err := h.DbDao.GetTokenById(order.TokenId)
-					if err != nil {
-						apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-						return errors.New("db error")
-					}
+					token := tokens[order.TokenId]
 					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
 					resp.List[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
 				}

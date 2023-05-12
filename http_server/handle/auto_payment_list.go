@@ -2,6 +2,7 @@ package handle
 
 import (
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
@@ -67,7 +68,7 @@ func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.
 	}
 
 	for _, v := range res {
-		token, err := h.DbDao.GetTokenById(v.TokenId)
+		token, err := h.DbDao.GetTokenById(tables.TokenId(v.TokenId))
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err

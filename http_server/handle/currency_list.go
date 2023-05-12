@@ -55,7 +55,7 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 
 	result := make([]tables.PaymentConfigElement, 0)
 	for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
-		token, err := h.DbDao.GetTokenById(v)
+		token, err := h.DbDao.GetTokenById(tables.TokenId(v))
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return err

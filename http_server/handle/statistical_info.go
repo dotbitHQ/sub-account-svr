@@ -135,7 +135,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		}
 
 		for k, v := range totalAmount {
-			token, err := h.DbDao.GetTokenById(k)
+			token, err := h.DbDao.GetTokenById(tables.TokenId(k))
 			if err != nil {
 				return err
 			}

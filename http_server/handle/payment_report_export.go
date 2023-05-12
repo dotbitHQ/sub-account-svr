@@ -65,7 +65,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 	}
 	records := make(map[string]*CsvRecord)
 	for _, v := range list {
-		token, err := h.DbDao.GetTokenById(v.TokenId)
+		token, err := h.DbDao.GetTokenById(tables.TokenId(v.TokenId))
 		if err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -90,7 +90,7 @@ func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
 
 	recordsNew := make(map[string]*CsvRecord)
 	for k, v := range records {
-		token, err := h.DbDao.GetTokenById(v.TokenId)
+		token, err := h.DbDao.GetTokenById(tables.TokenId(v.TokenId))
 		if err != nil {
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)

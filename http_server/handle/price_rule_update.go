@@ -228,7 +228,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			return nil, nil, err
 		}
 
-		token, err := h.DbDao.GetTokenById("ckb_ckb")
+		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return nil, nil, err
