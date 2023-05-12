@@ -146,10 +146,10 @@ func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintTypes ta
 	return
 }
 
-func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions []string, page, size int) (resp []tables.TableSmtRecordInfo, total int64, err error) {
+func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subActions []string, page, size int) (resp []tables.TableSmtRecordInfo, total int64, err error) {
 	db := d.db.Model(&tables.TableSmtRecordInfo{}).Joins("join t_task_info on t_smt_record_info.task_id=t_task_info.task_id").
-		Where("t_smt_record_info.parent_account_id=? and t_smt_record_info.action in (?) and t_task_info.smt_status=? and t_task_info.tx_status=?",
-			parentAccountId, actions, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).
+		Where("t_smt_record_info.parent_account_id=? and t_smt_record_info.action in (?) and t_smt_record_info.sub_action in (?) and t_task_info.smt_status=? and t_task_info.tx_status=?",
+			parentAccountId, actions, subActions, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).
 		Order("t_smt_record_info.id desc")
 	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return

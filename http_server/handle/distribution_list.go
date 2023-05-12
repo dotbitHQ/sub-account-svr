@@ -63,7 +63,9 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 		return err
 	}
 
-	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByActions(accountId, []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount}, req.Page, req.Size)
+	actions := []string{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount}
+	subActions := []string{common.SubActionCreate, common.SubActionRenew}
+	recordInfo, total, err := h.DbDao.FindSmtRecordInfoByActions(accountId, actions, subActions, req.Page, req.Size)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
