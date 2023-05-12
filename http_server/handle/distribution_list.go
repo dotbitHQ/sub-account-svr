@@ -72,6 +72,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 	resp := &RespDistributionList{
 		Page:  req.Page,
 		Total: total,
+		List:  make([]DistributionListElement, total),
 	}
 	if total == 0 {
 		apiResp.ApiRespOK(resp)
@@ -79,8 +80,6 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 	}
 
 	ch := make(chan int, 10)
-	list := make([]DistributionListElement, len(recordInfo))
-
 	errG := errgroup.Group{}
 	errG.Go(func() error {
 		for idx := range recordInfo {
@@ -94,7 +93,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 			idx := v
 			errG.Go(func() error {
 				record := recordInfo[idx]
-				list[idx] = DistributionListElement{
+				resp.List[idx] = DistributionListElement{
 					Time:    record.CreatedAt.UnixMilli(),
 					Account: strings.Split(record.Account, ".")[0],
 					Years:   record.RegisterYears + record.RenewYears,
@@ -102,7 +101,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 
 				switch record.MintType {
 				case tables.MintTypeDefault, tables.MintTypeManual:
-					list[idx].Amount = "Free mint by manager"
+					resp.List[idx].Amount = "Free mint by manager"
 					return nil
 				case tables.MintTypeAutoMint:
 					order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
@@ -123,7 +122,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						return errors.New("db error")
 					}
 					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
-					list[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
+					resp.List[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
 				}
 				return nil
 			})
@@ -133,7 +132,6 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 	if err := errG.Wait(); err != nil {
 		return err
 	}
-	resp.List = list
 	apiResp.ApiRespOK(resp)
 	return nil
 }
