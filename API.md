@@ -164,7 +164,6 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
       "enable_sub_account": 0,
       "renew_sub_account_price": 0,
       "nonce": 0,
-      "is_in_whitelist": false,
       "avatar": ""
     },
     "records": [
@@ -251,7 +250,8 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
         "status": 0,
         "enable_sub_account": 0,
         "renew_sub_account_price": 0,
-        "nonce": 0
+        "nonce": 0,
+        "avatar": ""
       }
     ]
   }

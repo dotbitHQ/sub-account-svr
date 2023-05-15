@@ -62,13 +62,6 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	}
 	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
 
-	// config cell
-	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccountWhiteList)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	}
-
 	// account list
 	list, err := h.DbDao.GetAccountList(req.chainType, req.address, req.GetLimit(), req.GetOffset(), req.Category, req.Keyword)
 	if err != nil {
@@ -80,18 +73,6 @@ func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiRes
 	for _, v := range list {
 		tmp := h.accountInfoToAccountData(v)
 		if v.ParentAccountId == "" {
-			_, accLen, err := common.GetDotBitAccountLength(v.Account)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get account len")
-				return fmt.Errorf("GetDotBitAccountLength err: %s", err.Error())
-			}
-			if accLen < 8 {
-				if _, ok := builder.ConfigCellSubAccountWhiteListMap[v.AccountId]; ok {
-					tmp.IsInWhitelist = true
-				}
-			} else {
-				tmp.IsInWhitelist = true
-			}
 			accountIds = append(accountIds, v.AccountId)
 		}
 		resp.List = append(resp.List, tmp)
