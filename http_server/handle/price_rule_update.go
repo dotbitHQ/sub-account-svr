@@ -375,6 +375,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
+	ruleWitnessSize := 0
 	// witness sub_account cell
 	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
@@ -389,7 +390,10 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			if len(inputActionDataType) > 0 && inputActionDataType[0] == actionDataType {
 				return true, nil
 			}
-			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
+
+			ruleBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
+			ruleWitnessSize += len(ruleBytes)
+			txParams.Witnesses = append(txParams.Witnesses, ruleBytes)
 		}
 		return true, nil
 	}); err != nil {
@@ -397,7 +401,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 
 	// rule witness
-	ruleWitnessSize := 0
 	for _, v := range rulesResult {
 		ruleWitnessSize += len(v)
 		txParams.Witnesses = append(txParams.Witnesses, v)
