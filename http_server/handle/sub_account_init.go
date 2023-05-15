@@ -92,31 +92,10 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	}
 
 	// config cell
-	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount, common.ConfigCellTypeArgsAccount, common.ConfigCellTypeArgsSubAccountWhiteList)
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount, common.ConfigCellTypeArgsAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	}
-
-	// check white list
-	_, accLen, err := common.GetDotBitAccountLength(req.Account)
-	log.Info("doSubAccountInit accLen:", req.Account, accLen)
-	if accLen < 8 {
-		if builder.ConfigCellSubAccountWhiteListMap == nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "white list error")
-			return fmt.Errorf("ConfigCellSubAccountWhiteListMap is nil")
-		}
-		isAllOpen := false
-		if _, ok := builder.ConfigCellSubAccountWhiteListMap["0xd83bc404a35ee0c4c2055d5ac13a5c323aae494a"]; ok {
-			isAllOpen = true
-		}
-		log.Info("doSubAccountInit:", req.Account, isAllOpen)
-		if !isAllOpen {
-			if _, ok := builder.ConfigCellSubAccountWhiteListMap[acc.AccountId]; !ok {
-				apiResp.ApiRespErr(api_code.ApiCodeUnableInit, fmt.Sprintf("account [%s] unable init", req.Account))
-				return nil
-			}
-		}
 	}
 
 	subAccountBasicCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.BasicCapacity().RawData())
@@ -335,10 +314,7 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 	if err != nil {
 		return nil, fmt.Errorf("GetTimeCell err: %s", err.Error())
 	}
-	configCellWhiteList, err := core.GetDasConfigCellInfo(common.ConfigCellTypeArgsSubAccountWhiteList)
-	if err != nil {
-		return nil, fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
-	}
+
 	txParams.CellDeps = append(txParams.CellDeps,
 		configCellMain.ToCellDep(),
 		contractDas.ToCellDep(),
@@ -349,7 +325,6 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 		configCellSubAcc.ToCellDep(),
 		heightCell.ToCellDep(),
 		timeCell.ToCellDep(),
-		configCellWhiteList.ToCellDep(),
 	)
 
 	return &txParams, nil
