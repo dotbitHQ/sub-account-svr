@@ -405,6 +405,8 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		ruleWitnessSize += len(v)
 		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
+	log.Infof("rule witness size: %dK", ruleWitnessSize/1e3)
+
 	if ruleWitnessSize > 441*1e3 {
 		err = errors.New("rule size exceeds limit")
 		apiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())
