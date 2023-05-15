@@ -242,6 +242,8 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		}
 		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 
+		preservedInList := 0
+
 		for idx, v := range ruleEntity.Rules {
 			if inputActionDataType[0] == common.ActionDataTypeSubAccountPriceRules {
 				if v.Price <= 0 {
@@ -273,7 +275,20 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 				accWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
 
-				log.Info(accWhitelist)
+				if len(accWhitelist) > 999 {
+					err = errors.New("account list most be less than 1000")
+					apiResp.ApiRespErr(api_code.ApiCodeInListMostBeLessThan1000, err.Error())
+					return nil, nil, err
+				}
+
+				if inputActionDataType[0] == common.ActionDataTypeSubAccountPreservedRules {
+					preservedInList += 1
+					if preservedInList > 1 {
+						err = errors.New("preserved in_list rules most be one")
+						apiResp.ApiRespErr(api_code.ApiCodePreservedRulesMostBeOne, err.Error())
+						return nil, nil, err
+					}
+				}
 
 				for _, v := range accWhitelist {
 					accountName := strings.Split(strings.TrimSpace(v), ".")[0]
@@ -284,6 +299,11 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 					}
 					account := accountName + "." + req.Account
 					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
+					if _, ok := whiteListMap[accId]; ok {
+						err = fmt.Errorf("account: %s repeat", accountName)
+						apiResp.ApiRespErr(api_code.ApiCodeAccountRepeat, err.Error())
+						return nil, nil, err
+					}
 					whiteListMap[accId] = Whitelist{
 						Index:   idx,
 						Account: accountName,

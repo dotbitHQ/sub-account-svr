@@ -64,6 +64,9 @@ const (
 	ApiCodePriceRulePriceNotBeLessThanMin     ApiCode = 40034
 	ApiCodePriceMostReserveTwoDecimal         ApiCode = 40035
 	ApiCodeConfigSubAccountPending            ApiCode = 40036
+	ApiCodeAccountRepeat                      ApiCode = 40037
+	ApiCodeInListMostBeLessThan1000           ApiCode = 40038
+	ApiCodePreservedRulesMostBeOne            ApiCode = 40039
 )
 
 const (
