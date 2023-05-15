@@ -397,8 +397,15 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	}
 
 	// rule witness
+	ruleWitnessSize := 0
 	for _, v := range rulesResult {
+		ruleWitnessSize += len(v)
 		txParams.Witnesses = append(txParams.Witnesses, v)
+	}
+	if ruleWitnessSize > 441*1e3 {
+		err = errors.New("rule size exceeds limit")
+		apiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())
+		return nil, nil, err
 	}
 	return txParams, whiteListMap, nil
 }

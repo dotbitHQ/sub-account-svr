@@ -67,6 +67,7 @@ const (
 	ApiCodeAccountRepeat                      ApiCode = 40037
 	ApiCodeInListMostBeLessThan1000           ApiCode = 40038
 	ApiCodePreservedRulesMostBeOne            ApiCode = 40039
+	ApiCodeRuleSizeExceedsLimit               ApiCode = 40040
 )
 
 const (
