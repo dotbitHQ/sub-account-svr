@@ -4,6 +4,7 @@ import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/tables"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/toolib"
@@ -191,48 +192,76 @@ var (
 func TestPriceRuleUpdate(t *testing.T) {
 	req := handle.ReqPriceRuleUpdate{
 		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
-		List: witness.SubAccountRuleSlice{{
-			Index: 0,
-			Name:  "test",
-			Note:  "test",
-			Price: 1e6,
-			Ast: witness.AstExpression{
-				Type:      witness.Operator,
-				Name:      "",
-				Symbol:    witness.Equ,
-				Value:     nil,
-				ValueType: "",
-				Arguments: nil,
-				Expressions: witness.AstExpressions{{
-					Type:        witness.Variable,
-					Name:        string(witness.AccountLength),
-					Symbol:      "",
-					Value:       nil,
-					ValueType:   "",
-					Arguments:   nil,
-					Expressions: nil,
-				}, {
-					Type:        witness.Value,
-					Name:        "",
-					Symbol:      "",
-					Value:       4,
-					ValueType:   witness.Uint8,
-					Arguments:   nil,
-					Expressions: nil,
-				}},
-			},
-			Status: 1,
-		}},
+		Account:          "sub-account-test.bit",
+		List:             witness.SubAccountRuleSlice{},
 	}
-	//req.List = witness.SubAccountRuleSlice{}
+	for i := 0; i < 170; i++ {
+		req.List = append(req.List, &witness.SubAccountRule{
+			Index: uint32(i),
+			Name:  fmt.Sprintf("test rule %d", i),
+			Note: "A name that is not priced will not be automatically distributed; " +
+				" name that meets more than one price rule may be automatically distributed at any one of the multiple prices it meets.",
+			Price:  10,
+			Status: 1,
+			Ast: witness.AstExpression{
+				Type:   witness.Operator,
+				Symbol: witness.And,
+				Expressions: witness.AstExpressions{
+					{
+						Type:   witness.Operator,
+						Symbol: witness.Equ,
+						Expressions: witness.AstExpressions{
+							{
+								Type: witness.Variable,
+								Name: string(witness.AccountLength),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.Uint32,
+								Value:     uint32(i + 1),
+							},
+						},
+					},
+					{
+						Type: witness.Function,
+						Name: string(witness.FunctionOnlyIncludeCharset),
+						Arguments: []*witness.AstExpression{
+							{
+								Type: witness.Variable,
+								Name: string(witness.AccountChars),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.Charset,
+								Value:     common.AccountCharTypeEn,
+							},
+						},
+					},
+					{
+						Type: witness.Function,
+						Name: string(witness.FunctionIncludeWords),
+						Arguments: []*witness.AstExpression{
+							{
+								Type: witness.Variable,
+								Name: string(witness.Account),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.StringArray,
+								Value:     []string{"test1", "test2", "test3"}},
+						},
+					},
+				},
+			},
+		})
+	}
 	data := handle.RespConfigAutoMintUpdate{}
 	url := fmt.Sprintf("%s/price/rule/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println("data:", toolib.JsonString(&data))
-	if err := doSign2(data.SignInfoList, private, false); err != nil {
+	if err := doSign(data.SignInfoList, private); err != nil {
 		t.Fatal(err)
 	}
 
@@ -314,4 +343,139 @@ func TestAutoPaymentList(t *testing.T) {
 
 func TestTime2(t *testing.T) {
 	fmt.Println(tables.GetEfficientOrderTimestamp())
+}
+
+func TestPriceRuleUpdateSizeLimit(t *testing.T) {
+	req := handle.ReqPriceRuleUpdate{
+		ChainTypeAddress: ctaETH,
+		Account:          "sub-account-test.bit",
+		List:             witness.SubAccountRuleSlice{},
+	}
+	for i := 0; i < 170; i++ {
+		req.List = append(req.List, &witness.SubAccountRule{
+			Index: uint32(i),
+			Name:  fmt.Sprintf("test rule %d", i),
+			Note: "A name that is not priced will not be automatically distributed; " +
+				" name that meets more than one price rule may be automatically distributed at any one of the multiple prices it meets.",
+			Price:  10,
+			Status: 1,
+			Ast: witness.AstExpression{
+				Type:   witness.Operator,
+				Symbol: witness.And,
+				Expressions: witness.AstExpressions{
+					{
+						Type:   witness.Operator,
+						Symbol: witness.Equ,
+						Expressions: witness.AstExpressions{
+							{
+								Type: witness.Variable,
+								Name: string(witness.AccountLength),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.Uint32,
+								Value:     uint32(i + 1),
+							},
+						},
+					},
+					{
+						Type: witness.Function,
+						Name: string(witness.FunctionOnlyIncludeCharset),
+						Arguments: []*witness.AstExpression{
+							{
+								Type: witness.Variable,
+								Name: string(witness.AccountChars),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.Charset,
+								Value:     common.AccountCharTypeEn,
+							},
+						},
+					},
+					{
+						Type: witness.Function,
+						Name: string(witness.FunctionIncludeWords),
+						Arguments: []*witness.AstExpression{
+							{
+								Type: witness.Variable,
+								Name: string(witness.Account),
+							},
+							{
+								Type:      witness.Value,
+								ValueType: witness.StringArray,
+								Value:     []string{"test1", "test2", "test3"}},
+						},
+					},
+				},
+			},
+		})
+	}
+	data := handle.RespConfigAutoMintUpdate{}
+	url := fmt.Sprintf("%s/price/rule/update", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+	if err := doSign(data.SignInfoList, private); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPriceRuleUpdateInListLimit(t *testing.T) {
+	req := handle.ReqPriceRuleUpdate{
+		ChainTypeAddress: ctaETH,
+		Account:          "sub-account-test.bit",
+		List:             witness.SubAccountRuleSlice{},
+	}
+
+	rule := &witness.SubAccountRule{
+		Index: 0,
+		Name:  "test in list rule",
+		Note: "A name that is not priced will not be automatically distributed; " +
+			" name that meets more than one price rule may be automatically distributed at any one of the multiple prices it meets.",
+		Price:  10,
+		Status: 1,
+		Ast: witness.AstExpression{
+			Type: witness.Function,
+			Name: string(witness.FunctionInList),
+			Arguments: witness.AstExpressions{
+				{
+					Type: witness.Variable,
+					Name: string(witness.Account),
+				},
+				{
+					Type:      witness.Value,
+					ValueType: witness.BinaryArray,
+					Value:     []string{},
+				},
+			},
+		},
+	}
+	for i := 0; i < 1100; i++ {
+		rule.Ast.Arguments[1].Value = append(rule.Ast.Arguments[1].Value.([]string), fmt.Sprintf("test%d", i))
+	}
+	req.List = append(req.List, rule)
+
+	data := handle.RespConfigAutoMintUpdate{}
+	url := fmt.Sprintf("%s/price/rule/update", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+	if err := doSign(data.SignInfoList, private); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := doTransactionSendNew(handle.ReqTransactionSend{
+		SignInfoList: data.SignInfoList,
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
