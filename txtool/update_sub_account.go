@@ -382,9 +382,13 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err != nil {
 		return nil, err
 	}
+
+	rulesSize := 0
 	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
 		if actionDataType == common.ActionDataTypeSubAccountPriceRules || actionDataType == common.ActionDataTypeSubAccountPreservedRules {
-			txParams.Witnesses = append(txParams.Witnesses, witness.GenDasDataWitnessWithByte(actionDataType, dataBys))
+			witnessBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
+			rulesSize += len(witnessBytes)
+			txParams.Witnesses = append(txParams.Witnesses, witnessBytes)
 		}
 		return true, nil
 	}); err != nil {
@@ -445,7 +449,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 	changeCapacity = changeCapacity - sizeInBlock - 5000
-	log.Info("BuildCreateSubAccountTx change fee:", sizeInBlock)
+	log.Infof("BuildCreateSubAccountTx txSize: %d rulesSize: %d", sizeInBlock, rulesSize)
 
 	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
 
