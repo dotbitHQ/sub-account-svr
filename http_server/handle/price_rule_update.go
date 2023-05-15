@@ -269,13 +269,14 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 				v.Ast.Name == string(witness.FunctionInList) &&
 				v.Ast.Arguments[0].Type == witness.Variable &&
 				v.Ast.Arguments[0].Name == string(witness.Account) &&
-				v.Ast.Arguments[1].Type == witness.Value &&
-				v.Ast.Arguments[1].ValueType == witness.BinaryArray {
+				v.Ast.Arguments[1].Type == witness.Value {
 
 				accWhitelist := gconv.Strings(v.Ast.Arguments[1].Value)
+
+				log.Info(accWhitelist)
+
 				for _, v := range accWhitelist {
-					v = strings.TrimSpace(v)
-					accountName := strings.Split(v, ".")[0]
+					accountName := strings.Split(strings.TrimSpace(v), ".")[0]
 					if accountName == "" {
 						err = errors.New("account can not be empty")
 						apiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())

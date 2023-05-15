@@ -86,7 +86,7 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 		}
 
 		whiteList := &tables.RuleWhitelist{}
-		if err := tx.Where("tx_hash=?", req.TxHash).First(whiteList).Error; err != nil && err != gorm.ErrRecordNotFound {
+		if err := tx.Where("tx_hash=?", req.TxHash).Order("id desc").First(whiteList).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
 		}
 		if whiteList.Id > 0 {
@@ -101,7 +101,7 @@ func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactio
 			}
 
 			if err := tx.Model(&tables.RuleWhitelist{}).
-				Where("parent_account_id=? and tx_hash!=?", parentAccountId, req.TxHash).
+				Where("parent_account_id=? and rule_type=? and tx_hash!=?", parentAccountId, whiteList.RuleType, req.TxHash).
 				Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 				return err
 			}
