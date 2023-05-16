@@ -223,7 +223,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	// Assemble price rules and calculate rule hash
 	if len(inputActionDataType) == 1 {
 		ruleEntity := witness.NewSubAccountRuleEntity(req.Account)
-		ruleEntity.Version = witness.SubAccountRuleVersionV1
 		ruleEntity.Rules = req.List
 		if err := ruleEntity.Check(); err != nil {
 			return nil, nil, err
