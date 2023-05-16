@@ -14,8 +14,7 @@ import (
 
 func TestStatisticalInfo(t *testing.T) {
 	req := handle.ReqStatisticalInfo{
-		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
+		Account: "20230504.bit",
 	}
 	data := handle.RespStatisticalInfo{}
 	url := fmt.Sprintf("%s/statistical/info", ApiUrl)
@@ -110,8 +109,7 @@ func TestConfigAutoMintUpdate(t *testing.T) {
 
 func TestConfigAutoMintGet(t *testing.T) {
 	req := handle.ReqConfigAutoMintGet{
-		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
+		Account: "20230504.bit",
 	}
 	data := handle.RespConfigAutoMintGet{}
 	url := fmt.Sprintf("%s/config/auto_mint/get", ApiUrl)
@@ -162,7 +160,7 @@ func TestCurrencyUpdate(t *testing.T) {
 
 func TestPriceRuleList(t *testing.T) {
 	req := handle.ReqPriceRuleList{
-		Account: "20230504.bit",
+		Account: "10086.bit",
 	}
 	data := handle.RespPriceRuleList{}
 	url := fmt.Sprintf("%s/price/rule/list", ApiUrl)
@@ -328,10 +326,9 @@ func TestPreservedRuleUpdate(t *testing.T) {
 
 func TestAutoPaymentList(t *testing.T) {
 	req := handle.ReqAutoPaymentList{
-		ChainTypeAddress: ctaETH,
-		Account:          "20230504.bit",
-		Page:             1,
-		Size:             10,
+		Account: "20230504.bit",
+		Page:    1,
+		Size:    10,
 	}
 	data := handle.RespAutoPaymentList{}
 	url := fmt.Sprintf("%s/auto/payment/list", ApiUrl)
