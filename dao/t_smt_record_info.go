@@ -162,10 +162,10 @@ func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subA
 }
 
 func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint64, err error) {
-	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("IFNULL(sum(register_years+renew_years),0)").
-		Where("parent_account_id=? and mint_type in (?) and action in (?)",
+	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("IFNULL(sum(register_years+renew_years),0)").Joins("join t_task_info on t_smt_record_info.task_id=t_task_info.task_id").
+		Where("t_smt_record_info.parent_account_id=? and t_smt_record_info.mint_type in (?) and t_smt_record_info.sub_action in (?) and t_task_info.smt_status=? and t_task_info.tx_status=?",
 			parentAccountId, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual},
-			[]common.DasAction{common.DasActionUpdateSubAccount, common.DasActionRenewSubAccount}).Scan(&total).Error
+			[]common.DasAction{common.SubActionCreate, common.SubActionRenew}, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).Scan(&total).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
