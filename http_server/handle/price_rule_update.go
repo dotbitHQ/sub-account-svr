@@ -313,6 +313,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 		ruleData, err := ruleEntity.GenData()
 		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 		rulesData := make([]byte, 0)

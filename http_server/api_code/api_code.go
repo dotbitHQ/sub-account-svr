@@ -68,6 +68,7 @@ const (
 	ApiCodeInListMostBeLessThan1000           ApiCode = 40038
 	ApiCodePreservedRulesMostBeOne            ApiCode = 40039
 	ApiCodeRuleSizeExceedsLimit               ApiCode = 40040
+	ApiCodeRuleFormatErr                      ApiCode = 40041
 )
 
 const (
