@@ -326,8 +326,12 @@ func (d *DbDao) FirstEnableAutoMint(parentId string) (list tables.TableTaskInfo,
 	return
 }
 
-func (d *DbDao) GetLatestTask(parentId string, action common.DasAction) (t tables.TableTaskInfo, err error) {
-	err = d.db.Where("parent_account_id=? AND action=?", parentId, action).Order("id desc").First(&t).Error
+func (d *DbDao) GetLatestTask(parentId string, action common.DasAction, where ...interface{}) (t tables.TableTaskInfo, err error) {
+	db := d.db.Where("parent_account_id=? AND action=?", parentId, action)
+	if len(where) > 1 {
+		db = db.Where(where[0], where[1:])
+	}
+	err = db.Order("id desc").First(&t).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}

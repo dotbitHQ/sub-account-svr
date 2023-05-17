@@ -50,19 +50,22 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 	if err := h.checkForSearch(parentAccountId, apiResp); err != nil {
 		return err
 	}
-
-	baseInfo, err := h.TxTool.GetBaseInfo()
+	taskInfo, err := h.DbDao.GetLatestTask(parentAccountId, common.DasActionConfigSubAccount, "smt_status=? and tx_status=?", tables.SmtStatusWriteComplete, tables.TxStatusCommitted)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 		return err
 	}
 
-	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
+	resp := &RespPriceRuleList{
+		List: []interface{}{},
 	}
-	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
+	if taskInfo.Id == 0 {
+		apiResp.ApiRespOK(resp)
+		return nil
+	}
+
+	outpoint := common.String2OutPointStruct(taskInfo.Outpoint)
+	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, outpoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return err
@@ -108,7 +111,6 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 		}
 	}
 
-	var resp RespPriceRuleList
 	resp.List = subAccountEntity.Rules
 	apiResp.ApiRespOK(resp)
 	return nil
