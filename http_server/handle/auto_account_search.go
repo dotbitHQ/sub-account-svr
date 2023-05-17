@@ -107,7 +107,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	resp.MaxYear = h.getMaxYears(parentAccount)
 
 	// get rule price
-	resp.Price, err = h.getRulePrice(parentAccountId, req.SubAccount, apiResp)
+	resp.Price, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -223,7 +223,7 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 	return maxYear
 }
 
-func (h *HttpHandle) getRulePrice(parentAccountId, subAccount string, apiResp *api_code.ApiResp) (price decimal.Decimal, e error) {
+func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string, apiResp *api_code.ApiResp) (price decimal.Decimal, e error) {
 	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search rule config")
@@ -236,7 +236,7 @@ func (h *HttpHandle) getRulePrice(parentAccountId, subAccount string, apiResp *a
 		e = fmt.Errorf("GetTransaction err: %s", err.Error())
 		return
 	}
-	var ruleReverse witness.SubAccountRuleEntity
+	ruleReverse := witness.NewSubAccountRuleEntity(parentAcc)
 	if err = ruleReverse.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPreservedRules); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rules")
 		e = fmt.Errorf("ParseFromTx err: %s", err.Error())
@@ -252,7 +252,7 @@ func (h *HttpHandle) getRulePrice(parentAccountId, subAccount string, apiResp *a
 		return
 	}
 
-	var rulePrice witness.SubAccountRuleEntity
+	rulePrice := witness.NewSubAccountRuleEntity(parentAcc)
 	if err = rulePrice.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rules")
 		e = fmt.Errorf("ParseFromTx err: %s", err.Error())
