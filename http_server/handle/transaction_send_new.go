@@ -1,11 +1,9 @@
 package handle
 
 import (
-	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
-	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
@@ -211,12 +209,6 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 	if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
-	}
-	if req.Action == common.DasActionEnableSubAccount && h.ServerScript != nil {
-		subsidizeArgs := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Lock.Args
-		if bytes.Compare(subsidizeArgs, h.ServerScript.Args) == 0 {
-			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "Open sub-account subsidy", fmt.Sprintf("Account: %s", sic.Account))
-		}
 	}
 
 	if hash, err := txBuilder.SendTransaction(); err != nil {

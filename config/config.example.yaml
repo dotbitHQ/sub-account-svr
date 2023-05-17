@@ -27,8 +27,6 @@ das:
     service_fee_ratio: 0.1
 origins:
   - ""
-subsidy_whitelist:
-  "": ""
 notify:
   lark_error_key: ""
   lark_create_sub_account_key: ""

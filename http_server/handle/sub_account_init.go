@@ -102,48 +102,29 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountPreparedFeeCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
-	// check SubsidyWhitelist
-	subsidize := false
-	if _, ok := config.Cfg.SubsidyWhitelist[clientIp]; ok {
-		subsidize = true
-	}
-	if _, ok := config.Cfg.SubsidyWhitelist[remoteAddrIP]; ok {
-		subsidize = true
-	}
-	log.Info("doSubAccountInit:", subsidize, req.Account, acc.AccountId, clientIp, remoteAddrIP)
+	log.Info("doSubAccountInit:", req.Account, acc.AccountId, clientIp, remoteAddrIP)
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
 	var liveCells []*indexer.LiveCell
 	var change uint64
 	var feeDasLock, feeDasType *types.Script
-	if subsidize {
-		change, liveCells, err = h.getSvrBalance(paramBalance{
-			svrLock:           h.ServerScript,
-			capacityForNeed:   capacityNeed,
-			capacityForChange: capacityForChange,
-		})
-		if err != nil {
-			return doDasBalanceError(err, apiResp)
-		}
-		feeDasLock = h.ServerScript
-	} else {
-		feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
-			return fmt.Errorf("HexToScript err: %s", err.Error())
-		}
-		total := uint64(0)
-		liveCells, total, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-			DasCache:          h.DasCache,
-			LockScript:        feeDasLock,
-			CapacityNeed:      capacityNeed,
-			CapacityForChange: capacityForChange,
-			SearchOrder:       indexer.SearchOrderAsc,
-		})
-		if err != nil {
-			return doDasBalanceError(err, apiResp)
-		}
-		change = total - capacityNeed
+
+	feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
+		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
+	total := uint64(0)
+	liveCells, total, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        feeDasLock,
+		CapacityNeed:      capacityNeed,
+		CapacityForChange: capacityForChange,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
+	if err != nil {
+		return doDasBalanceError(err, apiResp)
+	}
+	change = total - capacityNeed
 
 	// build tx
 	buildParams := paramsSubAccountInitTx{
