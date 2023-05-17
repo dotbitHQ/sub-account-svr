@@ -52,8 +52,8 @@ func (t *ToolUniPay) doOrderCheck() error {
 			if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
 				newStatus = tables.OrderStatusFail
 			}
-			if err := t.DbDao.UpdateOrderStatus(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
-				return fmt.Errorf("UpdateOrderStatus err: %s[%s]", err.Error(), v.OrderId)
+			if err := t.DbDao.UpdateOrderStatusForCheckMint(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
+				return fmt.Errorf("UpdateOrderStatusForCheckMint err: %s[%s]", err.Error(), v.OrderId)
 			}
 		default:
 			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))

@@ -148,7 +148,7 @@ func (d *DbDao) GetNeedCheckOrderList() (list []tables.OrderInfo, err error) {
 	return
 }
 
-func (d *DbDao) UpdateOrderStatus(orderId string, oldStatus, newStatus tables.OrderStatus) error {
+func (d *DbDao) UpdateOrderStatusForCheckMint(orderId string, oldStatus, newStatus tables.OrderStatus) error {
 	return d.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(tables.OrderInfo{}).
 			Where("order_id=? AND order_status=?", orderId, oldStatus).
@@ -166,6 +166,27 @@ func (d *DbDao) UpdateOrderStatus(orderId string, oldStatus, newStatus tables.Or
 				}).Error; err != nil {
 				return err
 			}
+		}
+		return nil
+	})
+}
+
+func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash string) error {
+	return d.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND order_status=?", orderId, tables.OrderStatusDefault).
+			Updates(map[string]interface{}{
+				"order_status": tables.OrderStatusFail,
+			}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(tables.PaymentInfo{}).
+			Where("order_id=? AND pay_hash=? AND pay_hash_status=? AND refund_status=?",
+				orderId, payHash, tables.PayHashStatusPending, tables.RefundStatusDefault).
+			Updates(map[string]interface{}{
+				"pay_hash_status": tables.PayHashStatusRejected,
+			}).Error; err != nil {
+			return err
 		}
 		return nil
 	})

@@ -20,6 +20,10 @@ func (m *PaymentInfo) TableName() string {
 	return "t_payment_info"
 }
 
+func (m *PaymentInfo) PayHashUnconfirmedMin() float64 {
+	return time.Now().Sub(time.UnixMilli(m.Timestamp)).Minutes()
+}
+
 type PayHashStatus int
 
 const (

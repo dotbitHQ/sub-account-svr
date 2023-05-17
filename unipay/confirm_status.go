@@ -79,9 +79,19 @@ func (t *ToolUniPay) doConfirmStatus() error {
 	}
 
 	// payment confirm
-	for _, orderId := range orderIdList {
-		paymentInfoList, ok := orderIdMap[orderId]
+	for _, pending := range pendingList {
+		paymentInfoList, ok := orderIdMap[pending.OrderId]
 		if !ok {
+			min := pending.PayHashUnconfirmedMin()
+			log.Info("PayHashUnconfirmedMin:", pending.OrderId, min)
+			if min > 10 {
+				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmStatus", pending.OrderId)
+			}
+			if min > 60 {
+				if err := t.DbDao.UpdateOrderStatusToFailForUnconfirmedPayHash(pending.OrderId, pending.PayHash); err != nil {
+					return fmt.Errorf("UpdateOrderStatusToFailForUnconfirmedPayHash err: %s", err.Error())
+				}
+			}
 			continue
 		}
 		for _, v := range paymentInfoList {
