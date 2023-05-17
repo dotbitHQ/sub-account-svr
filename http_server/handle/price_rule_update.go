@@ -225,6 +225,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		ruleEntity := witness.NewSubAccountRuleEntity(req.Account)
 		ruleEntity.Rules = req.List
 		if err := ruleEntity.Check(); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 
@@ -313,7 +314,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 		ruleData, err := ruleEntity.GenData()
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 		rulesData := make([]byte, 0)
@@ -340,7 +340,6 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		// add actionDataType to prefix
 		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 	}
