@@ -121,6 +121,10 @@ func (h *HttpHandle) doAutoOrderInfo(req *ReqAutoOrderInfo, apiResp *api_code.Ap
 		}
 	}
 
+	if order.OrderStatus == tables.OrderStatusFail {
+		resp.OrderStatus = OrderStatusMintFail
+	}
+
 	apiResp.ApiRespOK(resp)
 	return nil
 }
