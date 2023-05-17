@@ -340,6 +340,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		// add actionDataType to prefix
 		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
 		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 	}
