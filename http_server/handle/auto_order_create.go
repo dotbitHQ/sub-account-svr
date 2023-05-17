@@ -147,10 +147,10 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
 		return nil
 	}
-	log.Info("usdAmount:", usdAmount.String())
+	log.Info("usdAmount:", usdAmount.String(), req.Years)
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
-	log.Info("usdAmount:", usdAmount.String())
-	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(decimal.NewFromInt(common.UsdRateBase)).Div(tokenPrice.Price).Ceil()
+	log.Info("usdAmount:", usdAmount.String(), req.Years)
+	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
 	if req.TokenId == tables.TokenIdErc20USDT || req.TokenId == tables.TokenIdBep20USDT {
 		amount = amount.Add(decimal.NewFromInt(rand.Int63n(1e5)))
 	}
