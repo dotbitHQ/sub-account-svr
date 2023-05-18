@@ -57,7 +57,7 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 	if req.Account != "" {
 		accountId = common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	}
-	list, err := h.DbDao.FindOrderByPayment(end.Unix(), accountId)
+	list, err := h.DbDao.FindOrderByPayment(end.UnixMilli(), accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
