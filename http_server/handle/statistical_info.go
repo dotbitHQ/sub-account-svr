@@ -33,6 +33,7 @@ type RespStatisticalInfo struct {
 		Enable          bool  `json:"enable"`
 		FirstEnableTime int64 `json:"first_enable_time"`
 	} `json:"auto_mint"`
+	AccountExpiredAt uint64 `json:"account_expired_at"`
 }
 
 type IncomeInfo struct {
@@ -83,7 +84,8 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	}
 
 	resp := RespStatisticalInfo{
-		IncomeInfo: []IncomeInfo{},
+		IncomeInfo:       []IncomeInfo{},
+		AccountExpiredAt: acc.ExpiredAt * 1e3,
 	}
 	errG := &errgroup.Group{}
 
