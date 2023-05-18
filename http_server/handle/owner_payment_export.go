@@ -63,14 +63,26 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
+
+	tokens, err := h.DbDao.FindTokens()
+	if err != nil {
+		log.Error(err)
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+
 	records := make(map[string]*CsvRecord)
 	for _, v := range list {
-		token, err := h.DbDao.GetTokenById(tables.TokenId(v.TokenId))
-		if err != nil {
+
+		token, ok := tokens[v.TokenId]
+		if !ok {
+			err = fmt.Errorf("token_id: %s no exist", v.TokenId)
 			log.Error(err)
 			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
+
 		recordKey := v.ParentAccountId + v.TokenId
 		csvRecord, ok := records[recordKey]
 		if !ok {
