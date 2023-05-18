@@ -241,12 +241,22 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
 	if p.change > 0 {
-		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: p.change,
-			Lock:     p.feeDasLock,
-			Type:     p.feeDasType,
-		})
-		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		base := 1000 * common.OneCkb
+		splitList, err := core.SplitOutputCell2(p.change, base, 10, p.feeDasLock, p.feeDasType, indexer.SearchOrderDesc)
+		if err != nil {
+			return nil, fmt.Errorf("SplitOutputCell2 err: %s", err.Error())
+		}
+		for i := range splitList {
+			txParams.Outputs = append(txParams.Outputs, splitList[i])
+			txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		}
+
+		//txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+		//	Capacity: p.change,
+		//	Lock:     p.feeDasLock,
+		//	Type:     p.feeDasType,
+		//})
+		//txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 
 	// witness
