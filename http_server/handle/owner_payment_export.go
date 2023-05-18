@@ -31,9 +31,9 @@ type CsvRecord struct {
 	Ids       []uint64
 }
 
-func (h *HttpHandle) PaymentReportExport(ctx *gin.Context) {
+func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 	var (
-		funcName               = "PaymentReportExport"
+		funcName               = "OwnerPaymentExport"
 		clientIp, remoteAddrIP = GetClientIp(ctx)
 		req                    ReqPaymentReportExport
 		apiResp                api_code.ApiResp

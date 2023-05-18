@@ -71,7 +71,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/syncTree", h.H.SmtSync)
 
 		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
-		internalV1.POST("/payment/report_export", h.H.PaymentReportExport)
+		internalV1.POST("/owner/payment/export", h.H.OwnerPaymentExport)
 		internalV1.POST("/unipay/notice", h.H.UniPayNotice)
 		internalV1.POST("/service/provider/withdraw", h.H.ServiceProviderWithdraw)
 	}
