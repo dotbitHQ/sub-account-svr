@@ -158,9 +158,8 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	errG.Go(func() error {
 		daf := core.DasAddressFormat{DasNetType: config.Cfg.Server.Net}
 		addrHex, err := daf.NormalToHex(core.DasAddressNormal{
-			ChainType:     acc.OwnerChainType,
-			AddressNormal: acc.Owner,
-			Is712:         true,
+			ChainType:     acc.ManagerChainType,
+			AddressNormal: acc.Manager,
 		})
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -181,7 +180,13 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
-		resp.CkbSpending.Balance = fmt.Sprintf("%.2f", float64(totalCapacity)/float64(common.OneCkb))
+		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return fmt.Errorf("GetTokenById err: %s", err)
+		}
+		decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
+		resp.CkbSpending.Balance = decimal.NewFromInt(int64(totalCapacity)).Div(decimals).String()
 		return nil
 	})
 
