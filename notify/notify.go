@@ -32,13 +32,21 @@ type MsgData struct {
 }
 
 func SendLarkTextNotify(key, title, text string) {
+	SendLarkTextNotifyWithSvr(key, title, text, true)
+}
+
+func SendLarkTextNotifyWithSvr(key, title, text string, withSvr bool) {
 	if key == "" || text == "" {
 		return
 	}
 	var data MsgData
 	data.Email = ""
 	data.MsgType = "post"
-	data.Content.Post.ZhCn.Title = fmt.Sprintf("sub-account-svr: %s", title)
+	if withSvr {
+		data.Content.Post.ZhCn.Title = fmt.Sprintf("sub-account-svr: %s", title)
+	} else {
+		data.Content.Post.ZhCn.Title = title
+	}
 	data.Content.Post.ZhCn.Content = [][]MsgContent{
 		{
 			MsgContent{

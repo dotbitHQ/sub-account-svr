@@ -107,13 +107,6 @@ func doNotify(smtRecordList []tables.TableSmtRecordInfo) {
 			}
 		}
 	}()
-	//go func() {
-	//	for _, v := range contentList {
-	//		tmp := strings.Replace(v, "** ", "", -1)
-	//		tmp = strings.Replace(tmp, " **", "", -1)
-	//		notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", tmp)
-	//	}
-	//}()
 }
 
 func (b *BlockParser) doNotify2(smtRecordList []tables.TableSmtRecordInfo) {
@@ -143,18 +136,9 @@ func (b *BlockParser) doNotify2(smtRecordList []tables.TableSmtRecordInfo) {
 	if content != "" {
 		contentList = append(contentList, content)
 	}
-	//go func() {
-	//	for _, v := range contentList {
-	//		if err := notify.SendNotifyDiscord(config.Cfg.Notify.DiscordCreateSubAccountKey, v); err != nil {
-	//			log.Error("notify.SendNotifyDiscord err: ", err.Error(), v)
-	//		}
-	//	}
-	//}()
 	go func() {
 		for _, v := range contentList {
-			//tmp := strings.Replace(v, "** ", "", -1)
-			//tmp = strings.Replace(tmp, " **", "", -1)
-			notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", v)
+			notify.SendLarkTextNotifyWithSvr(config.Cfg.Notify.LarkCreateSubAccountKey, "", v, false)
 		}
 	}()
 }
