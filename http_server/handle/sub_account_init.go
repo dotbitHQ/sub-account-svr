@@ -319,12 +319,17 @@ func (h *HttpHandle) getSvrBalance(p paramBalance) (uint64, []*indexer.LiveCell,
 	svrBalanceLock.Lock()
 	defer svrBalanceLock.Unlock()
 
+	tipBlockNumber, err := h.DasCore.Client().GetTipBlockNumber(h.Ctx)
+	if err != nil {
+		return 0, nil, err
+	}
 	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        p.svrLock,
-		CapacityNeed:      p.capacityForNeed,
-		CapacityForChange: common.MinCellOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
+		DasCache:           h.DasCache,
+		LockScript:         p.svrLock,
+		CapacityNeed:       p.capacityForNeed,
+		CurrentBlockNumber: tipBlockNumber,
+		CapacityForChange:  common.MinCellOccupiedCkb,
+		SearchOrder:        indexer.SearchOrderDesc,
 	})
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())
