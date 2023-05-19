@@ -209,11 +209,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
 			isOk = false
 		}
-		if accLen <= 0 {
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("account length is 0")
-			isOk = false
-		} else if indexAcc, ok := subAccountMap[accountId]; ok {
+		if indexAcc, ok := subAccountMap[accountId]; ok {
 			resp.Result[indexAcc].Status = CheckStatusFail
 			resp.Result[indexAcc].Message = fmt.Sprintf("same account")
 			tmp.Status = CheckStatusFail

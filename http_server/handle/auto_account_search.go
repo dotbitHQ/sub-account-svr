@@ -132,8 +132,33 @@ func (h *HttpHandle) checkSubAccountName(apiResp *api_code.ApiResp, subAccountNa
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
 		return
 	}
+
 	parentAccountName := subAccountName[indexDot+1:]
 	parentAccountId = common.Bytes2Hex(common.GetAccountIdByAccount(parentAccountName))
+
+	//
+	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell account")
+		return
+	}
+	maxLength, _ := configCellBuilder.MaxLength()
+	accountCharStr, err := h.DasCore.GetAccountCharSetList(subAccountName)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get account charset list")
+		return
+	}
+	accLen := len(accountCharStr)
+	if uint32(accLen) > maxLength {
+		apiResp.ApiRespErr(api_code.ApiCodeExceededMaxLength, fmt.Sprintf("Exceeded the max length of the sub-account: %d", maxLength))
+		return
+	}
+	if !h.checkAccountCharSet(accountCharStr, subAccountName[:strings.Index(subAccountName, ".")]) {
+		log.Info("checkAccountCharSet:", subAccountName, accountCharStr)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
+		return
+	}
+
 	return
 }
 

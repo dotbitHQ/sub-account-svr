@@ -69,6 +69,7 @@ const (
 	ApiCodePreservedRulesMostBeOne            ApiCode = 40039
 	ApiCodeRuleSizeExceedsLimit               ApiCode = 40040
 	ApiCodeRuleFormatErr                      ApiCode = 40041
+	ApiCodeExceededMaxLength                  ApiCode = 40042
 )
 
 const (
