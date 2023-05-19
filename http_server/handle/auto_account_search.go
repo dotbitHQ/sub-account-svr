@@ -234,13 +234,14 @@ func (h *HttpHandle) checkSwitch(parentAccountId string, apiResp *api_code.ApiRe
 }
 
 func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {
-	//1713261581
 	nowT := uint64(time.Now().Unix())
 	if nowT > parentAccount.ExpiredAt {
+		return 0
+	}
+	maxYear := (parentAccount.ExpiredAt - nowT) / uint64(common.OneYearSec)
+	if maxYear == 0 {
 		return 1
 	}
-
-	maxYear := (parentAccount.ExpiredAt - nowT) / uint64(common.OneYearSec)
 	log.Info("getMaxYears:", parentAccount.ExpiredAt, maxYear, config.Cfg.Das.MaxRegisterYears)
 	if maxYear > config.Cfg.Das.MaxRegisterYears {
 		maxYear = config.Cfg.Das.MaxRegisterYears
