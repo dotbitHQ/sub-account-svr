@@ -162,6 +162,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		addrHex, err := daf.NormalToHex(core.DasAddressNormal{
 			ChainType:     acc.ManagerChainType,
 			AddressNormal: acc.Manager,
+			Is712:         true,
 		})
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -180,6 +181,9 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
+
+		log.Infof("totalCapacity: %d", totalCapacity)
+
 		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
