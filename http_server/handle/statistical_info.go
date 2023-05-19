@@ -173,10 +173,8 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return fmt.Errorf("HexToScript err: %s", err.Error())
 		}
 		_, totalCapacity, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-			DasCache:          h.DasCache,
-			LockScript:        dasLock,
-			CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-			SearchOrder:       indexer.SearchOrderDesc,
+			LockScript:  dasLock,
+			SearchOrder: indexer.SearchOrderDesc,
 		})
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
