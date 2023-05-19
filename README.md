@@ -6,9 +6,10 @@ Backend of .bit sub account service, including registration and management.
 * Ubuntu 18.04 or newer (2C4G)
 * MYSQL >= 8.0
 * Redis >= 5.0 (for cache)
-* GO version >= 1.16.15
-* Mongo >= 4.2 (2 Cores, 4 GB, 200 G Disk Space)
-* [CKB Node](https://github.com/nervosnetwork/ckb)
+* GO version >= 1.17.10
+* [ckb-node](https://github.com/nervosnetwork/ckb) (Must be synced to latest height and add `Indexer` module to ckb.toml)
+* If the version of the dependency package is too low, please install `gcc-multilib` (apt install gcc-multilib)
+* Machine configuration: 4c8g200G
 * [das-database](https://github.com/dotbitHQ/das-database)
 * [sub-account-store](https://github.com/dotbitHQ/sub-account-store)
 
