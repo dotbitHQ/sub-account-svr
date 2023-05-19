@@ -155,7 +155,7 @@ func (h *HttpHandle) checkSubAccountName(apiResp *api_code.ApiResp, subAccountNa
 	}
 	if !h.checkAccountCharSet(accountCharStr, subAccountName[:strings.Index(subAccountName, ".")]) {
 		log.Info("checkAccountCharSet:", subAccountName, accountCharStr)
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
+		apiResp.ApiRespErr(api_code.ApiCodeInvalidCharset, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
 		return
 	}
 
@@ -237,7 +237,7 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 	//1713261581
 	nowT := uint64(time.Now().Unix())
 	if nowT > parentAccount.ExpiredAt {
-		return 0
+		return 1
 	}
 
 	maxYear := (parentAccount.ExpiredAt - nowT) / uint64(common.OneYearSec)

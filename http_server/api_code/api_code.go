@@ -70,6 +70,7 @@ const (
 	ApiCodeRuleSizeExceedsLimit               ApiCode = 40040
 	ApiCodeRuleFormatErr                      ApiCode = 40041
 	ApiCodeExceededMaxLength                  ApiCode = 40042
+	ApiCodeInvalidCharset                     ApiCode = 40043
 )
 
 const (
