@@ -57,7 +57,11 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	txParams, whiteListMap, err := h.rulesTxAssemble(req, apiResp, []common.ActionDataType{common.ActionDataTypeSubAccountPreservedRules})
+	txParams, whiteListMap, err := h.rulesTxAssemble(RulesTxAssembleParams{
+		Req:                 req,
+		ApiResp:             apiResp,
+		InputActionDataType: common.ActionDataTypeSubAccountPreservedRules,
+	})
 	if err != nil {
 		return err
 	}

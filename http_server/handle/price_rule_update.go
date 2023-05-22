@@ -74,7 +74,11 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	txParams, whiteListMap, err := h.rulesTxAssemble(req, apiResp, []common.ActionDataType{common.ActionDataTypeSubAccountPriceRules})
+	txParams, whiteListMap, err := h.rulesTxAssemble(RulesTxAssembleParams{
+		Req:                 req,
+		ApiResp:             apiResp,
+		InputActionDataType: common.ActionDataTypeSubAccountPriceRules,
+	})
 	if err != nil {
 		return err
 	}
@@ -133,45 +137,56 @@ type Whitelist struct {
 	Account string
 }
 
-func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp, inputActionDataType []common.ActionDataType, enableSwitch ...witness.AutoDistribution) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
+type RulesTxAssembleParams struct {
+	Req                 *ReqPriceRuleUpdate
+	ApiResp             *api_code.ApiResp
+	InputActionDataType common.ActionDataType
+	AutoDistribution    witness.AutoDistribution
+}
+
+func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
+	if params.Req == nil || params.ApiResp == nil {
+		return nil, nil, fmt.Errorf("params invalid")
+	}
+
+	res, err := params.Req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil, nil, err
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(params.Req.Account))
 	baseInfo, err := h.TxTool.GetBaseInfo()
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
 		return nil, nil, err
 	}
 
 	accountInfo, err := h.DbDao.GetAccountInfoByAccountId(parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeDbError, "internal error")
 		return nil, nil, fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
 	}
 	if accountInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account no exist")
 		return nil, nil, fmt.Errorf("account no exist")
 	}
 	accountOutpoint := common.String2OutPointStruct(accountInfo.Outpoint)
 	accountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, accountOutpoint.TxHash)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
 		return nil, nil, err
 	}
 
 	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return nil, nil, fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
 	}
 	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return nil, nil, err
 	}
 
@@ -212,32 +227,32 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	})
 	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
 	subAccountCellDetail.Flag = witness.FlagTypeCustomRule
-	if len(enableSwitch) > 0 {
-		subAccountCellDetail.AutoDistribution = enableSwitch[0]
-	} else if len(inputActionDataType) > 0 {
+	if params.InputActionDataType == "" {
+		subAccountCellDetail.AutoDistribution = params.AutoDistribution
+	} else {
 		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 	}
 
 	rulesResult := make([][]byte, 0)
 	whiteListMap := make(map[string]Whitelist)
 	// Assemble price rules and calculate rule hash
-	if len(inputActionDataType) == 1 {
-		ruleEntity := witness.NewSubAccountRuleEntity(req.Account)
-		ruleEntity.Rules = req.List
+	if params.InputActionDataType != "" {
+		ruleEntity := witness.NewSubAccountRuleEntity(params.Req.Account)
+		ruleEntity.Rules = params.Req.List
 		if err := ruleEntity.Check(); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
+			params.ApiResp.ApiRespErr(api_code.ApiCodeRuleFormatErr, err.Error())
 			return nil, nil, err
 		}
 
 		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			params.ApiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return nil, nil, err
 		}
 
 		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			params.ApiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return nil, nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 		}
 		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
@@ -245,23 +260,23 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		preservedInList := 0
 
 		for idx, v := range ruleEntity.Rules {
-			if inputActionDataType[0] == common.ActionDataTypeSubAccountPriceRules {
+			if params.InputActionDataType == common.ActionDataTypeSubAccountPriceRules {
 				if v.Price <= 0 {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
-					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+					params.ApiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}
 
 				if math.Round(v.Price*100)/100 != v.Price {
 					err = errors.New("price most be two decimal places")
-					apiResp.ApiRespErr(api_code.ApiCodePriceMostReserveTwoDecimal, err.Error())
+					params.ApiResp.ApiRespErr(api_code.ApiCodePriceMostReserveTwoDecimal, err.Error())
 					return nil, nil, err
 				}
 
 				price := decimal.NewFromFloat(v.Price).Div(token.Price).Mul(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
 				if uint64(price.IntPart()) < newSubAccountPrice {
 					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
-					apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+					params.ApiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}
 				ruleEntity.Rules[idx].Price *= math.Pow10(6)
@@ -277,15 +292,15 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 				if len(accWhitelist) > 999 {
 					err = errors.New("account list most be less than 1000")
-					apiResp.ApiRespErr(api_code.ApiCodeInListMostBeLessThan1000, err.Error())
+					params.ApiResp.ApiRespErr(api_code.ApiCodeInListMostBeLessThan1000, err.Error())
 					return nil, nil, err
 				}
 
-				if inputActionDataType[0] == common.ActionDataTypeSubAccountPreservedRules {
+				if params.InputActionDataType == common.ActionDataTypeSubAccountPreservedRules {
 					preservedInList += 1
 					if preservedInList > 1 {
 						err = errors.New("preserved in_list rules most be one")
-						apiResp.ApiRespErr(api_code.ApiCodePreservedRulesMostBeOne, err.Error())
+						params.ApiResp.ApiRespErr(api_code.ApiCodePreservedRulesMostBeOne, err.Error())
 						return nil, nil, err
 					}
 				}
@@ -294,14 +309,14 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 					accountName := strings.Split(strings.TrimSpace(v), ".")[0]
 					if accountName == "" {
 						err = errors.New("account can not be empty")
-						apiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())
+						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())
 						return nil, nil, err
 					}
-					account := accountName + "." + req.Account
+					account := accountName + "." + params.Req.Account
 					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 					if _, ok := whiteListMap[accId]; ok {
 						err = fmt.Errorf("account: %s repeat", accountName)
-						apiResp.ApiRespErr(api_code.ApiCodeAccountRepeat, err.Error())
+						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountRepeat, err.Error())
 						return nil, nil, err
 					}
 					whiteListMap[accId] = Whitelist{
@@ -330,7 +345,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 			hash = blakeHash[:10]
 		}
 
-		switch inputActionDataType[0] {
+		switch params.InputActionDataType {
 		case common.ActionDataTypeSubAccountPriceRules:
 			subAccountCellDetail.PriceRulesHash = hash
 		case common.ActionDataTypeSubAccountPreservedRules:
@@ -338,7 +353,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 		}
 
 		// add actionDataType to prefix
-		rulesResult, err = ruleEntity.GenDasData(inputActionDataType[0], ruleData)
+		rulesResult, err = ruleEntity.GenDasData(params.InputActionDataType, ruleData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -379,15 +394,14 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 	// witness sub_account cell
 	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
+		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return nil, nil, err
 	}
 	if err := witness.GetWitnessDataFromTx(subAccountConfigTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
-		if (len(inputActionDataType) == 0 || inputActionDataType[0] != actionDataType) &&
-			(actionDataType == common.ActionDataTypeSubAccountPriceRules ||
-				actionDataType == common.ActionDataTypeSubAccountPreservedRules) {
+		if (params.InputActionDataType == "" || params.InputActionDataType != actionDataType) &&
+			(actionDataType == common.ActionDataTypeSubAccountPriceRules || actionDataType == common.ActionDataTypeSubAccountPreservedRules) {
 
-			if len(inputActionDataType) > 0 && inputActionDataType[0] == actionDataType {
+			if params.InputActionDataType == actionDataType {
 				return true, nil
 			}
 
@@ -409,7 +423,7 @@ func (h *HttpHandle) rulesTxAssemble(req *ReqPriceRuleUpdate, apiResp *api_code.
 
 	if ruleWitnessSize > 441*1e3 {
 		err = errors.New("rule size exceeds limit")
-		apiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())
+		params.ApiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())
 		return nil, nil, err
 	}
 	return txParams, whiteListMap, nil

@@ -72,10 +72,14 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		enable = witness.AutoDistributionEnable
 	}
 
-	txParams, _, err := h.rulesTxAssemble(&ReqPriceRuleUpdate{
-		ChainTypeAddress: req.ChainTypeAddress,
-		Account:          req.Account,
-	}, apiResp, []common.ActionDataType{}, enable)
+	txParams, _, err := h.rulesTxAssemble(RulesTxAssembleParams{
+		Req: &ReqPriceRuleUpdate{
+			ChainTypeAddress: req.ChainTypeAddress,
+			Account:          req.Account,
+		},
+		ApiResp:          apiResp,
+		AutoDistribution: enable,
+	})
 	if err != nil {
 		return err
 	}
