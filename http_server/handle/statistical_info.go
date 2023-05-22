@@ -160,17 +160,11 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		daf := core.DasAddressFormat{DasNetType: config.Cfg.Server.Net}
-		addrHex, err := daf.NormalToHex(core.DasAddressNormal{
-			ChainType:     acc.ManagerChainType,
-			AddressNormal: acc.Manager,
-			Is712:         true,
+		dasLock, _, err := h.DasCore.Daf().HexToScript(core.DasAddressHex{
+			DasAlgorithmId: acc.ManagerAlgorithmId,
+			AddressHex:     acc.Manager,
+			ChainType:      acc.ManagerChainType,
 		})
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("address NormalToHex err: %s", err.Error())
-		}
-		dasLock, _, err := h.DasCore.Daf().HexToScript(addrHex)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("HexToScript err: %s", err.Error())
