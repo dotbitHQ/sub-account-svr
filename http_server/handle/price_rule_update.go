@@ -273,9 +273,9 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 					return nil, nil, err
 				}
 
-				price := decimal.NewFromFloat(v.Price).Div(token.Price).Mul(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
-				if uint64(price.IntPart()) < newSubAccountPrice {
-					err = fmt.Errorf("price not be less than min %d", newSubAccountPrice)
+				price := decimal.NewFromInt(int64(newSubAccountPrice)).Mul(token.Price).Div(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
+				if price.GreaterThan(decimal.NewFromFloat(v.Price)) {
+					err = fmt.Errorf("price not be less than min: %s$", price)
 					params.ApiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}
