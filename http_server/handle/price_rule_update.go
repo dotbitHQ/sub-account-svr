@@ -267,7 +267,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 					return nil, nil, err
 				}
 
-				if math.Round(v.Price*100)/100 != v.Price {
+				if math.Round(v.Price*10000)/10000 != v.Price {
 					err = errors.New("price most be two decimal places")
 					params.ApiResp.ApiRespErr(api_code.ApiCodePriceMostReserveTwoDecimal, err.Error())
 					return nil, nil, err
@@ -312,7 +312,31 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())
 						return nil, nil, err
 					}
+
 					account := accountName + "." + params.Req.Account
+					_, accLen, err := common.GetDotBitAccountLength(account)
+					if err != nil {
+						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountNameErr, err.Error())
+						return nil, nil, err
+					}
+					if accLen > 42 {
+						err = fmt.Errorf("account: %s length most be less than 42", accountName)
+						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountLengthMostBeLessThan42, err.Error())
+						return nil, nil, err
+					}
+					accountCharsetList, err := h.DasCore.GetAccountCharSetList(account)
+					if err != nil {
+						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountNameErr, err.Error())
+						return nil, nil, err
+					}
+					for _, v := range accountCharsetList {
+						if _, ok := common.AccountCharTypeMap[v.CharSetName]; !ok {
+							err = fmt.Errorf("account: %s charset: %s not support", accountName, v.Char)
+							params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCharsetNotSupport, err.Error())
+							return nil, nil, err
+						}
+					}
+
 					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
 					if _, ok := whiteListMap[accId]; ok {
 						err = fmt.Errorf("account: %s repeat", accountName)
@@ -421,6 +445,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 	log.Infof("rule witness size: %dK", ruleWitnessSize/1e3)
 
+	// TODO 增加备注
 	if ruleWitnessSize > 441*1e3 {
 		err = errors.New("rule size exceeds limit")
 		params.ApiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())

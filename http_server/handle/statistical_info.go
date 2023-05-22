@@ -129,11 +129,13 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			}
 		}
 
+		tokens, err := h.DbDao.FindTokens()
+		if err != nil {
+			return err
+		}
+
 		for k, v := range totalAmount {
-			token, err := h.DbDao.GetTokenById(tables.TokenId(k))
-			if err != nil {
-				return err
-			}
+			token := tokens[k]
 			if v.Sub(paidAmount[k]).LessThanOrEqual(decimal.NewFromInt(0)) &&
 				!paymentConfig.CfgMap[k].Enable {
 				continue

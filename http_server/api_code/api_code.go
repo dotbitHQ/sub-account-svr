@@ -71,6 +71,9 @@ const (
 	ApiCodeRuleFormatErr                      ApiCode = 40041
 	ApiCodeExceededMaxLength                  ApiCode = 40042
 	ApiCodeInvalidCharset                     ApiCode = 40043
+	ApiCodeAccountNameErr                     ApiCode = 40044
+	ApiCodeAccountLengthMostBeLessThan42      ApiCode = 40045
+	ApiCodeAccountCharsetNotSupport           ApiCode = 40046
 )
 
 const (
