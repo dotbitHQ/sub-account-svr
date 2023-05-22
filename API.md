@@ -20,7 +20,25 @@
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
     * [Internal Update Smt](#internal-update-smt)
-
+* [API for SubAccount Distribution]
+  * [Statistical Info](#Statistical-Info)
+  * [Distribution List](#Distribution-List)
+  * [Update Mint Config](#Update-Mint-Config)
+  * [Get Mint Config](#Get-Mint-Config)
+  * [Search Account for Distribution](#Search-Account-for-Distribution)
+  * [Create Order for Distribution](#Create-Order-for-Distribution)
+  * [Return Order Pay Hash](#Return-Order-Pay-Hash)
+  * [Get Order Info](#Get-Order-Info)
+  * [Enable or Disable Distribution](#Enable-or-Disable-Distribution)
+  * [Get Flag for Distribution](#Get-Flag-for-Distribution)
+  * [Currency List](#Currency-List)
+  * [Update Currency](#Update-Currency)
+  * [Payment Record](#Payment-Record)
+  * [Price Rule List](#Price-Rule-List)
+  * [Update Price Rule](#Update-Price-Rule)
+  * [Preserved Rule List](#Preserved-Rule-List)
+  * [Update Preserved Rule](#Update-Preserved-Rule)
+  * [Init SubAccount for Fee](#Init-SubAccount-for-Fee)
 ## API LIST
 
 Please familiarize yourself with the meaning of some common parameters before reading the API list:
@@ -912,6 +930,788 @@ _You can provide either `coin_type` or `chain_id`. The `coin_type` will be used,
   "errmsg": "",
   "data": {
     "root": ""
+  }
+}
+```
+
+
+## API for SubAccount Distribution
+
+### Statistical Info
+
+#### Request
+
+* path: /v1/statistical/info
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data":{
+    "sub_account_num": 0, 
+    "address_num": 0,     
+    "income_info": [      
+      {
+        "type": "ETH",       
+        "balance": "126560", 
+        "total": "126560"    
+      },
+      {
+        "type": "USDT-TRC20",
+        "balance": "126560",
+        "total": "126560"
+      }
+    ],
+    "ckb_spending":{      
+      "balance": "12609", 
+      "total": "12609"    
+    },
+    "auto_mint":{ 
+      "enable": true,  
+      "first_enable_time": 1683703195670 
+    },
+    "account_expired_at": 1715948028000 
+  }
+}
+```
+
+### Distribution List
+
+#### Request
+
+* path: /v1/distribution/list
+
+```json
+{
+  "account": "test.bit",
+  "page": 1,
+  "size": 10
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data":{
+    "page": 1,
+    "total": 100,
+    "list": [{
+      "time": 1683599534179,
+      "account": "test.bit",
+      "years": 1,
+      "amount": "100 USDT"
+    }]
+  }
+}
+```
+
+### Update Mint Config
+
+#### Request
+
+* path: /v1/mint/config/update
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit",
+  "title": "",
+  "desc": "",
+  "benefits": "",
+  "links": [
+    {
+      "app": "Twitter",
+      "link": ""
+    },
+    {
+      "app": "Telegram",
+      "link": ""
+    },
+    {
+      "app": "Website",
+      "link": ""
+    }
+  ],
+  "background_color": "",
+  "timestamp": 1683547860 
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data": {
+    "action":"Update-Mint-Config",
+    "sub_action":"",
+    "sign_key":"d395abc4037853fd5534f913ae8a6dd5",
+    "list":[
+      {
+        "sign_list":[
+          {
+            "sign_type":3,
+            "sign_msg":"From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"}
+        ]}]}
+}
+```
+
+
+
+
+### Get Mint Config
+
+#### Request
+
+* path: /v1/mint/config/get
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "title": "",
+    "desc": "",
+    "benefits": "",
+    "links": [
+      {
+        "app": "Twitter",
+        "link": ""
+      },
+      {
+        "app": "Telegram",
+        "link": ""
+      },
+      {
+        "app": "Website",
+        "link": ""
+      }
+    ],
+    "background_color": ""
+  }
+}
+```
+
+
+### Search Account for Distribution
+
+#### Request
+
+* path: /v1/auto/account/search
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "sub_account": "test.test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data": {
+    "price": "100.00", 
+    "max_year": 2, 
+    "status": 0, 
+    "is_self": false, 
+    "order_id": "" 
+  }
+}
+```
+
+
+### Create Order for Distribution
+
+#### Request
+
+* path: /v1/auto/order/create
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "sub_account": "test.test.bit",  
+  "action_type": 0,     
+  "token_id": "eth_eth",  
+  "years":1 
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "order_id": "" ,
+    "payment_address": "" ,
+    "amount": ""
+  }
+}
+```
+
+
+### Return Order Pay Hash
+
+#### Request
+
+* path: /v1/auto/order/hash
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "order_id": "", 
+  "hash": ""  
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": null
+}
+```
+
+
+### Get Order Info
+
+#### Request
+
+* path: /v1/auto/order/info
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "chain_id":"",
+    "key":"0x15a33588908cF8Edb27D1AbE3852Bf287Abd3891"
+  },
+  "order_id":"af7054eaf87de38a592bec32ff853fa6"
+}
+```
+
+#### Response
+
+```json
+{
+  "order_id":"af7054eaf87de38a592bec32ff853fa6",
+  "token_id":"eth_erc20_usdt",
+  "amount":"10045821",
+  "pay_hash":"0x1a7cdadd9010cb03cc4a0d92af97ca0aac68ec25185f7e29610a67dd7f745f30",
+  "order_status":5
+}
+```
+
+
+### Enable or Disable Distribution
+
+#### Request
+
+* path: /v1/config/auto_mint/update
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit",
+  "enable": true 
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "action": "config_sub_account",
+    "sub_action": "",
+    "sign_key": "d4f3174152b63f51862d4684b1aba3b3",
+    "list": [
+      {
+        "sign_list": [
+          {
+            "sign_type": 3,
+            "sign_msg": "From .bit: c9c151e30e4e071e84c06dd4419ff6da680f510f228c274929fddf5fcbd0e9d3"
+          },
+          {
+            "sign_type": 0,
+            "sign_msg": "0x03f4fa778587a862ff02c5e2f96a95e5d70b7a97a294102477e2c94c6baf5bee"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+### Get Flag for Distribution
+
+#### Request
+
+* path: /v1/config/auto_mint/get
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data": {
+    "enable": true 
+  }
+}
+```
+
+
+### Currency List
+
+#### Request
+
+* path: /v1/config/auto_mint/get
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no":0,
+  "err_msg":"",
+  "data": [
+    {
+      "token_id": "eth_eth",
+      "enable": true,        
+      "have_record": false ,  
+      "symbol": "ETH",
+      "price":"",
+      "decimals":18
+    },
+    {
+      "token_id": "tron_trx",
+      "enable": true,
+      "have_record": false,
+      "symbol": "TRX",
+      "price":"",
+      "decimals":6
+    },
+    {
+      "bsc_bnb": "bsc_bnb",
+      "enable": true,
+      "have_record": false,
+      "symbol": "BNB",
+      "price":"",
+      "decimals":18
+    }
+  ]
+}
+```
+
+
+### Update Currency
+
+#### Request
+
+* path: /v1/currency/update
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit",
+  "token_id": "eth_eth",
+  "enable": true,
+  "timestamp": 1683547860
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "action": "Update-Currency",
+    "sub_action": "",
+    "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
+    "list": [
+      {
+        "sign_list": [
+          {
+            "sign_type": 3,
+            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+### Payment Record
+
+#### Request
+
+* path: /v1/auto/payment/list
+
+```json
+{
+  "account": "test.bit",
+  "page": 1,
+  "size": 10
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "total": 1,
+    "list": [{
+      "time": 1683599534179,
+      "amount": "10.0 ETH"
+    }]
+  }
+}
+```
+
+
+### Price Rule List
+
+#### Request
+
+* path: /v1/price/rule/list
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "list": [
+      {
+        "name": "emoji",
+        "note": "",
+        "price": 10000000,
+        "ast": {
+          "type": "function",
+          "name": "include_chars",
+          "arguments": [
+            {
+              "type": "variable",
+              "name": "account_chars"
+            },
+            {
+              "type": "value",
+              "value_type": "string[]",
+              "value": [
+                "⚠️",
+                "❌",
+                "✅"
+              ]
+            }
+          ]
+        },
+        "status": 1
+      }
+    ]
+  }
+}
+```
+
+### Update Price Rule
+
+#### Request
+
+* path: /v1/price/rule/update
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit",
+  "list": [
+    {
+      "name": "account length",
+      "note": "",
+      "price": 100000000,
+      "ast": {
+        "type": "operator",
+        "symbol": "==",
+        "expressions": [
+          {
+            "type": "variable",
+            "name": "account_length"
+          },
+          {
+            "type": "value",
+            "value_type": "uint8",
+            "value": 1
+          }
+        ]
+      },
+      "status": 1
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "action": "enable_sub_account",
+    "sub_action": "",
+    "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
+    "list": [
+      {
+        "sign_list": [
+          {
+            "sign_type": 3,
+            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Preserved Rule List
+
+#### Request
+
+* path: /v1/preserved/rule/list
+
+```json
+{
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "list": [
+      {
+        "name": "emoji",
+        "note": "",
+        "price": 10000000,
+        "ast": {
+          "type": "function",
+          "name": "include_chars",
+          "arguments": [
+            {
+              "type": "variable",
+              "name": "account_chars"
+            },
+            {
+              "type": "value",
+              "value_type": "string[]",
+              "value": [
+                "⚠️",
+                "❌",
+                "✅"
+              ]
+            }
+          ]
+        },
+        "status": 1
+      }
+    ]
+  }
+}
+```
+
+### Update Preserved Rule
+
+#### Request
+
+* path: /v1/preserved/rule/update
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit",
+  "list": [
+    {
+      "name": "account length",
+      "note": "",
+      "price": 100000000,
+      "ast": {
+        "type": "operator",
+        "symbol": "==",
+        "expressions": [
+          {
+            "type": "variable",
+            "name": "account_length"
+          },
+          {
+            "type": "value",
+            "value_type": "uint8",
+            "value": 1
+          }
+        ]
+      },
+      "status": 1
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "action": "enable_sub_account",
+    "sub_action": "",
+    "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
+    "list": [
+      {
+        "sign_list": [
+          {
+            "sign_type": 3,
+            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Init SubAccount for Fee
+
+#### Request
+
+* path: /v1/sub/account/init/free
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "account": "test.bit"
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "action": "enable_sub_account",
+    "sub_action": "",
+    "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
+    "list": [
+      {
+        "sign_list": [
+          {
+            "sign_type": 3,
+            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
