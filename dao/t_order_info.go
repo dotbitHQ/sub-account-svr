@@ -16,7 +16,7 @@ func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err e
 }
 
 func (d *DbDao) FindOrderByPayment(end int64, accountId string) (list []*tables.OrderInfo, err error) {
-	db := d.db.Model(&tables.OrderInfo{}).Where("auto_payment_id = '' AND pay_status=? AND timestamp<?", tables.PayStatusPaid, end)
+	db := d.db.Model(&tables.OrderInfo{}).Where("auto_payment_id = '' AND pay_status=? AND order_status=? AND timestamp<?", tables.PayStatusPaid, tables.OrderStatusSuccess, end)
 	if accountId != "" {
 		db = db.Where("parent_account_id=?", accountId)
 	}
