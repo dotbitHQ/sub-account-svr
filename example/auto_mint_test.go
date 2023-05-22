@@ -3,11 +3,14 @@ package example
 import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/tables"
+	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/toolib"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -348,13 +351,16 @@ func TestPriceRuleUpdateSizeLimit(t *testing.T) {
 		Account:          "sub-account-test.bit",
 		List:             witness.SubAccountRuleSlice{},
 	}
-	for i := 0; i < 170; i++ {
+
+	num := 111
+
+	for i := 0; i < num-1; i++ {
 		req.List = append(req.List, &witness.SubAccountRule{
 			Index: uint32(i),
 			Name:  fmt.Sprintf("test rule %d", i),
 			Note: "A name that is not priced will not be automatically distributed; " +
 				" name that meets more than one price rule may be automatically distributed at any one of the multiple prices it meets.",
-			Price:  10,
+			Price:  0.0033,
 			Status: 1,
 			Ast: witness.AstExpression{
 				Type:   witness.Operator,
@@ -408,6 +414,35 @@ func TestPriceRuleUpdateSizeLimit(t *testing.T) {
 			},
 		})
 	}
+
+	rule := &witness.SubAccountRule{
+		Index: uint32(num - 1),
+		Name:  "test in list rule",
+		Note: "A name that is not priced will not be automatically distributed; " +
+			" name that meets more than one price rule may be automatically distributed at any one of the multiple prices it meets.",
+		Price:  0.0033,
+		Status: 1,
+		Ast: witness.AstExpression{
+			Type: witness.Function,
+			Name: string(witness.FunctionInList),
+			Arguments: witness.AstExpressions{
+				{
+					Type: witness.Variable,
+					Name: string(witness.Account),
+				},
+				{
+					Type:      witness.Value,
+					ValueType: witness.BinaryArray,
+					Value:     []string{},
+				},
+			},
+		},
+	}
+	for i := 0; i < 999; i++ {
+		rule.Ast.Arguments[1].Value = append(rule.Ast.Arguments[1].Value.([]string), fmt.Sprintf("testprice%d", i))
+	}
+	req.List = append(req.List, rule)
+
 	data := handle.RespConfigAutoMintUpdate{}
 	url := fmt.Sprintf("%s/price/rule/update", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
@@ -455,7 +490,7 @@ func TestPriceRuleUpdateInListLimit(t *testing.T) {
 			},
 		},
 	}
-	for i := 0; i < 1100; i++ {
+	for i := 0; i < 999; i++ {
 		rule.Ast.Arguments[1].Value = append(rule.Ast.Arguments[1].Value.([]string), fmt.Sprintf("test%d", i))
 	}
 	req.List = append(req.List, rule)
@@ -473,6 +508,63 @@ func TestPriceRuleUpdateInListLimit(t *testing.T) {
 	if err := doTransactionSendNew(handle.ReqTransactionSend{
 		SignInfoList: data.SignInfoList,
 	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMintAccount(t *testing.T) {
+	records := make([]*tables.TableSmtRecordInfo, 0)
+	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount("sub-account-test.bit"))
+
+	owner := core.DasAddressHex{
+		DasAlgorithmId: 5,
+		AddressHex:     "",
+	}
+
+	daf := core.DasAddressFormat{DasNetType: common.DasNetTypeTestnet2}
+	args, err := daf.HexToArgs(owner, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 100; i++ {
+		account := "testprice" + strconv.Itoa(i) + ".sub-account-test.bit"
+		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
+		accountCharset, err := common.GetAccountCharSetList(account)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for idx := range accountCharset {
+			if idx <= 8 {
+				accountCharset[idx].CharSetName = common.AccountCharTypeEn
+			} else {
+				accountCharset[idx].CharSetName = common.AccountCharTypeDigit
+			}
+		}
+
+		content, _ := json.Marshal(accountCharset)
+		records = append(records, &tables.TableSmtRecordInfo{
+			SvrName:         "svr1",
+			AccountId:       accountId,
+			RecordType:      tables.RecordTypeDefault,
+			MintType:        tables.MintTypeAutoMint,
+			OrderID:         "",
+			Action:          common.DasActionUpdateSubAccount,
+			ParentAccountId: parentAccountId,
+			Account:         account,
+			Content:         string(content),
+			RegisterYears:   1,
+			RegisterArgs:    common.Bytes2Hex(args),
+			Timestamp:       time.Now().UnixNano() / 1e6,
+			SubAction:       common.SubActionCreate,
+		})
+	}
+
+	db, err := toolib.NewGormDB("", "", "", "", 100, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(records).Error; err != nil {
 		t.Fatal(err)
 	}
 }
