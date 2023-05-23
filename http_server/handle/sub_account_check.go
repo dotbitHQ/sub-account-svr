@@ -341,7 +341,7 @@ func (h *HttpHandle) doMintForAccountCheck(req *ReqSubAccountCreate, apiResp *ap
 }
 
 func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
-	defaultCustomScriptArgs := make([]byte, 33)
+	defaultCustomScriptArgs := make([]byte, 32)
 	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())

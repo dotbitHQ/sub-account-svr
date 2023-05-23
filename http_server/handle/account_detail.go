@@ -100,7 +100,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 			return nil
 		}
 		detailSub := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
-		defaultCS := make([]byte, 33)
+		defaultCS := make([]byte, 32)
 		if len(detailSub.CustomScriptArgs) > 0 && bytes.Compare(defaultCS, detailSub.CustomScriptArgs) != 0 {
 			resp.CustomScript = common.Bytes2Hex(detailSub.CustomScriptArgs)
 		}

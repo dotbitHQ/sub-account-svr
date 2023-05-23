@@ -769,7 +769,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 
 func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
 	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
-	customScriptArgs := make([]byte, 33)
+	customScriptArgs := make([]byte, 32)
 	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
 		return false
 	}

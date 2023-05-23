@@ -99,10 +99,10 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	}
 
 	// build tx
-	customScriptArgs := make([]byte, 33)
+	customScriptArgs := make([]byte, 32)
 	if req.CustomScriptArgs != "" {
 		tmpArgs := common.Hex2Bytes(req.CustomScriptArgs)
-		if len(tmpArgs) != 33 {
+		if len(tmpArgs) != 32 {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "CustomScriptArgs err")
 			return nil
 		}
@@ -130,7 +130,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return nil
 	}
 	// check custom script
-	var defaultCustomScriptArgs = make([]byte, 33)
+	var defaultCustomScriptArgs = make([]byte, 32)
 	if bytes.Compare(customScriptArgs, defaultCustomScriptArgs) != 0 {
 		subDataDetail.Flag = witness.FlagTypeCustomPrice
 		subDataDetail.CustomScriptArgs = customScriptArgs
