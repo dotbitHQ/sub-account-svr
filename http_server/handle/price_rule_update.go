@@ -355,18 +355,22 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 		if err != nil {
 			return nil, nil, err
 		}
-		rulesData := make([]byte, 0)
-		for _, v := range ruleData {
-			rulesData = append(rulesData, v...)
-		}
 
 		hash := make([]byte, 10)
-		if len(rulesData) > 0 {
-			blakeHash, err := blake2b.Blake256(rulesData)
+		if len(ruleData) > 0 {
+			totalHash := make([]byte, 0)
+			for _, v := range ruleData {
+				hashData, err := blake2b.Blake256(v)
+				if err != nil {
+					return nil, nil, err
+				}
+				totalHash = append(totalHash, hashData...)
+			}
+			hashData, err := blake2b.Blake256(totalHash)
 			if err != nil {
 				return nil, nil, err
 			}
-			hash = blakeHash[:10]
+			hash = hashData[:10]
 		}
 
 		switch params.InputActionDataType {
