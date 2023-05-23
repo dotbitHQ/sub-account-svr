@@ -132,6 +132,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	// check custom script
 	var defaultCustomScriptArgs = make([]byte, 33)
 	if bytes.Compare(customScriptArgs, defaultCustomScriptArgs) != 0 {
+		subDataDetail.Flag = witness.FlagTypeCustomPrice
 		subDataDetail.CustomScriptArgs = customScriptArgs
 		subDataDetail.CustomScriptConfig = hashConfig
 		subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
