@@ -331,7 +331,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 					}
 					for _, v := range accountCharsetList {
 						if _, ok := common.AccountCharTypeMap[v.CharSetName]; !ok {
-							err = fmt.Errorf("account: %s charset: %s not support", accountName, v.Char)
+							err = fmt.Errorf("account: %s char: %s not support", accountName, v.Char)
 							params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCharsetNotSupport, err.Error())
 							return nil, nil, err
 						}
