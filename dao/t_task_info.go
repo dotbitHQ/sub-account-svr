@@ -310,3 +310,10 @@ func (d *DbDao) GetLatestTaskByParentAccountId(parentAccountId string, limit int
 		Order("id DESC").Limit(limit).Find(&list).Error
 	return
 }
+
+func (d *DbDao) GetUnDoTaskListByParentAccountId(parentAccountId string) (count int64, err error) {
+	err = d.db.Model(tables.TableTaskInfo{}).
+		Where("parent_account_id=? AND smt_status=? AND tx_status=?",
+			parentAccountId, tables.SmtStatusNeedToWrite, tables.TxStatusUnSend).Count(&count).Error
+	return
+}

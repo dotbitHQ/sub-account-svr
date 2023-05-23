@@ -28,10 +28,23 @@ func (t *SmtTask) doUpdateDistribution() error {
 	if config.Cfg.Das.MaxUpdateCount > 0 {
 		maxUpdateCount = config.Cfg.Das.MaxUpdateCount
 	}
-	timestamp := time.Now().Add(-time.Minute).UnixNano() / 1e6
+	timestamp := time.Now().Add(-time.Minute*2).UnixNano() / 1e6
 	for k, v := range mapSmtRecordList {
-		if timestamp < v[0].Timestamp && len(v) < maxUpdateCount {
+		if len(v) >= maxUpdateCount {
+			continue
+		}
+		count, err := t.DbDao.GetUnDoTaskListByParentAccountId(k)
+		if err != nil {
+			return fmt.Errorf("GetUnDoTaskListByParentAccountId err: %s", err.Error())
+		}
+		log.Info("GetUnDoTaskListByParentAccountId:", k, count)
+		if count > 3 {
 			delete(mapSmtRecordList, k)
+			continue
+		}
+		if timestamp < v[0].Timestamp {
+			delete(mapSmtRecordList, k)
+			continue
 		}
 	}
 	if len(mapSmtRecordList) == 0 {
