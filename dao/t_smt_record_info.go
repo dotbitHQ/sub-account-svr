@@ -154,7 +154,7 @@ func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subA
 	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}
-	err = db.Limit(size).Offset((page - 1) * size).Find(&resp).Error
+	err = db.Offset((page - 1) * size).Limit(size).Find(&resp).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
