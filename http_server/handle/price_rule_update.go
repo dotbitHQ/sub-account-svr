@@ -423,7 +423,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 	log.Infof("rule witness size: %dK", ruleWitnessSize/1e3)
 
-	// TODO 增加备注
+	// rule witness most size check
 	if ruleWitnessSize > 441*1e3 {
 		err = errors.New("rule size exceeds limit")
 		params.ApiResp.ApiRespErr(api_code.ApiCodeRuleSizeExceedsLimit, err.Error())
