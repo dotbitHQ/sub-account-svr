@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
-	"math/rand"
 	"net/http"
 	"time"
 )
@@ -151,9 +150,6 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
 	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
-	if req.TokenId == tables.TokenIdErc20USDT || req.TokenId == tables.TokenIdBep20USDT {
-		amount = amount.Add(decimal.NewFromInt(rand.Int63n(1e5))) // todo del
-	}
 	if amount.Cmp(decimal.Zero) != 1 {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
 		return nil
