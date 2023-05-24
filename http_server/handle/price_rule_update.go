@@ -306,38 +306,12 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 				}
 
 				for _, v := range accWhitelist {
-					accountName := strings.Split(strings.TrimSpace(v), ".")[0]
-					if accountName == "" {
-						err = errors.New("account can not be empty")
-						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCanNotBeEmpty, err.Error())
-						return nil, nil, err
+					accountName := v + "." + params.Req.Account
+					h.checkSubAccountName(params.ApiResp, accountName)
+					if params.ApiResp.ErrNo != api_code.ApiCodeSuccess {
+						return nil, nil, errors.New("account name invalid")
 					}
-
-					account := accountName + "." + params.Req.Account
-					_, accLen, err := common.GetDotBitAccountLength(account)
-					if err != nil {
-						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountNameErr, err.Error())
-						return nil, nil, err
-					}
-					if accLen > 42 {
-						err = fmt.Errorf("account: %s length most be less than 42", accountName)
-						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountLengthMostBeLessThan42, err.Error())
-						return nil, nil, err
-					}
-					accountCharsetList, err := h.DasCore.GetAccountCharSetList(account)
-					if err != nil {
-						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountNameErr, err.Error())
-						return nil, nil, err
-					}
-					for _, v := range accountCharsetList {
-						if _, ok := common.AccountCharTypeMap[v.CharSetName]; !ok {
-							err = fmt.Errorf("account: %s char: %s not support", accountName, v.Char)
-							params.ApiResp.ApiRespErr(api_code.ApiCodeAccountCharsetNotSupport, err.Error())
-							return nil, nil, err
-						}
-					}
-
-					accId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
+					accId := common.Bytes2Hex(common.GetAccountIdByAccount(accountName))
 					if _, ok := whiteListMap[accId]; ok {
 						err = fmt.Errorf("account: %s repeat", accountName)
 						params.ApiResp.ApiRespErr(api_code.ApiCodeAccountRepeat, err.Error())
