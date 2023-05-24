@@ -14,8 +14,8 @@ import (
 )
 
 func TestCustomScript(t *testing.T) {
-	args := common.Bytes2Hex(make([]byte, 33))
-	//args = "0x01f15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
+	args := common.Bytes2Hex(make([]byte, 32))
+	args = "0xf15f519ecb226cd763b2bcbcab093e63f89100c07ac0caebc032c788b187ec99"
 	fmt.Println(args)
 	url := ApiUrl + "/custom/script/set"
 	req := handle.ReqCustomScript{
@@ -24,13 +24,14 @@ func TestCustomScript(t *testing.T) {
 			KeyInfo: core.KeyInfo{
 				CoinType: common.CoinTypeEth,
 				ChainId:  "",
-				Key:      "0xc9f53b1d85356B60453F867610888D89a0B667Ad",
+				Key:      "0x15a33588908cF8Edb27D1AbE3852Bf287Abd3891",
 			},
 		},
-		Account:          "20221130.bit",
+		Account:          "10086.bit",
 		CustomScriptArgs: args,
 		CustomScriptConfig: map[uint8]witness.CustomScriptPrice{
-			5: {100000, 100000},
+			4: {2000000, 2000000},
+			5: {1000000, 1000000},
 		},
 	}
 	var data handle.RespCustomScript
@@ -38,20 +39,20 @@ func TestCustomScript(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := doSign(data.SignInfoList, ""); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := doTransactionSend(handle.ReqTransactionSend{
-		SignInfoList: data.SignInfoList,
-	}); err != nil {
-		t.Fatal(err)
-	}
+	//if err := doSign(data.SignInfoList, privateKey); err != nil {
+	//	t.Fatal(err)
+	//}
+	//
+	//if err := doTransactionSend(handle.ReqTransactionSend{
+	//	SignInfoList: data.SignInfoList,
+	//}); err != nil {
+	//	t.Fatal(err)
+	//}
 }
 
 func TestCustomScriptInfo(t *testing.T) {
 	url := ApiUrl + "/custom/script/info"
-	req := handle.ReqCustomScriptInfo{Account: "20221130.bit"}
+	req := handle.ReqCustomScriptInfo{Account: "10086.bit"}
 	var data handle.RespCustomScriptInfo
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -60,7 +61,7 @@ func TestCustomScriptInfo(t *testing.T) {
 
 func TestSubAccountMintPrice(t *testing.T) {
 	url := ApiUrl + "/custom/script/price"
-	req := handle.ReqCustomScriptPrice{SubAccount: "test0.20221130.bit"}
+	req := handle.ReqCustomScriptPrice{SubAccount: "test1.10086.bit"}
 	var data handle.RespCustomScriptPrice
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)

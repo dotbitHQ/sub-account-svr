@@ -188,6 +188,7 @@ func getRecordListNew(daf *core.DasAddressFormat, req *ReqSubAccountCreate, pare
 			AccountId:       subAccountId,
 			Nonce:           0,
 			RecordType:      tables.RecordTypeDefault,
+			MintType:        tables.MintTypeCustomScript,
 			TaskId:          "",
 			Action:          common.DasActionUpdateSubAccount,
 			ParentAccountId: parentAccountId,

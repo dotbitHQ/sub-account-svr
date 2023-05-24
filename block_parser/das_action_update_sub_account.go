@@ -223,7 +223,7 @@ func (b *BlockParser) doNotifyLark(smtRecordList []tables.TableSmtRecordInfo) {
 	}
 	go func() {
 		for _, v := range contentList {
-			notify.SendLarkTextNotify(config.Cfg.Notify.LarkCreateSubAccountKey, "", v)
+			notify.SendLarkTextNotifyWithSvr(config.Cfg.Notify.LarkCreateSubAccountKey, "", v, false)
 		}
 	}()
 }
