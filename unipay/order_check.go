@@ -38,22 +38,27 @@ func (t *ToolUniPay) doOrderCheck() error {
 	for _, v := range list {
 		switch v.ActionType {
 		case tables.ActionTypeMint:
-			acc, err := t.DbDao.GetAccountInfoByAccountId(v.AccountId)
-			if err != nil {
-				return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
-			} else if acc.Id == 0 {
-				continue
-			}
 			smtRecord, err := t.DbDao.GetSmtRecordByOrderId(v.OrderId)
 			if err != nil {
 				return fmt.Errorf("GetSmtRecordByOrderId err: %s", err.Error())
 			}
-			newStatus := tables.OrderStatusSuccess
-			if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
-				newStatus = tables.OrderStatusFail
-			}
-			if err := t.DbDao.UpdateOrderStatusForCheckMint(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
-				return fmt.Errorf("UpdateOrderStatusForCheckMint err: %s[%s]", err.Error(), v.OrderId)
+			acc, err := t.DbDao.GetAccountInfoByAccountId(v.AccountId)
+			if err != nil {
+				return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+			} else if acc.Id == 0 {
+				if smtRecord.Id == 0 {
+					continue
+				} else if smtRecord.RecordType == tables.RecordTypeClosed {
+					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", v.OrderId)
+				}
+			} else {
+				newStatus := tables.OrderStatusSuccess
+				if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
+					newStatus = tables.OrderStatusFail
+				}
+				if err := t.DbDao.UpdateOrderStatusForCheckMint(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
+					return fmt.Errorf("UpdateOrderStatusForCheckMint err: %s[%s]", err.Error(), v.OrderId)
+				}
 			}
 		default:
 			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))
