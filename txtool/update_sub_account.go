@@ -574,6 +574,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 				subAccountNew.Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
 				subAccountNew.NewRoot = res.Root
 			}
+			subAccountNew.EditKey = common.EditKeyCustomScript
 
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
