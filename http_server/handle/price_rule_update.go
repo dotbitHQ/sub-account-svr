@@ -329,18 +329,6 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 		if err != nil {
 			return nil, nil, err
 		}
-
-		hash, err := ruleWitnessHash(ruleData)
-		if err != nil {
-			return nil, nil, err
-		}
-		switch params.InputActionDataType {
-		case common.ActionDataTypeSubAccountPriceRules:
-			subAccountCellDetail.PriceRulesHash = hash
-		case common.ActionDataTypeSubAccountPreservedRules:
-			subAccountCellDetail.PreservedRulesHash = hash
-		}
-
 		// add actionDataType to prefix
 		rulesResult, err = ruleEntity.GenDasData(params.InputActionDataType, ruleData)
 		if err != nil {
@@ -379,11 +367,18 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 
 	// rule witness
 	ruleWitnessSize := 0
-	hashMap := make(map[common.ActionDataType][][]byte)
+	hashMap := map[common.ActionDataType][][]byte{
+		common.ActionDataTypeSubAccountPriceRules:     make([][]byte, 0),
+		common.ActionDataTypeSubAccountPreservedRules: make([][]byte, 0),
+	}
+	if params.InputActionDataType != "" {
+		hashMap[params.InputActionDataType] = rulesResult
+	}
 	for _, v := range rulesResult {
 		ruleWitnessSize += len(v)
 		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
+
 	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
 		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
@@ -400,11 +395,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			ruleBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
 			ruleWitnessSize += len(ruleBytes)
 			txParams.Witnesses = append(txParams.Witnesses, ruleBytes)
-
-			if _, ok := hashMap[actionDataType]; !ok {
-				hashMap[actionDataType] = make([][]byte, 0)
-			}
-			hashMap[actionDataType] = append(hashMap[actionDataType], dataBys)
+			hashMap[actionDataType] = append(hashMap[actionDataType], dataBys[12:])
 		}
 		return true, nil
 	}); err != nil {
@@ -412,15 +403,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 
 	for actionDataType, witnessData := range hashMap {
-		entity := witness.NewSubAccountRuleEntity(params.Req.Account)
-		if err := entity.ParseFromWitnessData(witnessData); err != nil {
-			return nil, nil, err
-		}
-		ruleData, err := entity.GenData()
-		if err != nil {
-			return nil, nil, err
-		}
-		hash, err := ruleWitnessHash(ruleData)
+		hash, err := ruleWitnessHash(witnessData)
 		if err != nil {
 			return nil, nil, err
 		}
