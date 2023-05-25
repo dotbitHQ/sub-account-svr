@@ -12,6 +12,7 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"math"
 	"net/http"
+	"strings"
 )
 
 type ReqPriceRuleList struct {
@@ -105,7 +106,7 @@ func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPr
 
 			accWhitelist := make([]string, 0, len(accIdWhitelist))
 			for _, v := range rules {
-				accWhitelist = append(accWhitelist, v.Account)
+				accWhitelist = append(accWhitelist, strings.TrimSuffix(v.Account, "."+req.Account))
 			}
 			subAccountEntity.Rules[idx].Ast.Arguments[1].Value = accWhitelist
 		}
