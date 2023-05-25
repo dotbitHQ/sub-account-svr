@@ -191,6 +191,16 @@ func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.Da
 		accStatus = AccStatusMinted
 		return
 	}
+	//
+	smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query mint record")
+		e = fmt.Errorf("GetSmtRecordMintingByAccountId err: %s %s", err.Error(), subAccountId)
+		return
+	} else if smtRecord.Id > 0 {
+		accStatus = AccStatusMinting
+		return
+	}
 	// check order of self
 	orderInfo, err := h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex)
 	if err != nil {
