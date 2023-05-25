@@ -330,23 +330,10 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			return nil, nil, err
 		}
 
-		hash := make([]byte, 10)
-		if len(ruleData) > 0 {
-			totalHash := make([]byte, 0)
-			for _, v := range ruleData {
-				hashData, err := blake2b.Blake256(v)
-				if err != nil {
-					return nil, nil, err
-				}
-				totalHash = append(totalHash, hashData...)
-			}
-			hashData, err := blake2b.Blake256(totalHash)
-			if err != nil {
-				return nil, nil, err
-			}
-			hash = hashData[:10]
+		hash, err := ruleWitnessHash(ruleData)
+		if err != nil {
+			return nil, nil, err
 		}
-
 		switch params.InputActionDataType {
 		case common.ActionDataTypeSubAccountPriceRules:
 			subAccountCellDetail.PriceRulesHash = hash
@@ -360,8 +347,6 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			return nil, nil, err
 		}
 	}
-	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
-	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
 
 	// witness
 	var witnessParams []byte
@@ -376,23 +361,8 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
-	// witness account cell
-	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
-	if err != nil {
-		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
-	}
-	accBuilder, ok := accBuilderMap[parentAccountId]
-	if !ok {
-		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
-	}
-	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
-		OldIndex: 0,
-		NewIndex: 0,
-		Action:   common.DasActionConfigSubAccount,
-	})
-	txParams.Witnesses = append(txParams.Witnesses, accWitness)
-
 	ruleWitnessSize := 0
+	hashMap := make(map[common.ActionDataType][][]byte)
 	// witness sub_account cell
 	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
@@ -410,11 +380,47 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			ruleBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
 			ruleWitnessSize += len(ruleBytes)
 			txParams.Witnesses = append(txParams.Witnesses, ruleBytes)
+
+			if _, ok := hashMap[actionDataType]; !ok {
+				hashMap[actionDataType] = make([][]byte, 0)
+			}
+			hashMap[actionDataType] = append(hashMap[actionDataType], ruleBytes)
 		}
 		return true, nil
 	}); err != nil {
 		return nil, nil, err
 	}
+
+	for actionDataType, witnessData := range hashMap {
+		hash, err := ruleWitnessHash(witnessData)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch actionDataType {
+		case common.ActionDataTypeSubAccountPriceRules:
+			subAccountCellDetail.PriceRulesHash = hash
+		case common.ActionDataTypeSubAccountPreservedRules:
+			subAccountCellDetail.PreservedRulesHash = hash
+		}
+	}
+	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
+	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
+
+	// witness account cell
+	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	accBuilder, ok := accBuilderMap[parentAccountId]
+	if !ok {
+		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
+	}
+	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
+		OldIndex: 0,
+		NewIndex: 0,
+		Action:   common.DasActionConfigSubAccount,
+	})
+	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
 	// rule witness
 	for _, v := range rulesResult {
@@ -430,4 +436,24 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 		return nil, nil, err
 	}
 	return txParams, whiteListMap, nil
+}
+
+func ruleWitnessHash(ruleData [][]byte) ([]byte, error) {
+	hash := make([]byte, 10)
+	if len(ruleData) > 0 {
+		totalHash := make([]byte, 0)
+		for _, v := range ruleData {
+			hashData, err := blake2b.Blake256(v)
+			if err != nil {
+				return nil, err
+			}
+			totalHash = append(totalHash, hashData...)
+		}
+		hashData, err := blake2b.Blake256(totalHash)
+		if err != nil {
+			return nil, err
+		}
+		hash = hashData[:10]
+	}
+	return hash, nil
 }
