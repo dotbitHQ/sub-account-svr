@@ -412,7 +412,15 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 
 	for actionDataType, witnessData := range hashMap {
-		hash, err := ruleWitnessHash(witnessData)
+		entity := witness.NewSubAccountRuleEntity(params.Req.Account)
+		if err := entity.ParseFromWitnessData(witnessData); err != nil {
+			return nil, nil, err
+		}
+		ruleData, err := entity.GenData()
+		if err != nil {
+			return nil, nil, err
+		}
+		hash, err := ruleWitnessHash(ruleData)
 		if err != nil {
 			return nil, nil, err
 		}
