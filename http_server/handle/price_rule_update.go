@@ -361,9 +361,29 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
+	// witness account cell
+	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	accBuilder, ok := accBuilderMap[parentAccountId]
+	if !ok {
+		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
+	}
+	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
+		OldIndex: 0,
+		NewIndex: 0,
+		Action:   common.DasActionConfigSubAccount,
+	})
+	txParams.Witnesses = append(txParams.Witnesses, accWitness)
+
+	// rule witness
 	ruleWitnessSize := 0
 	hashMap := make(map[common.ActionDataType][][]byte)
-	// witness sub_account cell
+	for _, v := range rulesResult {
+		ruleWitnessSize += len(v)
+		txParams.Witnesses = append(txParams.Witnesses, v)
+	}
 	subAccountConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
 	if err != nil {
 		params.ApiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
@@ -405,29 +425,6 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	}
 	newSubAccountCellOutputData := witness.BuildSubAccountCellOutputData(subAccountCellDetail)
 	txParams.OutputsData = append(txParams.OutputsData, newSubAccountCellOutputData)
-
-	// witness account cell
-	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
-	if err != nil {
-		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
-	}
-	accBuilder, ok := accBuilderMap[parentAccountId]
-	if !ok {
-		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
-	}
-	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
-		OldIndex: 0,
-		NewIndex: 0,
-		Action:   common.DasActionConfigSubAccount,
-	})
-	txParams.Witnesses = append(txParams.Witnesses, accWitness)
-
-	// rule witness
-	for _, v := range rulesResult {
-		ruleWitnessSize += len(v)
-		txParams.Witnesses = append(txParams.Witnesses, v)
-	}
-	log.Infof("rule witness size: %dK", ruleWitnessSize/1e3)
 
 	// rule witness most size check
 	if ruleWitnessSize > 441*1e3 {
