@@ -14,7 +14,7 @@ func (d *DbDao) GetAvatarRecordsByAccountIds(accountIds []string) (list []tables
 	if len(accountIds) == 0 {
 		return
 	}
-	err = d.parserDb.Where("account_id IN(?) AND `type`='custom_key' AND `key`='avatar' ",
+	err = d.parserDb.Where("account_id IN(?) AND `type`='profile' AND `key`='avatar' ",
 		accountIds).Find(&list).Error
 	return
 }

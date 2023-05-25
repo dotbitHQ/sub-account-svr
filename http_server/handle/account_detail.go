@@ -115,7 +115,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 	for _, v := range list {
 		tmp := recordsInfoToRecordData(v)
 		resp.Records = append(resp.Records, tmp)
-		if v.Type == "custom_key" && v.Key == "avatar" {
+		if v.Type == "profile" && v.Key == "avatar" {
 			resp.AccountInfo.Avatar = v.Value
 		}
 	}
