@@ -233,6 +233,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 		subAccountCellDetail.AutoDistribution = witness.AutoDistributionEnable
 	}
 
+	reqRuleData := make([][]byte, 0)
 	rulesResult := make([][]byte, 0)
 	whiteListMap := make(map[string]Whitelist)
 	// Assemble price rules and calculate rule hash
@@ -325,12 +326,12 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			}
 		}
 
-		ruleData, err := ruleEntity.GenData()
+		reqRuleData, err = ruleEntity.GenData()
 		if err != nil {
 			return nil, nil, err
 		}
 		// add actionDataType to prefix
-		rulesResult, err = ruleEntity.GenDasData(params.InputActionDataType, ruleData)
+		rulesResult, err = ruleEntity.GenDasData(params.InputActionDataType, reqRuleData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -372,7 +373,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 		common.ActionDataTypeSubAccountPreservedRules: make([][]byte, 0),
 	}
 	if params.InputActionDataType != "" {
-		hashMap[params.InputActionDataType] = rulesResult
+		hashMap[params.InputActionDataType] = reqRuleData
 	}
 	for _, v := range rulesResult {
 		ruleWitnessSize += len(v)
@@ -390,16 +391,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			ruleBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
 			ruleWitnessSize += len(ruleBytes)
 			txParams.Witnesses = append(txParams.Witnesses, ruleBytes)
-
-			entity := witness.NewSubAccountRuleEntity(params.Req.Account)
-			if err := entity.ParseFromWitnessData([][]byte{dataBys}); err != nil {
-				return false, err
-			}
-			ruleData, err := entity.GenData()
-			if err != nil {
-				return false, err
-			}
-			hashMap[actionDataType] = append(hashMap[actionDataType], ruleData[0])
+			hashMap[actionDataType] = append(hashMap[actionDataType], dataBys[12:])
 		}
 		return true, nil
 	}); err != nil {
