@@ -404,7 +404,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			if _, ok := hashMap[actionDataType]; !ok {
 				hashMap[actionDataType] = make([][]byte, 0)
 			}
-			hashMap[actionDataType] = append(hashMap[actionDataType], ruleBytes)
+			hashMap[actionDataType] = append(hashMap[actionDataType], dataBys)
 		}
 		return true, nil
 	}); err != nil {
