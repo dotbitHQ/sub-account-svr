@@ -124,7 +124,7 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 			continue
 		}
 
-		signMsg := common.Hex2Bytes(signData.SignMsg)
+		signMsg := []byte(signData.SignMsg)
 
 		switch signData.SignType {
 		case common.DasAlgorithmIdCkb, common.DasAlgorithmIdEth, common.DasAlgorithmIdEth712:
@@ -141,7 +141,6 @@ func DoSign(action common.DasAction, signList []txbuilder.SignData, privateKey s
 			signRes = sign.Ed25519Signature(common.Hex2Bytes(privateKey), signMsg)
 			signRes = append(signRes, []byte{1}...)
 		case common.DasAlgorithmIdDogeChain:
-			signMsg = []byte(signData.SignMsg)
 			signRes, err = sign.DogeSignature(signMsg, privateKey, compress)
 			if err != nil {
 				return fmt.Errorf("sign.DogeSignature err: %s", err.Error())

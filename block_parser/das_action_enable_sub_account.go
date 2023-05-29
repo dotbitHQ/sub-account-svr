@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/witness"
+	"gorm.io/gorm"
 )
 
 func (b *BlockParser) DasActionEnableSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -45,15 +46,18 @@ func (b *BlockParser) DasActionEnableSubAccount(req FuncTransactionHandleReq) (r
 	return
 }
 
-func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
-	if isCV, err := isCurrentVersionTx(req.Tx, common.DASContractNameSubAccountCellType); err != nil {
+func (b *BlockParser) DasActionConfigSubAccountOrCustomScript(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
+	isCV, index, err := CurrentVersionTx(req.Tx, common.DASContractNameSubAccountCellType)
+	if err != nil {
 		resp.Err = fmt.Errorf("isCurrentVersion err: %s", err.Error())
 		return
 	} else if !isCV {
 		log.Warn("not current version enable sub account tx")
 		return
 	}
-	log.Info("DasActionConfigSubAccountCustomScript:", req.BlockNumber, req.TxHash)
+	parentAccountId := common.Bytes2Hex(req.Tx.Outputs[index].Type.Args)
+
+	log.Info("DasActionConfigSubAccountOrCustomScript:", req.Action, req.BlockNumber, req.TxHash, parentAccountId)
 
 	accBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
 	if err != nil {
@@ -61,23 +65,51 @@ func (b *BlockParser) DasActionConfigSubAccountCustomScript(req FuncTransactionH
 		return
 	}
 
-	task := tables.TableTaskInfo{
-		Id:              0,
-		TaskId:          "",
-		TaskType:        tables.TaskTypeChain,
-		ParentAccountId: accBuilder.AccountId,
-		Action:          common.DasActionConfigSubAccountCustomScript,
-		RefOutpoint:     "",
-		BlockNumber:     req.BlockNumber,
-		Outpoint:        common.OutPoint2String(req.TxHash, 1),
-		Timestamp:       req.BlockTimestamp,
-		SmtStatus:       tables.SmtStatusWriteComplete,
-		TxStatus:        tables.TxStatusCommitted,
-	}
-	task.InitTaskId()
+	if err := b.DbDao.Transaction(func(tx *gorm.DB) error {
+		task := &tables.TableTaskInfo{
+			TaskType:        tables.TaskTypeChain,
+			ParentAccountId: accBuilder.AccountId,
+			Action:          req.Action,
+			BlockNumber:     req.BlockNumber,
+			Outpoint:        common.OutPoint2String(req.TxHash, 1),
+			Timestamp:       req.BlockTimestamp,
+			SmtStatus:       tables.SmtStatusWriteComplete,
+			TxStatus:        tables.TxStatusCommitted,
+		}
+		task.InitTaskId()
+		if err := tx.Where("ref_outpoint='' AND outpoint=?", task.Outpoint).
+			Delete(&tables.TableTaskInfo{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+		if err := tx.Create(task).Error; err != nil {
+			return err
+		}
 
-	if err := b.DbDao.CreateTaskByConfigSubAccountCustomScript(&task); err != nil {
-		resp.Err = fmt.Errorf("CreateTaskByConfigSubAccountCustomScript err: %s", err.Error())
+		whiteList := &tables.RuleWhitelist{}
+		if err := tx.Where("tx_hash=?", req.TxHash).Order("id desc").First(whiteList).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+		if whiteList.Id > 0 {
+			if err := tx.Model(&tables.RuleWhitelist{}).
+				Where("tx_hash=? and tx_status=?", req.TxHash, tables.TxStatusPending).
+				Updates(map[string]interface{}{
+					"tx_status":       tables.TxStatusCommitted,
+					"block_number":    req.BlockNumber,
+					"block_timestamp": req.BlockTimestamp,
+				}).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Model(&tables.RuleWhitelist{}).
+				Where("parent_account_id=? and rule_type=? and tx_hash!=?", parentAccountId, whiteList.RuleType, req.TxHash).
+				Delete(&tables.RuleWhitelist{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		resp.Err = err
 		return
 	}
 	return

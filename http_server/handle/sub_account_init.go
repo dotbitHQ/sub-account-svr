@@ -102,48 +102,29 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountPreparedFeeCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
-	// check SubsidyWhitelist
-	subsidize := false
-	if _, ok := config.Cfg.SubsidyWhitelist[clientIp]; ok {
-		subsidize = true
-	}
-	if _, ok := config.Cfg.SubsidyWhitelist[remoteAddrIP]; ok {
-		subsidize = true
-	}
-	log.Info("doSubAccountInit:", subsidize, req.Account, acc.AccountId, clientIp, remoteAddrIP)
+	log.Info("doSubAccountInit:", req.Account, acc.AccountId, clientIp, remoteAddrIP)
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
 	var liveCells []*indexer.LiveCell
 	var change uint64
 	var feeDasLock, feeDasType *types.Script
-	if subsidize {
-		change, liveCells, err = h.getSvrBalance(paramBalance{
-			svrLock:           h.ServerScript,
-			capacityForNeed:   capacityNeed,
-			capacityForChange: capacityForChange,
-		})
-		if err != nil {
-			return doDasBalanceError(err, apiResp)
-		}
-		feeDasLock = h.ServerScript
-	} else {
-		feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
-			return fmt.Errorf("HexToScript err: %s", err.Error())
-		}
-		total := uint64(0)
-		liveCells, total, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-			DasCache:          h.DasCache,
-			LockScript:        feeDasLock,
-			CapacityNeed:      capacityNeed,
-			CapacityForChange: capacityForChange,
-			SearchOrder:       indexer.SearchOrderAsc,
-		})
-		if err != nil {
-			return doDasBalanceError(err, apiResp)
-		}
-		change = total - capacityNeed
+
+	feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
+		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
+	total := uint64(0)
+	liveCells, total, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
+		DasCache:          h.DasCache,
+		LockScript:        feeDasLock,
+		CapacityNeed:      capacityNeed,
+		CapacityForChange: capacityForChange,
+		SearchOrder:       indexer.SearchOrderAsc,
+	})
+	if err != nil {
+		return doDasBalanceError(err, apiResp)
+	}
+	change = total - capacityNeed
 
 	// build tx
 	buildParams := paramsSubAccountInitTx{
@@ -168,7 +149,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	//	return fmt.Errorf("BuildTransaction err: %s", err.Error())
 	//}
 
-	signKey, signList, err := h.buildTx(&paramBuildTx{
+	signKey, signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{},
 		chainType:  req.chainType,
@@ -254,17 +235,28 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 		SmtRoot:          smt.H256Zero(),
 		DasProfit:        0,
 		OwnerProfit:      0,
+		Flag:             witness.FlagTypeCustomRule,
 		CustomScriptArgs: nil,
 	}
 	subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, subAccountOutputData)
 	if p.change > 0 {
-		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: p.change,
-			Lock:     p.feeDasLock,
-			Type:     p.feeDasType,
-		})
-		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		base := 1000 * common.OneCkb
+		splitList, err := core.SplitOutputCell2(p.change, base, 10, p.feeDasLock, p.feeDasType, indexer.SearchOrderDesc)
+		if err != nil {
+			return nil, fmt.Errorf("SplitOutputCell2 err: %s", err.Error())
+		}
+		for i := range splitList {
+			txParams.Outputs = append(txParams.Outputs, splitList[i])
+			txParams.OutputsData = append(txParams.OutputsData, []byte{})
+		}
+
+		//txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
+		//	Capacity: p.change,
+		//	Lock:     p.feeDasLock,
+		//	Type:     p.feeDasType,
+		//})
+		//txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 
 	// witness
@@ -338,11 +330,12 @@ func (h *HttpHandle) getSvrBalance(p paramBalance) (uint64, []*indexer.LiveCell,
 	defer svrBalanceLock.Unlock()
 
 	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          h.DasCache,
-		LockScript:        p.svrLock,
-		CapacityNeed:      p.capacityForNeed,
-		CapacityForChange: common.MinCellOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderDesc,
+		DasCache:           h.DasCache,
+		LockScript:         p.svrLock,
+		CapacityNeed:       p.capacityForNeed,
+		CurrentBlockNumber: 0,
+		CapacityForChange:  common.MinCellOccupiedCkb,
+		SearchOrder:        indexer.SearchOrderDesc,
 	})
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetBalanceCells err: %s", err.Error())

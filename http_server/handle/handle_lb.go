@@ -3,6 +3,7 @@ package handle
 import (
 	"bytes"
 	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
 	"encoding/json"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/gin-gonic/gin"
@@ -40,7 +41,7 @@ func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, se
 	log.Info("LBProxy:", serverKey, server.Name, server.Url, origin)
 	u, err := url.Parse(server.Url)
 	if err != nil {
-		log.Error("url.Parse err: %s", err.Error())
+		log.Errorf("url.Parse err: %s", err.Error())
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		ctx.JSON(http.StatusOK, apiResp)
 		return
@@ -122,5 +123,29 @@ func (h *LBHttpHandle) LBTransactionSend(ctx *gin.Context) {
 		serverKey = dataCache.ParentAccountId
 	}
 
+	h.doLBProxy(ctx, &apiResp, serverKey)
+}
+
+func (h *LBHttpHandle) LBAutoOrderCreate(ctx *gin.Context) {
+	var (
+		funcName               = "LBAutoOrderCreate"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		apiResp                api_code.ApiResp
+		req                    ReqAutoOrderCreate
+	)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP)
+
+	bodyBytes, _ := ctx.GetRawData()
+	ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	log.Info("LBAutoOrderCreate:", string(bodyBytes))
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		log.Error("json.Unmarshal err: ", err.Error(), funcName, clientIp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+
+	serverKey := tables.GetParentAccountId(req.SubAccount)
 	h.doLBProxy(ctx, &apiResp, serverKey)
 }

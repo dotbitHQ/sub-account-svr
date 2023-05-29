@@ -25,6 +25,7 @@ type RespAccountDetail struct {
 }
 
 type AccountData struct {
+	AccountId            string                  `json:"account_id"`
 	Account              string                  `json:"account"`
 	Owner                core.ChainTypeAddress   `json:"owner"`
 	Manager              core.ChainTypeAddress   `json:"manager"`
@@ -34,6 +35,7 @@ type AccountData struct {
 	EnableSubAccount     tables.EnableSubAccount `json:"enable_sub_account"`
 	RenewSubAccountPrice uint64                  `json:"renew_sub_account_price"`
 	Nonce                uint64                  `json:"nonce"`
+	Avatar               string                  `json:"avatar"`
 }
 
 type RecordData struct {
@@ -98,7 +100,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 			return nil
 		}
 		detailSub := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
-		defaultCS := make([]byte, 33)
+		defaultCS := make([]byte, 32)
 		if len(detailSub.CustomScriptArgs) > 0 && bytes.Compare(defaultCS, detailSub.CustomScriptArgs) != 0 {
 			resp.CustomScript = common.Bytes2Hex(detailSub.CustomScriptArgs)
 		}
@@ -113,6 +115,9 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 	for _, v := range list {
 		tmp := recordsInfoToRecordData(v)
 		resp.Records = append(resp.Records, tmp)
+		if v.Type == "profile" && v.Key == "avatar" {
+			resp.AccountInfo.Avatar = v.Value
+		}
 	}
 
 	apiResp.ApiRespOK(resp)
@@ -139,6 +144,7 @@ func (h *HttpHandle) accountInfoToAccountData(acc tables.TableAccountInfo) Accou
 	manager = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, managerHex.AddressNormal)
 
 	return AccountData{
+		AccountId:            acc.AccountId,
 		Account:              acc.Account,
 		Owner:                owner,
 		Manager:              manager,

@@ -4,11 +4,15 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
+	"gorm.io/gorm"
 	"time"
 )
 
 func (d *DbDao) GetAccountInfoByAccountId(accountId string) (acc tables.TableAccountInfo, err error) {
 	err = d.parserDb.Where(" account_id=? ", accountId).Find(&acc).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
 	return
 }
 
@@ -107,7 +111,7 @@ func (d *DbDao) GetSubAccountListTotalByParentAccountId(parentAccountId string, 
 	//return
 }
 
-func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int, category tables.Category) (list []tables.TableAccountInfo, err error) {
+func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit, offset int, category tables.Category, keyword string) (list []tables.TableAccountInfo, err error) {
 	//err = d.parserDb.Where(" owner_chain_type=? AND owner=? ", chainType, address).
 	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).
 	//	Order("account").Limit(limit).Offset(offset).Find(&list).Error
@@ -139,12 +143,16 @@ func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit
 		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
 	}
 
+	if keyword != "" {
+		db = db.Where("account LIKE ?", keyword+"%")
+	}
+
 	err = db.Order("account").Limit(limit).Offset(offset).Find(&list).Error
 
 	return
 }
 
-func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, category tables.Category) (count int64, err error) {
+func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, category tables.Category, keyword string) (count int64, err error) {
 	//err = d.parserDb.Model(tables.TableAccountInfo{}).Where(" owner_chain_type=? AND owner=? ", chainType, address).
 	//	Or(" manager_chain_type=? AND manager=? ", chainType, address).Count(&count).Error
 	//return
@@ -174,6 +182,10 @@ func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, 
 		db = db.Where("parent_account_id='' AND enable_sub_account=?", tables.AccountEnableStatusOn)
 	}
 
+	if keyword != "" {
+		db = db.Where("account LIKE ?", keyword+"%")
+	}
+
 	err = db.Count(&count).Error
 
 	return
@@ -184,5 +196,21 @@ func (d *DbDao) GetAccountListByAccountIds(accountIds []string) (list []tables.T
 		return
 	}
 	err = d.parserDb.Where("account_id IN(?)", accountIds).Find(&list).Error
+	return
+}
+
+func (d *DbDao) GetSubAccountNum(parentAccountId string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", parentAccountId).Count(&num).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetSubAccountNumDistinct(parentAccountId string) (num int64, err error) {
+	err = d.parserDb.Model(&tables.TableAccountInfo{}).Where("parent_account_id=?", parentAccountId).Distinct("owner").Count(&num).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
 	return
 }

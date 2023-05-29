@@ -137,3 +137,55 @@ func (d *DbDao) CreateMinSignInfo(mintSignInfo tables.TableMintSignInfo, list []
 		return nil
 	})
 }
+
+func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintTypes tables.MintType, actions []string) (resp []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Model(&tables.TableSmtRecordInfo{}).Where("parent_account_id=? and mint_type in (?) and action in (?)", parentAccountId, mintTypes, actions).Order("id desc").Find(&resp).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subActions []string, page, size int) (resp []tables.TableSmtRecordInfo, total int64, err error) {
+	db := d.db.Model(&tables.TableSmtRecordInfo{}).Joins("join t_task_info on t_smt_record_info.task_id=t_task_info.task_id").
+		Where("t_smt_record_info.parent_account_id=? and t_smt_record_info.action in (?) and t_smt_record_info.sub_action in (?) and t_task_info.smt_status=? and t_task_info.tx_status=? and t_smt_record_info.order_id!=''",
+			parentAccountId, actions, subActions, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).
+		Order("t_smt_record_info.id desc")
+	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return
+	}
+	err = db.Offset((page - 1) * size).Limit(size).Find(&resp).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint64, err error) {
+	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("IFNULL(sum(t_smt_record_info.register_years+t_smt_record_info.renew_years),0)").Joins("join t_task_info on t_smt_record_info.task_id=t_task_info.task_id").
+		Where("t_smt_record_info.parent_account_id=? and t_smt_record_info.mint_type in (?) and t_smt_record_info.sub_action in (?) and t_task_info.smt_status=? and t_task_info.tx_status=?",
+			parentAccountId, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual},
+			[]common.DasAction{common.SubActionCreate, common.SubActionRenew}, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).Scan(&total).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetSmtRecordByOrderId(orderId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("order_id=?", orderId).
+		Order("id DESC").Limit(1).Find(&info).Error
+	return
+}
+
+func (d *DbDao) GetSmtRecordCreateByAccountId(accountId string, timestamp int64) (list []tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND sub_action=? AND timestamp>?",
+		accountId, common.SubActionCreate, timestamp).Find(&list).Error
+	return
+}
+
+func (d *DbDao) GetSmtRecordMintingByAccountId(accountId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND record_type=? AND sub_action=?",
+		accountId, tables.RecordTypeDefault, common.SubActionCreate).Limit(1).Find(&info).Error
+	return
+}

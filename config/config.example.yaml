@@ -7,15 +7,26 @@ server:
   server_address: ""
   server_private_key: ""
   smt_server: "http://10.143.1.180:10000"
+  uni_pay_url: "http://127.0.0.1:9092"
+  refund_switch: false
 das:
   max_register_years: 20
   max_create_count: 100
   max_update_count: 100
   max_retry: 10
+  auto_mint:
+    support_payment_token:
+      - "eth_eth"
+      - "tron_trx"
+      - "bsc_bnb"
+    background_colors:
+      eth_eth: "#f0fdf4"
+      tron_trx: "#eff6ff"
+      bsc_bnb: "#fefce8"
+    payment_min_price: 50
+    service_fee_ratio: 0.1
 origins:
   - ""
-subsidy_whitelist:
-  "": ""
 notify:
   lark_error_key: ""
   lark_create_sub_account_key: ""

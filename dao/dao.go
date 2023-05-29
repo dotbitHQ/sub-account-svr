@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
+	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,10 @@ type DbDao struct {
 	db       *gorm.DB
 	parserDb *gorm.DB
 }
+
+var (
+	log = mylog.NewLogger("dao", mylog.LevelDebug)
+)
 
 func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, error) {
 	db, err := toolib.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
@@ -28,6 +33,12 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 			&tables.TableSmtRecordInfo{},
 			&tables.TableTaskInfo{},
 			&tables.TableMintSignInfo{},
+			&tables.AutoPaymentInfo{},
+			&tables.OrderInfo{},
+			&tables.PaymentInfo{},
+			&tables.UserConfig{},
+			&tables.RuleWhitelist{},
+			&tables.TableSubAccountAutoMintWithdrawHistory{},
 		); err != nil {
 			return nil, err
 		}
@@ -43,4 +54,8 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
 	}
 	return &DbDao{db: db, parserDb: parserDb}, nil
+}
+
+func (d *DbDao) Transaction(fc func(tx *gorm.DB) error) error {
+	return d.db.Transaction(fc)
 }

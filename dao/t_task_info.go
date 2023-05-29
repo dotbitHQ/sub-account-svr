@@ -311,6 +311,37 @@ func (d *DbDao) GetLatestTaskByParentAccountId(parentAccountId string, limit int
 	return
 }
 
+func (d *DbDao) UpdateTxStatusByOutpoint(outpoint string, txStatus tables.TxStatus) (err error) {
+	err = d.db.Model(&tables.TableTaskInfo{}).Where("outpoint=?", outpoint).Update("tx_status", txStatus).Error
+	return
+}
+
+func (d *DbDao) FirstEnableAutoMint(parentId string) (list tables.TableTaskInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND action=? and smt_status=? and tx_status=?",
+		parentId, common.DasActionConfigSubAccount, tables.SmtStatusWriteComplete, tables.TxStatusCommitted).
+		Order("id ASC").First(&list).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetLatestTask(parentId string, action common.DasAction, where ...interface{}) (t tables.TableTaskInfo, err error) {
+	db := d.db.Where("parent_account_id=? AND action=?", parentId, action)
+	if len(where) > 0 {
+		if len(where) > 1 {
+			db = db.Where(where[0], where[1:]...)
+		} else {
+			db = db.Where(where[0])
+		}
+	}
+	err = db.Order("id desc").First(&t).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
 func (d *DbDao) GetUnDoTaskListByParentAccountId(parentAccountId string) (count int64, err error) {
 	err = d.db.Model(tables.TableTaskInfo{}).
 		Where("parent_account_id=? AND smt_status=? AND tx_status=?",

@@ -9,6 +9,7 @@ import (
 	"das_sub_account/http_server"
 	"das_sub_account/http_server/handle"
 	"das_sub_account/lb"
+	"das_sub_account/unipay"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -110,6 +111,17 @@ func runServer(ctx *cli.Context) error {
 		}
 		log.Infof("block parser ok")
 	}
+
+	// refund
+	toolUniPay := unipay.ToolUniPay{
+		Ctx:     ctxServer,
+		Wg:      &wgServer,
+		DbDao:   dbDao,
+		DasCore: dasCore,
+	}
+	toolUniPay.RunConfirmStatus()
+	toolUniPay.RunOrderRefund()
+	toolUniPay.RunOrderCheck()
 
 	// redis
 	red, err := toolib.NewRedisClient(config.Cfg.Cache.Redis.Addr, config.Cfg.Cache.Redis.Password, config.Cfg.Cache.Redis.DbNum)

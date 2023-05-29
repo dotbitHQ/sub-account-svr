@@ -81,7 +81,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	} else if acc.Id == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
-	} else if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) ||
+	} else if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) &&
 		(req.chainType != acc.ManagerChainType && !strings.EqualFold(req.address, acc.Manager)) {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
@@ -89,7 +89,7 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 
 	switch req.Action {
 	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript,
-		common.DasActionCollectSubAccountProfit:
+		common.DasActionCollectSubAccountProfit, common.DasActionConfigSubAccount:
 		task, err := h.DbDao.GetTaskInfoByParentAccountIdWithAction(accountId, req.Action)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query task")

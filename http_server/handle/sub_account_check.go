@@ -209,11 +209,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
 			isOk = false
 		}
-		if accLen <= 0 {
-			tmp.Status = CheckStatusFail
-			tmp.Message = fmt.Sprintf("account length is 0")
-			isOk = false
-		} else if indexAcc, ok := subAccountMap[accountId]; ok {
+		if indexAcc, ok := subAccountMap[accountId]; ok {
 			resp.Result[indexAcc].Status = CheckStatusFail
 			resp.Result[indexAcc].Message = fmt.Sprintf("same account")
 			tmp.Status = CheckStatusFail
@@ -345,7 +341,7 @@ func (h *HttpHandle) doMintForAccountCheck(req *ReqSubAccountCreate, apiResp *ap
 }
 
 func (h *HttpHandle) doSubAccountCheckCustomScript(parentAccountId string, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
-	defaultCustomScriptArgs := make([]byte, 33)
+	defaultCustomScriptArgs := make([]byte, 32)
 	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())

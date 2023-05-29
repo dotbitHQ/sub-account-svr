@@ -1,11 +1,13 @@
 package example
 
 import (
+	"context"
 	"das_sub_account/http_server/handle"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
+	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"testing"
 )
 
@@ -308,4 +310,18 @@ func TestAddr(t *testing.T) {
 	fmt.Println(dasLock, dasType)
 	fmt.Println(address.ConvertScriptToAddress(address.Testnet, dasLock))
 
+}
+
+func TestSubAccTx(t *testing.T) {
+	client, err := getClientTestnet2()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := client.GetTransaction(context.Background(), types.HexToHash("0x2751144baa4f7581ced8c5aee4adada2e8f4be0d53f148f9d529fb2ff6d83cae"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(tx.Transaction.SizeInBlock())
+	ser, _ := tx.Transaction.Serialize()
+	fmt.Println(len(ser))
 }

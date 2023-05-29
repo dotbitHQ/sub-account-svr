@@ -67,16 +67,23 @@ type CfgServer struct {
 		PushLogIndex           string            `json:"push_log_index" yaml:"push_log_index"`
 		NotExit                bool              `json:"not_exit" yaml:"not_exit"`
 		SmtServer              string            `json:"smt_server" yaml:"smt_server"`
+		UniPayUrl              string            `json:"uni_pay_url" yaml:"uni_pay_url"`
+		RefundSwitch           bool              `json:"refund_switch" yaml:"refund_switch"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
 		MaxCreateCount   int    `json:"max_create_count" yaml:"max_create_count"`
 		MaxUpdateCount   int    `json:"max_update_count" yaml:"max_update_count"`
 		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
+		AutoMint         struct {
+			SupportPaymentToken []string          `json:"support_payment_token" yaml:"support_payment_token"`
+			BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
+			PaymentMinPrice     int64             `json:"payment_min_price" yaml:"payment_min_price"`
+			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
+		} `json:"auto_mint" yaml:"auto_mint"`
 	} `json:"das" yaml:"das"`
-	Origins          []string          `json:"origins" yaml:"origins"`
-	SubsidyWhitelist map[string]string `json:"subsidy_whitelist" yaml:"subsidy_whitelist"`
-	Notify           struct {
+	Origins []string `json:"origins" yaml:"origins"`
+	Notify  struct {
 		LarkErrorKey               string `json:"lark_error_key" yaml:"lark_error_key"`
 		LarkCreateSubAccountKey    string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
 		DiscordCreateSubAccountKey string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`

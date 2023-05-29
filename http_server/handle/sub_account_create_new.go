@@ -244,6 +244,7 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAcco
 			AccountId:       subAccountId,
 			Nonce:           0,
 			RecordType:      tables.RecordTypeDefault,
+			MintType:        tables.MintTypeManual,
 			TaskId:          "",
 			Action:          common.DasActionUpdateSubAccount,
 			ParentAccountId: parentAccountId,

@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -17,6 +18,13 @@ type RespConfigInfo struct {
 	SubAccountRenewSubAccountPrice uint64 `json:"sub_account_renew_sub_account_price"`
 	SubAccountCommonFee            uint64 `json:"sub_account_common_fee"`
 	CkbQuote                       string `json:"ckb_quote"`
+	AutoMint                       struct {
+		PaymentMinPrice int64  `json:"payment_min_price"`
+		ServiceFeeRatio string `json:"service_fee_ratio"`
+	} `json:"auto_mint"`
+	MintCostsManually  uint64 `json:"mint_costs_manually"`
+	RenewCostsManually uint64 `json:"renew_costs_manually"`
+	ManagementTimes    uint64 `json:"management_times"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -48,6 +56,9 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.SubAccountNewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	resp.SubAccountRenewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
 	resp.SubAccountCommonFee, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.CommonFee().RawData())
+	resp.MintCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	resp.RenewCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+	resp.ManagementTimes = 10000
 
 	quoteCell, err := h.DasCore.GetQuoteCell()
 	if err != nil {
@@ -57,6 +68,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	quote := decimal.NewFromInt(int64(quoteCell.Quote()))
 	resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
 
+	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
+	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
 	apiResp.ApiRespOK(resp)
 	return nil
 }

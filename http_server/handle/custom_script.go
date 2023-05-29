@@ -99,10 +99,10 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	}
 
 	// build tx
-	customScriptArgs := make([]byte, 33)
+	customScriptArgs := make([]byte, 32)
 	if req.CustomScriptArgs != "" {
 		tmpArgs := common.Hex2Bytes(req.CustomScriptArgs)
-		if len(tmpArgs) != 33 {
+		if len(tmpArgs) != 32 {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "CustomScriptArgs err")
 			return nil
 		}
@@ -130,8 +130,9 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return nil
 	}
 	// check custom script
-	var defaultCustomScriptArgs = make([]byte, 33)
+	var defaultCustomScriptArgs = make([]byte, 32)
 	if bytes.Compare(customScriptArgs, defaultCustomScriptArgs) != 0 {
+		subDataDetail.Flag = witness.FlagTypeCustomPrice
 		subDataDetail.CustomScriptArgs = customScriptArgs
 		subDataDetail.CustomScriptConfig = hashConfig
 		subAccountOutputData := witness.BuildSubAccountCellOutputData(subDataDetail)
@@ -155,7 +156,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return fmt.Errorf("buildCustomScriptTx err: %s", err.Error())
 	}
 
-	signKey, signList, err := h.buildTx(&paramBuildTx{
+	signKey, signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{1},
 		chainType:  hexAddress.ChainType,
@@ -189,10 +190,10 @@ type paramBuildTx struct {
 	account    string
 }
 
-func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, error) {
+func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, string, error) {
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(p.txParams); err != nil {
-		return "", nil, fmt.Errorf("BuildTransaction err: %s", err.Error())
+		return "", nil, "", fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 
 	if p.action == common.DasActionConfigSubAccountCustomScript {
@@ -201,9 +202,17 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, err
 		txBuilder.Transaction.Outputs[1].Capacity = changeCapacity
 	}
 
+	if p.action == common.DasActionConfigSubAccount {
+		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+		latestOutput := len(txBuilder.Transaction.Outputs) - 1
+		changeCapacity := txBuilder.Transaction.Outputs[latestOutput].Capacity - sizeInBlock - 5000
+		txBuilder.Transaction.Outputs[latestOutput].Capacity = changeCapacity
+		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity)
+	}
+
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
 	if err != nil {
-		return "", nil, fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
+		return "", nil, "", fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
 	}
 
 	log.Info("buildTx:", txBuilder.TxString())
@@ -221,10 +230,15 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, err
 	signKey := sic.SignKey()
 	cacheStr := toolib.JsonString(&sic)
 	if err = h.RC.SetSignTxCache(signKey, cacheStr); err != nil {
-		return "", nil, fmt.Errorf("SetSignTxCache err: %s", err.Error())
+		return "", nil, "", fmt.Errorf("SetSignTxCache err: %s", err.Error())
 	}
 
-	return signKey, signList, nil
+	txHash, err := txBuilder.Transaction.ComputeHash()
+	if err != nil {
+		return "", nil, "", err
+	}
+
+	return signKey, signList, txHash.Hex(), nil
 }
 
 type paramCustomScriptTx struct {
