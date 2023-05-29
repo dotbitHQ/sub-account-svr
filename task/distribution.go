@@ -28,7 +28,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 	if config.Cfg.Das.MaxUpdateCount > 0 {
 		maxUpdateCount = config.Cfg.Das.MaxUpdateCount
 	}
-	timestamp := time.Now().Add(-time.Minute*2).UnixNano() / 1e6
+	timestamp := time.Now().Add(-time.Minute).UnixNano() / 1e6
 	for k, v := range mapSmtRecordList {
 		if len(v) >= maxUpdateCount {
 			continue
