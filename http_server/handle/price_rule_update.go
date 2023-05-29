@@ -344,7 +344,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	} else if strings.EqualFold(accountInfo.Manager, address) {
 		witnessParams = common.Hex2Bytes(common.ParamManager)
 	}
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionConfigSubAccount, witnessParams)
+	actionWitness, err := witness.GenActionDataWitnessV3(common.DasActionConfigSubAccount, witnessParams)
 	if err != nil {
 		return nil, nil, err
 	}
