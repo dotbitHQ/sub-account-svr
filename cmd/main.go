@@ -10,6 +10,7 @@ import (
 	"das_sub_account/http_server/handle"
 	"das_sub_account/task"
 	"das_sub_account/txtool"
+	"das_sub_account/unipay"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -139,6 +140,16 @@ func runServer(ctx *cli.Context) error {
 			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
 		}
 		log.Infof("block parser ok")
+		// refund
+		toolUniPay := unipay.ToolUniPay{
+			Ctx:     ctxServer,
+			Wg:      &wgServer,
+			DbDao:   dbDao,
+			DasCore: dasCore,
+		}
+		toolUniPay.RunConfirmStatus()
+		toolUniPay.RunOrderRefund()
+		toolUniPay.RunOrderCheck()
 	}
 
 	// task

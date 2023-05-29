@@ -110,18 +110,17 @@ func runServer(ctx *cli.Context) error {
 			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
 		}
 		log.Infof("block parser ok")
+		// refund
+		toolUniPay := unipay.ToolUniPay{
+			Ctx:     ctxServer,
+			Wg:      &wgServer,
+			DbDao:   dbDao,
+			DasCore: dasCore,
+		}
+		toolUniPay.RunConfirmStatus()
+		toolUniPay.RunOrderRefund()
+		toolUniPay.RunOrderCheck()
 	}
-
-	// refund
-	toolUniPay := unipay.ToolUniPay{
-		Ctx:     ctxServer,
-		Wg:      &wgServer,
-		DbDao:   dbDao,
-		DasCore: dasCore,
-	}
-	toolUniPay.RunConfirmStatus()
-	toolUniPay.RunOrderRefund()
-	toolUniPay.RunOrderCheck()
 
 	// redis
 	red, err := toolib.NewRedisClient(config.Cfg.Cache.Redis.Addr, config.Cfg.Cache.Redis.Password, config.Cfg.Cache.Redis.DbNum)
