@@ -100,9 +100,6 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 			idx := v
 			errG.Go(func() error {
 				record := recordInfo[idx]
-				if record.OrderID == "" {
-					return nil
-				}
 				resp.List[idx] = DistributionListElement{
 					Time:    record.CreatedAt.UnixMilli(),
 					Account: strings.Split(record.Account, ".")[0],
