@@ -31,6 +31,7 @@ type DistributionListElement struct {
 	Account string `json:"account"`
 	Years   uint64 `json:"years"`
 	Amount  string `json:"amount"`
+	Symbol  string `json:"symbol"`
 }
 
 func (h *HttpHandle) DistributionList(ctx *gin.Context) {
@@ -108,7 +109,8 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 
 				switch record.MintType {
 				case tables.MintTypeDefault, tables.MintTypeManual:
-					resp.List[idx].Amount = "Free mint by manager"
+					resp.List[idx].Amount = "0"
+					resp.List[idx].Symbol = "Free mint by manager"
 					return nil
 				case tables.MintTypeAutoMint:
 					order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
@@ -124,7 +126,8 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
 					token := tokens[order.TokenId]
 					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
-					resp.List[idx].Amount = fmt.Sprintf("%s %s", amount, token.Symbol)
+					resp.List[idx].Amount = amount.String()
+					resp.List[idx].Symbol = token.Symbol
 				}
 				return nil
 			})
