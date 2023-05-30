@@ -147,8 +147,8 @@ func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintTypes ta
 }
 
 func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subActions []string, page, size int) (resp []tables.TableSmtRecordInfo, total int64, err error) {
-	db := d.db.Model(&tables.TableSmtRecordInfo{}).Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?)",
-		parentAccountId, tables.RecordTypeChain, actions, subActions).Order("id desc")
+	db := d.db.Model(&tables.TableSmtRecordInfo{}).Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?) and mint_type in (?)",
+		parentAccountId, tables.RecordTypeChain, actions, subActions, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual, tables.MintTypeAutoMint}).Order("id desc")
 	if err = db.Count(&total).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return
 	}
