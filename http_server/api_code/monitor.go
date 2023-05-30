@@ -9,6 +9,7 @@ import (
 	"github.com/parnurzeal/gorequest"
 	"github.com/scorpiotzh/mylog"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -54,6 +55,9 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 					log.Warn("DoMonitorLog:", method, resp.ErrNo, resp.ErrMsg)
 				}
 				if resp.ErrNo == ApiCodeSignError {
+					resp.ErrNo = ApiCodeSuccess
+				}
+				if resp.ErrNo == ApiCodeParamsInvalid && strings.Contains(resp.ErrMsg, "expires soon") {
 					resp.ErrNo = ApiCodeSuccess
 				}
 				pushLog := ReqPushLog{
