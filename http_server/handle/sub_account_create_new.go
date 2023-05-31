@@ -211,8 +211,8 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAccountInfo, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) (*tables.TableMintSignInfo, []tables.TableSmtRecordInfo, error) {
 	expiredAt := uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
 	if expiredAt > acc.ExpiredAt {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "expires soon")
-		return nil, nil, fmt.Errorf("expires soon")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
+		return nil, nil, fmt.Errorf("account expiring soon")
 	}
 
 	var listSmtRecord []tables.TableSmtRecordInfo

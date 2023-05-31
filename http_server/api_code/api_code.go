@@ -74,6 +74,7 @@ const (
 	ApiCodeAccountNameErr                     ApiCode = 40044
 	ApiCodeAccountLengthMostBeLessThan42      ApiCode = 40045
 	ApiCodeAccountCharsetNotSupport           ApiCode = 40046
+	ApiCodeAccountExpiringSoon                ApiCode = 40047
 )
 
 const (

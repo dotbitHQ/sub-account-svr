@@ -177,6 +177,11 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "parent account is expired")
 		return nil, nil
 	}
+	expiredAt := uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
+	if expiredAt > parentAccount.ExpiredAt {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
+		return nil, nil
+	}
 	return &parentAccount, nil
 }
 
