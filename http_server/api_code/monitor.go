@@ -59,6 +59,9 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 				if resp.ErrNo == ApiCodeAccountExpiringSoon {
 					resp.ErrNo = ApiCodeSuccess
 				}
+				if resp.ErrNo == ApiCodeAccountIsExpired {
+					resp.ErrNo = ApiCodeSuccess
+				}
 				pushLog := ReqPushLog{
 					Index:   config.Cfg.Server.PushLogIndex,
 					Method:  method,
