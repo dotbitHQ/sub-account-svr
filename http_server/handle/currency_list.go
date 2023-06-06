@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	LabelSubDIDApp = "subdid.app"
+	LabelSubDIDApp = "topdid.com"
 )
 
 type ReqCurrencyList struct {
