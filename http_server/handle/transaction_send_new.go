@@ -183,6 +183,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 			Benefits:        data.Benefits,
 			Links:           data.Links,
 			BackgroundColor: data.BackgroundColor,
+			MintSuccessPage: data.MintSuccessPage,
 		}); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to update mint config")
 			return fmt.Errorf("CreateUserConfigWithMintConfig err: %s", err.Error())

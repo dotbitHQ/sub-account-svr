@@ -27,6 +27,10 @@ type ReqMintConfigUpdate struct {
 	Links           []tables.Link `json:"links"`
 	BackgroundColor string        `json:"background_color"`
 	Timestamp       int64         `json:"timestamp" binding:"required"`
+	MintSuccessPage []struct {
+		Type string `json:"type"`
+		Url  string `json:"url"`
+	} `json:"mint_success_page"`
 }
 
 type RespMintConfigUpdate struct {

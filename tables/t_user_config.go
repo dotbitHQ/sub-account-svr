@@ -23,6 +23,10 @@ type MintConfig struct {
 	Benefits        string `json:"benefits"`
 	Links           []Link `json:"links"`
 	BackgroundColor string `json:"background_color"`
+	MintSuccessPage []struct {
+		Type string `json:"type"`
+		Url  string `json:"url"`
+	} `json:"mint_success_page"`
 }
 
 type Link struct {
