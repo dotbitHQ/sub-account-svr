@@ -135,6 +135,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			if oldSubAccount == nil {
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
+			subAccountNew.SubAccountData = oldSubAccount
 			return &currentSubAccount, &subAccountNew, nil
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action[%s]", t.SubAction)
