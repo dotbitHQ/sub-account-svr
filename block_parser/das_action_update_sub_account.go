@@ -152,6 +152,8 @@ func getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleRe
 				}
 				smtRecord.EditRecords = string(recordsBys)
 			}
+		case common.SubActionRecycle:
+
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action [%s]", v.Action)
 		}

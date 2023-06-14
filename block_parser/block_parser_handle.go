@@ -20,8 +20,8 @@ func (b *BlockParser) registerTransactionHandle() {
 	b.mapTransactionHandle[common.DasActionCollectSubAccountProfit] = b.DasActionCollectSubAccountProfit
 	b.mapTransactionHandle[common.DasActionConfigSubAccount] = b.DasActionConfigSubAccountOrCustomScript
 	b.mapTransactionHandle[common.DasActionUpdateSubAccount] = b.DasActionUpdateSubAccount
-	b.mapTransactionHandle[common.DasActionRenewSubAccount] = b.DasActionRenewSubAccount                 // todo
-	b.mapTransactionHandle[common.DasActionRecycleSubAccount] = b.DasActionRecycleSubAccount             // todo
+	b.mapTransactionHandle[common.DasActionRenewSubAccount] = b.DasActionRenewSubAccount // todo
+	//b.mapTransactionHandle[common.DasActionRecycleSubAccount] = b.DasActionRecycleSubAccount
 	b.mapTransactionHandle[common.DasActionLockSubAccountForCrossChain] = b.DasActionRecycleSubAccount   // todo
 	b.mapTransactionHandle[common.DasActionUnlockSubAccountForCrossChain] = b.DasActionRecycleSubAccount // todo
 	b.mapTransactionHandle[common.DasActionCollectSubAccountChannelProfit] = b.ActionCollectSubAccountChannelProfit
