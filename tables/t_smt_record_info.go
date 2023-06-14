@@ -131,6 +131,11 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			currentSubAccount.Nonce++
 			subAccountNew.SignExpiredAt = t.ExpiredAt
 			return &currentSubAccount, &subAccountNew, nil
+		case common.SubActionRecycle:
+			if oldSubAccount == nil {
+				return nil, nil, fmt.Errorf("oldSubAccount is nil")
+			}
+			return &currentSubAccount, &subAccountNew, nil
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action[%s]", t.SubAction)
 		}
