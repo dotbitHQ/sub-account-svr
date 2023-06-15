@@ -216,6 +216,6 @@ func (d *DbDao) GetSubAccountNumDistinct(parentAccountId string) (num int64, err
 }
 
 func (d *DbDao) GetNeedToRecycleList(timestamp int64) (list []tables.TableAccountInfo, err error) {
-	err = d.parserDb.Where("expired_at<? AND parent_account_id!=''", timestamp).Find(&list).Limit(2).Error
+	err = d.parserDb.Where("expired_at<? AND parent_account_id!=''", timestamp).Limit(2).Find(&list).Error
 	return
 }
