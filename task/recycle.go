@@ -10,7 +10,7 @@ import (
 )
 
 func (t *SmtTask) RunRecycleSubAccount() {
-	tickerRecycle := time.NewTicker(time.Minute * 10)
+	tickerRecycle := time.NewTicker(time.Minute * 5)
 	t.Wg.Add(1)
 	go func() {
 		for {
