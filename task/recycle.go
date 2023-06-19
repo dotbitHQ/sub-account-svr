@@ -54,7 +54,11 @@ func (t *SmtTask) recycleSubAccount() error {
 		return fmt.Errorf("timestamp is 0")
 	}
 	// get need to recycle sub-account list
-	list, err := t.DbDao.GetNeedToRecycleList(timestamp)
+	recycleLimit := config.Cfg.Server.RecycleLimit
+	if recycleLimit < 1 || recycleLimit > 100 {
+		recycleLimit = 50
+	}
+	list, err := t.DbDao.GetNeedToRecycleList(timestamp, recycleLimit)
 	if err != nil {
 		return fmt.Errorf("GetNeedToRecycleList err: %s", err.Error())
 	}
