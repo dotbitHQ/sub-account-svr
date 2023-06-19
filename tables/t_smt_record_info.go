@@ -20,7 +20,7 @@ type TableSmtRecordInfo struct {
 	Nonce           uint64           `json:"nonce" gorm:"column:nonce;uniqueIndex:uk_acc_nonce_record;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RecordType      RecordType       `json:"record_type" gorm:"column:record_type;uniqueIndex:uk_acc_nonce_record;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-normal 1-closed 2-chain'"`
 	RecordTime      int64            `json:"record_time" gorm:"column:record_time; uniqueIndex:uk_acc_nonce_record; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
-	MintType        MintType         `json:"mint_type" gorm:"column:mint_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-default; 1-manually mint; 2-script mint; 3-auto mint';"`
+	MintType        MintType         `json:"mint_type" gorm:"column:mint_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-default, 1-manually mint, 2-script mint, 3-auto mint';"`
 	OrderID         string           `json:"order_id" gorm:"column:order_id;index:idx_order_id;type:varchar(255) NOT NULL DEFAULT '' COMMENT 'auto mint orderId';"`
 	TaskId          string           `json:"task_id" gorm:"column:task_id;index:k_task_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	Action          string           `json:"action" gorm:"column:action;index:k_action;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
