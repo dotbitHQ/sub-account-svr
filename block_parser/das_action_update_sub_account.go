@@ -120,6 +120,7 @@ func getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleRe
 			AccountId:       v.SubAccountData.AccountId,
 			Nonce:           v.CurrentSubAccountData.Nonce,
 			RecordType:      tables.RecordTypeChain,
+			RecordBN:        req.BlockNumber,
 			TaskId:          taskInfo.TaskId,
 			Action:          req.Action,
 			ParentAccountId: parentAccountId,
