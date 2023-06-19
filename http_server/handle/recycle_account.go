@@ -46,17 +46,6 @@ func (h *HttpHandle) RecycleAccount(ctx *gin.Context) {
 func (h *HttpHandle) doRecycleAccount(req *ReqRecycleAccount, apiResp *api_code.ApiResp) error {
 	var resp RespRecycleAccount
 
-	if len(req.SubAccountIds) == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid: SubAccountIds is nil")
-		return nil
-	}
-
-	list, err := h.DbDao.GetAccountListByAccountIds(req.SubAccountIds)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get accounts")
-		return fmt.Errorf("GetAccountListByAccountIds err: %s", err.Error())
-	}
-
 	accConfigCell, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config cell")
@@ -73,12 +62,26 @@ func (h *HttpHandle) doRecycleAccount(req *ReqRecycleAccount, apiResp *api_code.
 		return fmt.Errorf("GetTimeCell err: %s", err.Error())
 	}
 	timestamp := timeCell.Timestamp()
-	log.Info("recycleSubAccount:", timestamp, expirationGracePeriod)
+	log.Info("recycleSubAccount:", timestamp, expirationGracePeriod, timestamp-int64(expirationGracePeriod))
 	timestamp = timestamp - int64(expirationGracePeriod)
+
+	if len(req.SubAccountIds) == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid: SubAccountIds is nil")
+		return nil
+	}
+
+	list, err := h.DbDao.GetAccountListByAccountIds(req.SubAccountIds)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get accounts")
+		return fmt.Errorf("GetAccountListByAccountIds err: %s", err.Error())
+	}
 
 	var smtRecordList []tables.TableSmtRecordInfo
 	for _, v := range list {
-		if v.ExpiredAt < uint64(timestamp) {
+		if v.ParentAccountId == "" {
+			continue
+		}
+		if v.ExpiredAt >= uint64(timestamp) {
 			continue
 		}
 		smtRecord, err := h.DbDao.GetRecycleSmtRecord(v.AccountId)
