@@ -37,7 +37,7 @@ func (t *SmtTask) recycleSubAccount() error {
 	}
 	accConfigCell, err := t.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsAccount)
 	if err != nil {
-		return fmt.Errorf("recycleSubAccount err: %s", err.Error())
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
 	}
 	expirationGracePeriod, err := accConfigCell.ExpirationGracePeriod()
 	if err != nil {
