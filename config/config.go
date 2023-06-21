@@ -72,8 +72,10 @@ type CfgServer struct {
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
+		MaxRenewYears    uint64 `json:"max_renew_years" yaml:"max_renew_years"`
 		MaxCreateCount   int    `json:"max_create_count" yaml:"max_create_count"`
 		MaxUpdateCount   int    `json:"max_update_count" yaml:"max_update_count"`
+		MaxRenewCount    int    `json:"max_renew_count" yaml:"max_renew_count"`
 		MaxRetry         int    `json:"max_retry" yaml:"max_retry"`
 		AutoMint         struct {
 			SupportPaymentToken []string          `json:"support_payment_token" yaml:"support_payment_token"`
