@@ -217,14 +217,15 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 
 // === UpdateSubAccount ===
 type UpdateSubAccountCache struct {
-	ParentAccountId string           `json:"parent_account_id"`
-	Account         string           `json:"account"`
-	ChainType       common.ChainType `json:"chain_type"`
-	Address         string           `json:"address"`
-	SubAction       common.SubAction `json:"sub_action"`
-	EditKey         common.EditKey   `json:"edit_key"`
-	EditValue       EditInfo         `json:"edit_value"`
-	ExpiredAt       uint64           `json:"expired_at"`
+	ParentAccountId string                `json:"parent_account_id"`
+	Account         string                `json:"account"`
+	ChainType       common.ChainType      `json:"chain_type"`
+	AlgId           common.DasAlgorithmId `json:"alg_id"`
+	Address         string                `json:"address"`
+	SubAction       common.SubAction      `json:"sub_action"`
+	EditKey         common.EditKey        `json:"edit_key"`
+	EditValue       EditInfo              `json:"edit_value"`
+	ExpiredAt       uint64                `json:"expired_at"`
 
 	OldSignMsg    string                      `json:"old_sign_msg"`
 	MinSignInfo   tables.TableMintSignInfo    `json:"min_sign_info"`
@@ -403,9 +404,8 @@ func (u *UpdateSubAccountCache) GetEditSignData(daf *core.DasAddressFormat, subA
 	return
 }
 
-func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
+func (u *UpdateSubAccountCache) GetCreateSignData(algId common.DasAlgorithmId, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
 	// ExpiredAt + SmtRoot
-
 	expiredAtBys := bytes.NewBuffer([]byte{})
 	if err := binary.Write(expiredAtBys, binary.LittleEndian, u.MinSignInfo.ExpiredAt); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
@@ -423,11 +423,10 @@ func (u *UpdateSubAccountCache) GetCreateSignData(acc *tables.TableAccountInfo, 
 	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	log.Info("GetCreateSignData:", signData.SignMsg, u.MinSignInfo.ExpiredAt, u.MinSignInfo.SmtRoot)
 	// sig msg
-	signData.SignType = acc.ManagerAlgorithmId
+	signData.SignType = algId
 	if signData.SignType == common.DasAlgorithmIdEth712 {
 		signData.SignType = common.DasAlgorithmIdEth
 	}
-
 	return
 }
 

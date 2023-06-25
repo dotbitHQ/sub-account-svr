@@ -71,14 +71,17 @@ func (h *HttpHandle) doSubAccountRenewCheck(req *ReqSubAccountRenew, apiResp *ap
 	_, err := h.doSubAccountRenewCheckAccount(req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doSubAccountCheckAccount err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
 	}
 
 	// check list
 	_, resp, err := h.doSubAccountRenewCheckList(req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doSubAccountRenewCheckList err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
 	}
-
 	apiResp.ApiRespOK(resp)
 	return nil
 }

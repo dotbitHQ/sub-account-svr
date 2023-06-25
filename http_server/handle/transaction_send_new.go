@@ -264,6 +264,12 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
+	case common.SubActionRenew:
+		if err := h.doSubActionRenew(dataCache, req, apiResp); err != nil {
+			return fmt.Errorf("doSubActionRenew err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
 	case common.SubActionEdit:
 		if err := h.doSubActionEdit(dataCache, req, apiResp); err != nil {
 			return fmt.Errorf("doSubActionEdit err: %s", err.Error())
@@ -346,7 +352,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "fail to search account")
 		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
 	}
-	signData := dataCache.GetCreateSignData(&acc, apiResp)
+	signData := dataCache.GetCreateSignData(acc.ManagerAlgorithmId, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	} else if signData.SignMsg != dataCache.OldSignMsg {
@@ -362,6 +368,33 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 		return nil
 	}
 
+	dataCache.MinSignInfo.Signature = signMsg
+
+	if err := h.DbDao.CreateMinSignInfo(dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
+		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
+	}
+	return nil
+}
+
+func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	signData := dataCache.GetCreateSignData(dataCache.AlgId, apiResp)
+	if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+	if signData.SignMsg != dataCache.OldSignMsg {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "SignMsg diff")
+		return nil
+	}
+
+	signMsg := req.List[0].SignList[0].SignMsg
+	signMsg, err := doSignCheck(signData, signMsg, dataCache.Address, apiResp)
+	if err != nil {
+		return fmt.Errorf("doSignCheck err: %s", err.Error())
+	}
+	if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
 	dataCache.MinSignInfo.Signature = signMsg
 
 	if err := h.DbDao.CreateMinSignInfo(dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
@@ -397,6 +430,7 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyDogeSignature error")
 			return "", fmt.Errorf("VerifyDogeSignature err: %s [%s]", err.Error(), signAddress)
 		}
+		// TODO WebAuthn
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
 		return "", nil

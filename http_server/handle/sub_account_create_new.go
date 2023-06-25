@@ -180,7 +180,7 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 		MinSignInfo:     *minSignInfo,
 		ListSmtRecord:   listSmtRecord,
 	}
-	signData := dataCache.GetCreateSignData(acc, apiResp)
+	signData := dataCache.GetCreateSignData(acc.ManagerAlgorithmId, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
