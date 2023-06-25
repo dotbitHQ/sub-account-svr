@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230614065135-c4093c6f9e29
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230625032638-2f74bb761fe0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
