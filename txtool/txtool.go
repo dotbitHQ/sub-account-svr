@@ -51,6 +51,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 	var res ResultBuildTxs
 
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(p.BaseInfo.ConfigCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	renewSubAccountPrice, _ := p.BaseInfo.ConfigCellBuilder.RenewSubAccountPrice()
 	commonFee, _ := molecule.Bytes2GoU64(p.BaseInfo.ConfigCellBuilder.ConfigCellSubAccount.CommonFee().RawData())
 
 	// outpoint
@@ -82,6 +83,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 					BaseInfo:              p.BaseInfo,
 					SubAccountBuilderMap:  p.SubAccountBuilderMap,
 					NewSubAccountPrice:    newSubAccountPrice,
+					RenewSubAccountPrice:  renewSubAccountPrice,
 					BalanceDasLock:        p.BalanceDasLock,
 					BalanceDasType:        p.BalanceDasType,
 					CommonFee:             commonFee,
@@ -102,6 +104,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 					BaseInfo:              p.BaseInfo,
 					SubAccountBuilderMap:  p.SubAccountBuilderMap,
 					NewSubAccountPrice:    newSubAccountPrice,
+					RenewSubAccountPrice:  renewSubAccountPrice,
 					BalanceDasLock:        p.BalanceDasLock,
 					BalanceDasType:        p.BalanceDasType,
 					CommonFee:             commonFee,

@@ -177,7 +177,7 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 		Address:         req.address,
 		SubAction:       common.SubActionCreate,
 		OldSignMsg:      "",
-		MinSignInfo:     *minSignInfo,
+		MinSignInfo:     minSignInfo,
 		ListSmtRecord:   listSmtRecord,
 	}
 	signData := dataCache.GetCreateSignData(acc.ManagerAlgorithmId, apiResp)

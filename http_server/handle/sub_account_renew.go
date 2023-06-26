@@ -13,6 +13,7 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
+	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
 	"golang.org/x/sync/errgroup"
@@ -107,16 +108,19 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	}
 
 	// das lock
+	var signRole string
 	var addressHex core.DasAddressHex
-	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
-		addressHex.DasAlgorithmId = acc.ManagerChainType.ToDasAlgorithmId(true)
-		addressHex.AddressHex = acc.Manager
-		addressHex.ChainType = acc.ManagerChainType
-	}
 	if acc.OwnerChainType == req.chainType && strings.EqualFold(acc.Owner, req.address) {
 		addressHex.DasAlgorithmId = acc.OwnerChainType.ToDasAlgorithmId(true)
 		addressHex.AddressHex = acc.Owner
 		addressHex.ChainType = acc.OwnerChainType
+		signRole = common.ParamOwner
+	}
+	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
+		addressHex.DasAlgorithmId = acc.ManagerChainType.ToDasAlgorithmId(true)
+		addressHex.AddressHex = acc.Manager
+		addressHex.ChainType = acc.ManagerChainType
+		signRole = common.ParamManager
 	}
 	if addressHex.DasAlgorithmId == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
@@ -161,13 +165,13 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	}
 
 	// get renew sign info
-	listSmtRecord, mintSignInfo, err := h.doRenewSignInfo(addressHex, req, apiResp)
+	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, addressHex, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doMinSignInfo err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	log.Info("doRenewSignInfo:", parentAccountId, mintSignInfo.ExpiredAt, len(listSmtRecord))
+	log.Info("doRenewSignInfo:", parentAccountId, renewSignInfo, len(listSmtRecord))
 
 	// sign info
 	dataCache := UpdateSubAccountCache{
@@ -177,7 +181,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		AlgId:           addressHex.DasAlgorithmId,
 		Address:         addressHex.AddressHex,
 		SubAction:       common.SubActionRenew,
-		MinSignInfo:     *mintSignInfo,
+		RenewSignInfo:   renewSignInfo,
 		ListSmtRecord:   listSmtRecord,
 	}
 	signData := dataCache.GetCreateSignData(addressHex.DasAlgorithmId, apiResp)
@@ -274,10 +278,13 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 	return &acc, nil
 }
 
-func (h *HttpHandle) doRenewSignInfo(addressHex core.DasAddressHex, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableMintSignInfo, error) {
+func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableRenewSignInfo, error) {
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
 	listRecord := make([]tables.TableSmtRecordInfo, 0)
+	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
+	smtKv := make([]smt.SmtKv, 0)
+
 	for _, v := range req.SubAccountList {
 		subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(v.Account))
 		subAcc, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
@@ -301,36 +308,66 @@ func (h *HttpHandle) doRenewSignInfo(addressHex core.DasAddressHex, req *ReqSubA
 			ParentAccountId: parentAccountId,
 			Account:         v.Account,
 			Content:         string(content),
-			EditKey:         "",
-			Signature:       "",
-			EditArgs:        "",
+			EditKey:         common.EditKeyManual,
+			SignRole:        signRole,
 			RenewYears:      v.RenewYears,
-			EditRecords:     "",
 			Timestamp:       time.Now().UnixNano() / 1e6,
 			SubAction:       common.SubActionRenew,
 		}
 		listRecord = append(listRecord, tmp)
+
+		ownerHex := core.DasAddressHex{
+			DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
+			AddressHex:     subAcc.Owner,
+			ChainType:      subAcc.OwnerChainType,
+		}
+		ownerArgs, err := h.DasCore.Daf().HexToArgs(ownerHex, ownerHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "HexToArgs err")
+			return nil, nil, fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+
+		smtKey := smt.AccountIdToSmtH256(subAccountId)
+		smtValue, err := blake2b.Blake256(ownerArgs)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt value err")
+			return nil, nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+		}
+		smtKv = append(smtKv, smt.SmtKv{
+			Key:   smtKey,
+			Value: smtValue,
+		})
+
+		listKeyValue = append(listKeyValue, tables.MintSignInfoKeyValue{
+			Key:   subAccountId,
+			Value: common.Bytes2Hex(ownerArgs),
+		})
 	}
 
-	tree := smt.NewSmtSrv(*h.SmtServerUrl, parentAccountId)
-	currentRoot, err := tree.GetSmtRoot()
+	tree := smt.NewSmtSrv(*h.SmtServerUrl, "")
+	r, err := tree.UpdateSmt(smtKv, smt.SmtOpt{GetProof: false, GetRoot: true})
 	if err != nil {
-		log.Warn("getSmtRoot error: ", err)
-		return nil, nil, fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt update err")
+		return nil, nil, fmt.Errorf("tree.Update err: %s", err.Error())
 	}
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt root err")
+		return nil, nil, fmt.Errorf("tree.Root err: %s", err.Error())
+	}
+	keyValueStr, _ := json.Marshal(&listKeyValue)
 
-	minSignInfo := &tables.TableMintSignInfo{
-		SmtRoot:    common.Bytes2Hex(currentRoot),
-		ExpiredAt:  uint64(time.Now().Add(time.Hour * 24 * 7).Unix()),
-		MintSignId: "",
-		Signature:  "",
-		Timestamp:  uint64(time.Now().UnixNano() / 1e6),
-		ChainType:  addressHex.ChainType,
-		Address:    addressHex.AddressHex,
+	nowTime := time.Now()
+	renewSignInfo := &tables.TableRenewSignInfo{
+		SmtRoot:   common.Bytes2Hex(r.Root),
+		ExpiredAt: uint64(nowTime.Add(time.Hour * 24 * 7).Unix()),
+		Timestamp: uint64(nowTime.UnixNano() / 1e6),
+		KeyValue:  string(keyValueStr),
+		ChainType: addressHex.ChainType,
+		Address:   addressHex.AddressHex,
 	}
-	minSignInfo.InitMintSignId(parentAccountId)
-	for i, _ := range listRecord {
-		listRecord[i].MintSignId = minSignInfo.MintSignId
+	renewSignInfo.InitMintSignId(parentAccountId)
+	for i := range listRecord {
+		listRecord[i].MintSignId = renewSignInfo.RenewSignId
 	}
-	return listRecord, minSignInfo, nil
+	return listRecord, renewSignInfo, nil
 }

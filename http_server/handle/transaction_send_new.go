@@ -370,7 +370,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 
 	dataCache.MinSignInfo.Signature = signMsg
 
-	if err := h.DbDao.CreateMinSignInfo(dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
+	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
 	}
@@ -397,7 +397,7 @@ func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqT
 	}
 	dataCache.MinSignInfo.Signature = signMsg
 
-	if err := h.DbDao.CreateMinSignInfo(dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
+	if err := h.DbDao.CreateRenewSignInfo(*dataCache.RenewSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
 	}

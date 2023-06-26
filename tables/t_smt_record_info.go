@@ -30,6 +30,7 @@ type TableSmtRecordInfo struct {
 	RegisterArgs    string           `json:"register_args" gorm:"column:register_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditKey         string           `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
 	Signature       string           `json:"signature" gorm:"column:signature;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	SignRole        string           `json:"sign_role" gorm:"column:sign_role;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditArgs        string           `json:"edit_args" gorm:"column:edit_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	RenewYears      uint64           `json:"renew_years" gorm:"column:renew_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	EditRecords     string           `json:"edit_records" gorm:"column:edit_records;type:text NOT NULL COMMENT ''"`
@@ -94,6 +95,17 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (31536000 * t.RegisterYears)
 
 			subAccountNew.SubAccountData = &currentSubAccount
+			return &currentSubAccount, &subAccountNew, nil
+		case common.SubActionRenew:
+			if oldSubAccount == nil {
+				return nil, nil, fmt.Errorf("oldSubAccount is nil")
+			}
+			currentSubAccount = *oldSubAccount
+
+			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
+			subAccountNew.SignRole = common.Hex2Bytes(t.SignRole)
+			subAccountNew.SubAccountData = oldSubAccount
+			subAccountNew.EditKey = t.EditKey
 			return &currentSubAccount, &subAccountNew, nil
 		case common.SubActionEdit:
 			if oldSubAccount == nil {

@@ -28,6 +28,7 @@ type ParamBuildUpdateSubAccountTx struct {
 	BaseInfo              *BaseInfo
 	SubAccountBuilderMap  map[string]*witness.SubAccountNew
 	NewSubAccountPrice    uint64
+	RenewSubAccountPrice  uint64
 	BalanceDasLock        *types.Script
 	BalanceDasType        *types.Script
 	CommonFee             uint64
@@ -49,58 +50,101 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var balanceDasType *types.Script
 	// get mint sign info
 	var witnessMintSignInfo []byte
+	var witnessRenewSignInfo []byte
 	mintSignTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
-	var smtKv []smt.SmtKv
-	var rsMemoryRep *smt.UpdateSmtOut
+	var mintSmtKv []smt.SmtKv
+	var mintRsMemoryRep *smt.UpdateSmtOut
+	var renewSmtKv []smt.SmtKv
+	var renewRsMemoryRep *smt.UpdateSmtOut
+
 	for _, v := range p.SmtRecordInfoList {
-		if v.SubAction != common.SubActionCreate {
-			continue
-		}
 		if v.MintSignId == "" {
 			continue
 		}
 
-		mintSignInfo, err := s.DbDao.GetMinSignInfo(v.MintSignId)
-		if err != nil {
-			return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
-		}
-		witnessMintSignInfo = mintSignInfo.GenWitness()
-		var listKeyValue []tables.MintSignInfoKeyValue
-		err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
-		if err != nil {
-			return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string: %s", err.Error())
-		}
-		if len(smtKv) == 0 {
-			for _, kv := range listKeyValue {
-				smtKey := smt.AccountIdToSmtH256(kv.Key)
-				smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
-				if err != nil {
-					return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
-				}
-				smtKv = append(smtKv, smt.SmtKv{
-					Key:   smtKey,
-					Value: smtValue,
-				})
+		switch v.SubAction {
+		case common.SubActionCreate:
+			mintSignInfo, err := s.DbDao.GetMinSignInfo(v.MintSignId)
+			if err != nil {
+				return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
 			}
-		}
+			witnessMintSignInfo = mintSignInfo.GenWitness()
+			var listKeyValue []tables.MintSignInfoKeyValue
+			err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
+			if err != nil {
+				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string: %s", err.Error())
+			}
+			if len(mintSmtKv) == 0 {
+				for _, kv := range listKeyValue {
+					smtKey := smt.AccountIdToSmtH256(kv.Key)
+					smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
+					if err != nil {
+						return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+					}
+					mintSmtKv = append(mintSmtKv, smt.SmtKv{
+						Key:   smtKey,
+						Value: smtValue,
+					})
+				}
+			}
 
-		balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
-			DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
-			AddressHex:     mintSignInfo.Address,
-			IsMulti:        false,
-			ChainType:      mintSignInfo.ChainType,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
+			balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+				DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
+				AddressHex:     mintSignInfo.Address,
+				ChainType:      mintSignInfo.ChainType,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
+			}
+		case common.SubActionRenew:
+			renewSignInfo, err := s.DbDao.GetRenewSignInfo(v.MintSignId)
+			if err != nil {
+				return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
+			}
+			witnessRenewSignInfo = renewSignInfo.GenWitness()
+			var listKeyValue []tables.MintSignInfoKeyValue
+			if err := json.Unmarshal([]byte(renewSignInfo.KeyValue), &listKeyValue);err != nil {
+				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string: %s", err.Error())
+			}
+			if len(renewSmtKv) == 0 {
+				for _, kv := range listKeyValue {
+					smtKey := smt.AccountIdToSmtH256(kv.Key)
+					smtValue, err := blake2b.Blake256(common.Hex2Bytes(kv.Value))
+					if err != nil {
+						return nil, fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
+					}
+					renewSmtKv = append(renewSmtKv, smt.SmtKv{
+						Key:   smtKey,
+						Value: smtValue,
+					})
+				}
+			}
+
+			balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+				DasAlgorithmId: renewSignInfo.ChainType.ToDasAlgorithmId(true),
+				AddressHex:     renewSignInfo.Address,
+				ChainType:      renewSignInfo.ChainType,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
+			}
 		}
 	}
 
 	opt := smt.SmtOpt{GetProof: true, GetRoot: true}
-	if len(smtKv) > 0 {
+	if len(mintSmtKv) > 0 {
 		var err error
-		rsMemoryRep, err = mintSignTree.UpdateSmt(smtKv, opt)
+		mintRsMemoryRep, err = mintSignTree.UpdateSmt(mintSmtKv, opt)
 		if err != nil {
 			return nil, fmt.Errorf("mintSignTree.Update err: %s", err.Error())
+		}
+	}
+
+	if len(renewSmtKv) > 0 {
+		var err error
+		renewRsMemoryRep, err = mintSignTree.UpdateSmt(renewSmtKv, opt)
+		if err != nil {
+			return nil, fmt.Errorf("renewSignTree.Update err: %s", err.Error())
 		}
 	}
 
@@ -114,16 +158,19 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
 	}
 
-	manualTotalYears := uint64(0)
-	autoMintTotalCapacity := uint64(0)
+	registerTotalYears := uint64(0)
+	renewTotalYears := uint64(0)
+	autoTotalCapacity := uint64(0)
 	subAccountPriceMap := make(map[string]uint64)
 	for _, v := range p.SmtRecordInfoList {
-		if v.SubAction != common.SubActionCreate {
-			continue
-		}
 		switch v.MintType {
 		case tables.MintTypeDefault, tables.MintTypeManual:
-			manualTotalYears += v.RegisterYears
+			switch v.SubAction {
+			case common.SubActionCreate:
+				registerTotalYears += v.RegisterYears
+			case common.SubActionRenew:
+				renewTotalYears += v.RenewYears
+			}
 		case tables.MintTypeAutoMint:
 			subAccountCell, err := s.getSubAccountCell(v.ParentAccountId)
 			if err != nil {
@@ -152,24 +199,31 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			quote := p.BaseInfo.QuoteCell.Quote()
 			yearlyPrice := uint64(subAccountRule.Rules[idx].Price)
 			subAccountPrice := uint64(0)
-			if yearlyPrice < quote {
-				subAccountPrice = yearlyPrice * common.OneCkb / quote * v.RegisterYears
-			} else {
-				subAccountPrice = yearlyPrice / quote * common.OneCkb * v.RegisterYears
+			years := uint64(0)
+			switch v.SubAction {
+			case common.SubActionCreate:
+				years = v.RegisterYears
+			case common.SubActionRenew:
+				years = v.RenewYears
 			}
-			autoMintTotalCapacity += subAccountPrice
+			if yearlyPrice < quote {
+				subAccountPrice = yearlyPrice * common.OneCkb / quote * years
+			} else {
+				subAccountPrice = yearlyPrice / quote * common.OneCkb * years
+			}
+			autoTotalCapacity += subAccountPrice
 			subAccountPriceMap[v.AccountId] = subAccountPrice
 		}
 	}
 
-	log.Infof("autoMintTotalPrice: %d newRate: %d", autoMintTotalCapacity, newRate)
+	log.Infof("autoMintTotalPrice: %d newRate: %d", autoTotalCapacity, newRate)
 
 	var manualChange uint64
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
-	manualRegisterCapacity := p.NewSubAccountPrice * manualTotalYears
-	if manualRegisterCapacity > 0 {
-		needCapacity := manualRegisterCapacity
-		if autoMintTotalCapacity == 0 {
+	manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
+	if manualCapacity > 0 {
+		needCapacity := manualCapacity
+		if autoTotalCapacity == 0 {
 			needCapacity += p.CommonFee
 		}
 		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
@@ -182,18 +236,18 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
-		if autoMintTotalCapacity == 0 {
+		if autoTotalCapacity == 0 {
 			manualChange += p.CommonFee
 		}
 	}
 
 	var autoChange uint64
 	autoBalanceLiveCells := make([]*indexer.LiveCell, 0)
-	if autoMintTotalCapacity > 0 {
+	if autoTotalCapacity > 0 {
 		autoChange, autoBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      p.BalanceDasLock,
 			DasType:      p.BalanceDasType,
-			NeedCapacity: autoMintTotalCapacity + p.CommonFee,
+			NeedCapacity: autoTotalCapacity + p.CommonFee,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
@@ -211,26 +265,28 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// smt record
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
+	var subAccountRenewList []*witness.SubAccountNew
 	var smtKvTemp []smt.SmtKv
 	time1 := time.Now()
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 		// update smt,get root and proof
-		if v.SubAction == common.SubActionCreate {
+		switch v.SubAction {
+		case common.SubActionCreate:
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
 			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
 			if err != nil {
-				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
+				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 			}
 			if len(witnessMintSignInfo) > 0 && v.MintSignId != "" {
 				smtKey := smt.AccountIdToSmtH256(v.AccountId)
-
-				if mintSignProof, ok := rsMemoryRep.Proofs[smtKey.String()]; !ok {
+				mintSignProof, ok := mintRsMemoryRep.Proofs[smtKey.String()]
+				if !ok {
 					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey.String())
-				} else {
-					subAccountNew.EditValue = common.Hex2Bytes(mintSignProof)
 				}
+				subAccountNew.EditValue = common.Hex2Bytes(mintSignProof)
 			}
+
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
 			//var smtKvTemp []smt.SmtKv
@@ -252,7 +308,42 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 			subAccountNewList = append(subAccountNewList, subAccountNew)
-		} else {
+		case common.SubActionRenew:
+			subAccountBuilder, ok := p.SubAccountBuilderMap[v.AccountId]
+			if !ok {
+				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
+			}
+			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, timeCellTimestamp)
+			if err != nil {
+				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
+			}
+			expiredAt := molecule.GoU64ToMoleculeU64(subAccountData.ExpiredAt + (31536000 * v.RenewYears))
+			subAccountNew.EditValue = expiredAt.AsSlice()
+
+			if len(witnessRenewSignInfo) > 0 && v.MintSignId != "" {
+				smtKey := smt.AccountIdToSmtH256(v.AccountId)
+				renewSignProof, ok := renewRsMemoryRep.Proofs[smtKey.String()]
+				if !ok {
+					return nil, fmt.Errorf("mintSignTree.MerkleProof err: proof is not found : %s", smtKey.String())
+				}
+				subAccountNew.EditValue = append(subAccountNew.EditValue, common.Hex2Bytes(renewSignProof)...)
+			}
+
+			if v.MintType == tables.MintTypeAutoMint {
+				subAccountNew.EditKey = common.EditKeyCustomRule
+				subAccountNew.EditValue = append(subAccountNew.EditValue, s.ServerScript.Args...)
+				subAccountPrice, ok := subAccountPriceMap[v.AccountId]
+				if !ok {
+					return nil, errors.New("data abnormal")
+				}
+				price := molecule.GoU64ToMoleculeU64(subAccountPrice)
+				subAccountNew.EditValue = append(subAccountNew.EditValue, price.AsSlice()...)
+			}
+
+			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
+			subAccountRenewList = append(subAccountRenewList, subAccountNew)
+		default:
 			subAccountBuilder, ok := p.SubAccountBuilderMap[v.AccountId]
 			if !ok {
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
@@ -272,20 +363,23 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
-	if res, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt); err != nil {
+	smtRes, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt)
+	if err != nil {
 		return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-	} else {
-		for i, v := range p.SmtRecordInfoList {
-			key := smt.AccountIdToSmtH256(v.AccountId)
-			if _, ok := res.Proofs[common.Bytes2Hex(key)]; !ok {
-				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", res.Proofs)
-			}
-			if _, ok := res.Roots[common.Bytes2Hex(key)]; !ok {
-				return nil, fmt.Errorf("tree.Roof err: %s", res.Proofs)
-			}
-			subAccountNewList[i].Proof = common.Hex2Bytes(res.Proofs[common.Bytes2Hex(key)])
-			subAccountNewList[i].NewRoot = res.Roots[common.Bytes2Hex(key)]
+	}
+	for i, v := range p.SmtRecordInfoList {
+		if v.SubAction == common.SubActionRenew {
+			continue
 		}
+		key := smt.AccountIdToSmtH256(v.AccountId)
+		if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
+			return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
+		}
+		if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
+			return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+		}
+		subAccountNewList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
+		subAccountNewList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
 	}
 
 	log.Info("SmtRecordInfoList spend:", time.Since(time1).Seconds())
@@ -308,15 +402,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
-		Capacity: p.SubAccountCellOutput.Capacity + manualRegisterCapacity + autoMintTotalCapacity,
+		Capacity: p.SubAccountCellOutput.Capacity + manualCapacity + autoTotalCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub_account
 	// root+profit
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
-	subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
-	subDataDetail.DasProfit += manualRegisterCapacity + autoMintTotalCapacity
+	if len(subAccountNewList) > 0 {
+		subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
+	}
+	subDataDetail.DasProfit += manualCapacity + autoTotalCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
 
@@ -352,10 +448,19 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if len(witnessMintSignInfo) > 0 {
 		txParams.Witnesses = append(txParams.Witnesses, witnessMintSignInfo)
 	}
+	// renew sign info
+	if len(witnessRenewSignInfo) > 0 {
+		txParams.Witnesses = append(txParams.Witnesses, witnessRenewSignInfo)
+	}
+
 	// smt
 	smtWitnessList, _ := getSubAccountWitness(subAccountNewList)
 	for _, v := range smtWitnessList {
 		txParams.Witnesses = append(txParams.Witnesses, v) // smt witness
+	}
+	renewListWitness, _ := getSubAccountWitness(subAccountRenewList)
+	for _, v := range renewListWitness {
+		txParams.Witnesses = append(txParams.Witnesses, v)
 	}
 
 	// account cell witness

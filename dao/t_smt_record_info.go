@@ -138,6 +138,18 @@ func (d *DbDao) CreateMinSignInfo(mintSignInfo tables.TableMintSignInfo, list []
 	})
 }
 
+func (d *DbDao) CreateRenewSignInfo(renewSignInfo tables.TableRenewSignInfo, list []tables.TableSmtRecordInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&renewSignInfo).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&list).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (d *DbDao) FindSmtRecordInfoByMintType(parentAccountId string, mintTypes tables.MintType, actions []string) (resp []tables.TableSmtRecordInfo, err error) {
 	err = d.db.Model(&tables.TableSmtRecordInfo{}).Where("parent_account_id=? and mint_type in (?) and action in (?)", parentAccountId, mintTypes, actions).Order("id desc").Find(&resp).Error
 	if err == gorm.ErrRecordNotFound {

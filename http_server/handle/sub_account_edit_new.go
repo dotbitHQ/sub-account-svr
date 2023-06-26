@@ -228,7 +228,8 @@ type UpdateSubAccountCache struct {
 	ExpiredAt       uint64                `json:"expired_at"`
 
 	OldSignMsg    string                      `json:"old_sign_msg"`
-	MinSignInfo   tables.TableMintSignInfo    `json:"min_sign_info"`
+	MinSignInfo   *tables.TableMintSignInfo   `json:"min_sign_info,omitempty"`
+	RenewSignInfo *tables.TableRenewSignInfo  `json:"renew_sign_info,omitempty"`
 	ListSmtRecord []tables.TableSmtRecordInfo `json:"list_smt_record"`
 }
 
