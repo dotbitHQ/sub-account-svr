@@ -194,8 +194,8 @@ func (d *DbDao) GetSmtRecordCreateByAccountId(accountId string, timestamp int64)
 	return
 }
 
-func (d *DbDao) GetSmtRecordMintingByAccountId(accountId string) (info tables.TableSmtRecordInfo, err error) {
+func (d *DbDao) GetSmtRecordMintingByAccountId(accountId, subAction string) (info tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("account_id=? AND record_type=? AND sub_action=?",
-		accountId, tables.RecordTypeDefault, common.SubActionCreate).Limit(1).Find(&info).Error
+		accountId, tables.RecordTypeDefault, subAction).Limit(1).Find(&info).Error
 	return
 }

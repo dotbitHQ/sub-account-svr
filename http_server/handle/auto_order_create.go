@@ -62,7 +62,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("key-info[%s-%s] invalid", req.KeyInfo.CoinType, req.KeyInfo.Key))
 		return nil
 	}
-	// check sub account name
+	// check sub_account name
 	parentAccountId := h.checkSubAccountName(apiResp, req.SubAccount)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -76,33 +76,24 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
-	// check sub account
+	// check sub_account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	accStatus, _, _, err := h.checkSubAccount(apiResp, hexAddr, subAccountId)
+	accStatus, _, _, err := h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	}
+	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
-	} else if accStatus == AccStatusMinting {
-		//if isSelf {
-		//	resOrder, err := unipay.GetOrderInfo(unipay.ReqOrderInfo{
-		//		BusinessId: unipay.BusinessIdAutoSubAccount,
-		//		OrderId:    oldOrder.OrderId,
-		//	})
-		//	if err != nil {
-		//		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get order by unipay")
-		//		return fmt.Errorf("unipay.GetOrderInfo err: %s", err.Error())
-		//	}
-		//	resp.OrderId = oldOrder.OrderId
-		//	resp.Amount = oldOrder.Amount
-		//	resp.PaymentAddress = resOrder.PaymentAddress
-		//	resp.ContractAddress = resOrder.ContractAddress
-		//	apiResp.ApiRespOK(resp)
-		//	return nil
-		//}
+	}
+
+	switch accStatus {
+	case AccStatusMinting:
 		apiResp.ApiRespErr(api_code.ApiCodeSubAccountMinting, fmt.Sprintf("sub-account[%s] is minting", req.SubAccount))
 		return nil
-	} else if accStatus == AccStatusMinted {
+	case AccStatusRenewing:
+		apiResp.ApiRespErr(api_code.ApiCodeSubAccountRenewing, fmt.Sprintf("sub-account[%s] is renewing", req.SubAccount))
+		return nil
+	case AccStatusMinted:
 		apiResp.ApiRespErr(api_code.ApiCodeSubAccountMinted, fmt.Sprintf("sub-account[%s] has been minted", req.SubAccount))
 		return nil
 	}

@@ -103,7 +103,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			witnessRenewSignInfo = renewSignInfo.GenWitness()
 			var listKeyValue []tables.MintSignInfoKeyValue
-			if err := json.Unmarshal([]byte(renewSignInfo.KeyValue), &listKeyValue);err != nil {
+			if err := json.Unmarshal([]byte(renewSignInfo.KeyValue), &listKeyValue); err != nil {
 				return nil, fmt.Errorf("KeyValue of table mint_sign_info is not a json string: %s", err.Error())
 			}
 			if len(renewSmtKv) == 0 {
@@ -163,6 +163,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	autoTotalCapacity := uint64(0)
 	subAccountPriceMap := make(map[string]uint64)
 	for _, v := range p.SmtRecordInfoList {
+		if v.SubAction != common.SubActionCreate &&
+			v.SubAction != common.SubActionRenew {
+			continue
+		}
+
 		switch v.MintType {
 		case tables.MintTypeDefault, tables.MintTypeManual:
 			switch v.SubAction {

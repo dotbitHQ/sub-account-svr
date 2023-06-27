@@ -76,6 +76,7 @@ const (
 	ApiCodeAccountCharsetNotSupport           ApiCode = 40046
 	ApiCodeAccountExpiringSoon                ApiCode = 40047
 	ApiCodeAccountRenewNoSupportCustomScript  ApiCode = 40048
+	ApiCodeSubAccountRenewing                 ApiCode = 40049
 )
 
 const (

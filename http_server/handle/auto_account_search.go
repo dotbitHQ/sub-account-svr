@@ -20,7 +20,8 @@ import (
 
 type ReqAutoAccountSearch struct {
 	core.ChainTypeAddress
-	SubAccount string `json:"sub_account"`
+	ActionType tables.ActionType `json:"action_type"`
+	SubAccount string            `json:"sub_account"`
 }
 
 type RespAutoAccountSearch struct {
@@ -36,7 +37,8 @@ type AccStatus int
 const (
 	AccStatusUnMinted AccStatus = 0
 	AccStatusMinting  AccStatus = 1
-	AccStatusMinted             = 2
+	AccStatusMinted   AccStatus = 2
+	AccStatusRenewing AccStatus = 3
 )
 
 func (h *HttpHandle) AutoAccountSearch(ctx *gin.Context) {
@@ -86,9 +88,9 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 		return nil
 	}
 
-	// check sub account
+	// check sub_account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	resp.Status, resp.IsSelf, resp.OrderId, err = h.checkSubAccount(apiResp, hexAddr, subAccountId)
+	resp.Status, resp.IsSelf, resp.OrderId, err = h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -185,27 +187,39 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 	return &parentAccount, nil
 }
 
-func (h *HttpHandle) checkSubAccount(apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, e error) {
+func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, e error) {
 	accStatus = AccStatusUnMinted
 	subAccount, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query sub-account")
 		e = fmt.Errorf("GetAccountInfoByAccountId err: %s %s", err.Error(), subAccountId)
 		return
-	} else if subAccount.Id > 0 {
+	}
+	if actionType == tables.ActionTypeMint && subAccount.Id > 0 {
 		accStatus = AccStatusMinted
 		return
 	}
-	//
-	smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId)
+
+	subAction := common.SubActionCreate
+	if actionType == tables.ActionTypeRenew {
+		subAction = common.SubActionRenew
+	}
+	smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId, subAction)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query mint record")
 		e = fmt.Errorf("GetSmtRecordMintingByAccountId err: %s %s", err.Error(), subAccountId)
 		return
-	} else if smtRecord.Id > 0 {
-		accStatus = AccStatusMinting
+	}
+	if smtRecord.Id > 0 {
+		switch subAction {
+		case common.SubActionCreate:
+			accStatus = AccStatusMinting
+		case common.SubActionRenew:
+			accStatus = AccStatusRenewing
+		}
 		return
 	}
+
 	// check order of self
 	orderInfo, err := h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex)
 	if err != nil {
