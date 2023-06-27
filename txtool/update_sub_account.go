@@ -337,7 +337,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 			}
 			subAccountNew.EditKey = common.EditKeyManual
-			expiredAt := molecule.GoU64ToMoleculeU64(subAccountData.ExpiredAt + (31536000 * v.RenewYears))
+			expiredAt := molecule.GoU64ToMoleculeU64(subAccountData.ExpiredAt + (uint64(common.OneYearSec) * v.RenewYears))
 			subAccountNew.EditValue = expiredAt.AsSlice()
 
 			if len(witnessRenewSignInfo) > 0 && v.MintSignId != "" {
