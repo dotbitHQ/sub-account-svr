@@ -49,7 +49,7 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 	}
 
 	// get task , smt-record
-	taskInfo, smtRecordList, err := getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
+	taskInfo, smtRecordList, err := b.getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
 	if err != nil {
 		resp.Err = fmt.Errorf("getTaskAndSmtRecordsNew err: %s", err.Error())
 		return
@@ -82,13 +82,13 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 	return
 }
 
-func getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
+func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
 	svrName := ""
 	if slb != nil {
 		s := slb.GetServer(parentAccountId)
 		svrName = s.Name
 	}
-	// get sub account
+	// get sub_account
 	var sanb witness.SubAccountNewBuilder
 	subAccountMap, err := sanb.SubAccountNewMapFromTx(req.Tx)
 	if err != nil {
@@ -140,7 +140,16 @@ func getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleRe
 		switch v.Action {
 		case common.SubActionCreate:
 			smtRecord.RegisterArgs = common.Bytes2Hex(v.SubAccountData.Lock.Args)
-			smtRecord.RegisterYears = (v.SubAccountData.ExpiredAt - v.SubAccountData.RegisteredAt) / 31536000
+			smtRecord.RegisterYears = (v.SubAccountData.ExpiredAt - v.SubAccountData.RegisteredAt) / uint64(common.OneYearSec)
+		case common.SubActionRenew:
+			subAcc, err := b.DbDao.GetAccountInfoByAccountId(v.SubAccountData.AccountId)
+			if err != nil {
+				return nil, nil, err
+			}
+			if subAcc.Id == 0 {
+				return nil, nil, fmt.Errorf("account: [%s] is no exist", v.SubAccountData.Account())
+			}
+			smtRecord.RenewYears = (v.SubAccountData.ExpiredAt - subAcc.ExpiredAt) / uint64(common.OneYearSec)
 		case common.SubActionEdit:
 			if len(v.EditLockArgs) > 0 {
 				smtRecord.EditArgs = common.Bytes2Hex(v.EditLockArgs)
