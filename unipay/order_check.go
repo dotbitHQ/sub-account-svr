@@ -60,6 +60,27 @@ func (t *ToolUniPay) doOrderCheck() error {
 					return fmt.Errorf("UpdateOrderStatusForCheckMint err: %s[%s]", err.Error(), v.OrderId)
 				}
 			}
+		case tables.ActionTypeRenew:
+			acc, err := t.DbDao.GetAccountInfoByAccountId(v.AccountId)
+			if err != nil {
+				return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+			}
+			if acc.Id == 0 {
+				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRenewOrderCheck", fmt.Sprintf("[%s][%s]", v.OrderId, v.AccountId))
+				continue
+			}
+
+			smtRecord, err := t.DbDao.GetSmtRecordByOrderId(v.OrderId)
+			if err != nil {
+				return fmt.Errorf("GetSmtRecordByOrderId err: %s", err.Error())
+			}
+			newStatus := tables.OrderStatusSuccess
+			if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
+				newStatus = tables.OrderStatusFail
+			}
+			if err := t.DbDao.UpdateOrderStatusForCheckRenew(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
+				return fmt.Errorf("UpdateOrderStatusForCheckRenew err: %s[%s]", err.Error(), v.OrderId)
+			}
 		default:
 			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))
 		}

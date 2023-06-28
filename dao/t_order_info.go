@@ -172,6 +172,29 @@ func (d *DbDao) UpdateOrderStatusForCheckMint(orderId string, oldStatus, newStat
 	})
 }
 
+func (d *DbDao) UpdateOrderStatusForCheckRenew(orderId string, oldStatus, newStatus tables.OrderStatus) error {
+	return d.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND order_status=?", orderId, oldStatus).
+			Updates(map[string]interface{}{
+				"order_status": newStatus,
+			}).Error; err != nil {
+			return err
+		}
+		if newStatus == tables.OrderStatusFail {
+			if err := tx.Model(tables.PaymentInfo{}).
+				Where("order_id=? AND pay_hash_status=? AND refund_status=?",
+					orderId, tables.PayHashStatusConfirmed, tables.RefundStatusDefault).
+				Updates(map[string]interface{}{
+					"refund_status": tables.RefundStatusUnRefund,
+				}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash string) error {
 	return d.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(tables.OrderInfo{}).

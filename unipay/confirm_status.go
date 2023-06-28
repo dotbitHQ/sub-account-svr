@@ -125,32 +125,9 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	order, err := dbDao.GetOrderByOrderID(orderId)
 	if err != nil {
 		return fmt.Errorf("GetOrderByOrderID err: %s", err.Error())
-	} else if order.Id == 0 {
+	}
+	if order.Id == 0 {
 		return fmt.Errorf("order[%s] not exist", orderId)
-	}
-
-	paymentInfo := tables.PaymentInfo{
-		PayHash:       payHash,
-		OrderId:       orderId,
-		PayHashStatus: tables.PayHashStatusConfirmed,
-		Timestamp:     time.Now().UnixMilli(),
-	}
-
-	owner := core.DasAddressHex{
-		DasAlgorithmId: order.AlgorithmId,
-		AddressHex:     order.PayAddress,
-	}
-	args, err := dasCore.Daf().HexToArgs(owner, owner)
-	if err != nil {
-		return fmt.Errorf("HexToArgs err: %s", err.Error())
-	}
-	charsetList, err := dasCore.GetAccountCharSetList(order.Account)
-	if err != nil {
-		return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
-	}
-	content, err := json.Marshal(charsetList)
-	if err != nil {
-		return fmt.Errorf("json Marshal err: %s", err.Error())
 	}
 
 	smtRecord := tables.TableSmtRecordInfo{
@@ -162,20 +139,49 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		Action:          common.DasActionUpdateSubAccount,
 		ParentAccountId: tables.GetParentAccountId(order.Account),
 		Account:         order.Account,
-		Content:         string(content),
-		RegisterYears:   order.Years,
-		RegisterArgs:    common.Bytes2Hex(args),
 		Timestamp:       time.Now().UnixNano() / 1e6,
-		SubAction:       common.SubActionCreate,
 	}
 
+	switch order.ActionType {
+	case tables.ActionTypeMint:
+		owner := core.DasAddressHex{
+			DasAlgorithmId: order.AlgorithmId,
+			AddressHex:     order.PayAddress,
+		}
+		args, err := dasCore.Daf().HexToArgs(owner, owner)
+		if err != nil {
+			return fmt.Errorf("HexToArgs err: %s", err.Error())
+		}
+		charsetList, err := dasCore.GetAccountCharSetList(order.Account)
+		if err != nil {
+			return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
+		}
+		content, err := json.Marshal(charsetList)
+		if err != nil {
+			return fmt.Errorf("json Marshal err: %s", err.Error())
+		}
+		smtRecord.RegisterYears = order.Years
+		smtRecord.RegisterArgs = common.Bytes2Hex(args)
+		smtRecord.Content = string(content)
+		smtRecord.SubAction = common.SubActionCreate
+	case tables.ActionTypeRenew:
+		smtRecord.RenewYears = order.Years
+		smtRecord.SubAction = common.SubActionRenew
+	}
+
+	paymentInfo := tables.PaymentInfo{
+		PayHash:       payHash,
+		OrderId:       orderId,
+		PayHashStatus: tables.PayHashStatusConfirmed,
+		Timestamp:     time.Now().UnixMilli(),
+	}
 	rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithSmtRecord(paymentInfo, smtRecord)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderPayStatusOkWithSmtRecord err: %s", err.Error())
-	} else if rowsAffected == 0 {
+	}
+	if rowsAffected == 0 {
 		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
 		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", orderId)
-		// multiple orders from the same account are successful
 	}
 	return nil
 }
