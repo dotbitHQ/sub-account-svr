@@ -364,6 +364,7 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 		KeyValue:  string(keyValueStr),
 		ChainType: addressHex.ChainType,
 		Address:   addressHex.AddressHex,
+		SignRole:  signRole,
 	}
 	renewSignInfo.InitMintSignId(parentAccountId)
 	for i := range listRecord {
