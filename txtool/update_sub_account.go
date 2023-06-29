@@ -457,6 +457,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if len(subAccountNewList) > 0 {
 		subDataDetail.SmtRoot = subAccountNewList[len(subAccountNewList)-1].NewRoot
 	}
+	if len(subAccountRenewList) > 0 {
+		subDataDetail.SmtRoot = subAccountRenewList[len(subAccountRenewList)-1].NewRoot
+	}
 	subDataDetail.DasProfit += manualCapacity + autoTotalCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
