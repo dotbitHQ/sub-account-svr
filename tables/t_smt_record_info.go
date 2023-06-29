@@ -94,23 +94,23 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			currentSubAccount.RegisteredAt = uint64(timeCellTimestamp)
 			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (31536000 * t.RegisterYears)
 			// default records
-			//oHex, _, err := dasCore.Daf().ScriptToHex(currentSubAccount.Lock)
-			//if err != nil {
-			//	return nil, nil, fmt.Errorf("default records ScriptToHex err: %s", err.Error())
-			//}
-			//if coinType := oHex.DasAlgorithmId.ToCoinType(); coinType != "" {
-			//	addrNormal, err := dasCore.Daf().HexToNormal(oHex)
-			//	if err != nil {
-			//		return nil, nil, fmt.Errorf("default records HexToNormal err: %s", err.Error())
-			//	}
-			//	currentSubAccount.Records = append(currentSubAccount.Records, witness.Record{
-			//		Key:   string(coinType),
-			//		Type:  "address",
-			//		Label: "",
-			//		Value: addrNormal.AddressNormal,
-			//		TTL:   300,
-			//	})
-			//}
+			oHex, _, err := dasCore.Daf().ScriptToHex(currentSubAccount.Lock)
+			if err != nil {
+				return nil, nil, fmt.Errorf("default records ScriptToHex err: %s", err.Error())
+			}
+			if coinType := oHex.DasAlgorithmId.ToCoinType(); coinType != "" {
+				addrNormal, err := dasCore.Daf().HexToNormal(oHex)
+				if err != nil {
+					return nil, nil, fmt.Errorf("default records HexToNormal err: %s", err.Error())
+				}
+				currentSubAccount.Records = append(currentSubAccount.Records, witness.Record{
+					Key:   string(coinType),
+					Type:  "address",
+					Label: "",
+					Value: addrNormal.AddressNormal,
+					TTL:   300,
+				})
+			}
 			subAccountNew.SubAccountData = &currentSubAccount
 			return &currentSubAccount, &subAccountNew, nil
 		case common.SubActionEdit:
