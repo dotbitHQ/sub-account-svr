@@ -106,8 +106,8 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 
 			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
 			subAccountNew.SignRole = common.Hex2Bytes(t.SignRole)
-			subAccountNew.SubAccountData = &currentSubAccount
 			subAccountNew.EditKey = t.EditKey
+			subAccountNew.SubAccountData = &currentSubAccount
 			return &currentSubAccount, &subAccountNew, nil
 		case common.SubActionEdit:
 			if oldSubAccount == nil {

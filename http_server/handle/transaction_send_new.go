@@ -398,6 +398,9 @@ func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqT
 	}
 	dataCache.RenewSignInfo.Signature = signMsg
 
+	for i := range dataCache.ListSmtRecord {
+		dataCache.ListSmtRecord[i].Signature = signMsg
+	}
 	if err := h.DbDao.CreateRenewSignInfo(*dataCache.RenewSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
