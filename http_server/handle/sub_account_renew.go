@@ -184,7 +184,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		RenewSignInfo:   renewSignInfo,
 		ListSmtRecord:   listSmtRecord,
 	}
-	signData := dataCache.GetCreateSignData(addressHex.DasAlgorithmId, apiResp)
+	signData := dataCache.GetRenewSignData(addressHex.DasAlgorithmId, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

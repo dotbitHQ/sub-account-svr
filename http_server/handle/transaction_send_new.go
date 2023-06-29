@@ -378,7 +378,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 }
 
 func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
-	signData := dataCache.GetCreateSignData(dataCache.AlgId, apiResp)
+	signData := dataCache.GetRenewSignData(dataCache.AlgId, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
