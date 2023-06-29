@@ -255,7 +255,7 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
 		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 	}
-	log.Warn("UpdateSubAccountCache:", dataCache.Account, dataCache.SubAction)
+	log.Info("UpdateSubAccountCache:", dataCache.Account, dataCache.SubAction)
 
 	switch dataCache.SubAction {
 	case common.SubActionCreate:
@@ -386,6 +386,7 @@ func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqT
 		apiResp.ApiRespErr(api_code.ApiCodeSignError, "SignMsg diff")
 		return nil
 	}
+	log.Info("doSubActionRenew", signData.SignMsg, dataCache.Address)
 
 	signMsg := req.List[0].SignList[0].SignMsg
 	signMsg, err := doSignCheck(signData, signMsg, dataCache.Address, apiResp)
@@ -395,7 +396,7 @@ func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqT
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	dataCache.MinSignInfo.Signature = signMsg
+	dataCache.RenewSignInfo.Signature = signMsg
 
 	if err := h.DbDao.CreateRenewSignInfo(*dataCache.RenewSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
