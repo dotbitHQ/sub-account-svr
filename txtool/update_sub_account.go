@@ -286,8 +286,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var accountCharTypeMap = make(map[common.AccountCharType]struct{})
 	var subAccountNewList []*witness.SubAccountNew
 	var subAccountRenewList []*witness.SubAccountNew
-	var smtKvTemp []smt.SmtKv
+	var smtKvCreate []smt.SmtKv
+	var smtKvRenew []smt.SmtKv
 	subAccountNewMap := make(map[int]string)
+	subAccountRenewMap := make(map[int]string)
 	time1 := time.Now()
 
 	for i, v := range p.SmtRecordInfoList {
@@ -309,7 +311,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
 			value := subAccountData.ToH256()
-			smtKvTemp = append(smtKvTemp, smt.SmtKv{
+			smtKvCreate = append(smtKvCreate, smt.SmtKv{
 				Key:   key,
 				Value: value,
 			})
@@ -336,6 +338,13 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 			}
+			key := smt.AccountIdToSmtH256(v.AccountId)
+			value := subAccountData.ToH256()
+			smtKvRenew = append(smtKvRenew, smt.SmtKv{
+				Key:   key,
+				Value: value,
+			})
+
 			subAccountNew.EditKey = common.EditKeyManual
 			expiredAt := molecule.GoU64ToMoleculeU64(subAccountData.ExpiredAt)
 			subAccountNew.EditValue = expiredAt.AsSlice()
@@ -359,6 +368,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				subAccountNew.EditValue = append(subAccountNew.EditValue, price.AsSlice()...)
 			}
 			common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
+			subAccountRenewMap[len(subAccountRenewList)] = v.AccountId
 			subAccountRenewList = append(subAccountRenewList, subAccountNew)
 		default:
 			subAccountBuilder, ok := p.SubAccountBuilderMap[v.AccountId]
@@ -371,7 +381,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			} else {
 				key := smt.AccountIdToSmtH256(v.AccountId)
 				value := subAccountData.ToH256()
-				smtKvTemp = append(smtKvTemp, smt.SmtKv{
+				smtKvCreate = append(smtKvCreate, smt.SmtKv{
 					Key:   key,
 					Value: value,
 				})
@@ -381,8 +391,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
-	if len(smtKvTemp) > 0 {
-		smtRes, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt)
+	if len(smtKvCreate) > 0 {
+		smtRes, err := p.Tree.UpdateMiddleSmt(smtKvCreate, opt)
 		if err != nil {
 			return nil, fmt.Errorf("tree.Update err: %s", err.Error())
 		}
@@ -396,6 +406,24 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			}
 			subAccountNewList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
 			subAccountNewList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
+		}
+	}
+
+	if len(smtKvRenew) > 0 {
+		smtRes, err := p.Tree.UpdateMiddleSmt(smtKvRenew, opt)
+		if err != nil {
+			return nil, fmt.Errorf("tree.Update err: %s", err.Error())
+		}
+		for i := range subAccountRenewList {
+			key := smt.AccountIdToSmtH256(subAccountRenewMap[i])
+			if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
+			}
+			if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+			}
+			subAccountRenewList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
+			subAccountRenewList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
 		}
 	}
 
