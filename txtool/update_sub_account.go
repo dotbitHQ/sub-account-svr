@@ -381,20 +381,22 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
-	smtRes, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt)
-	if err != nil {
-		return nil, fmt.Errorf("tree.Update err: %s", err.Error())
-	}
-	for i := range subAccountNewList {
-		key := smt.AccountIdToSmtH256(subAccountNewMap[i])
-		if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
-			return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
+	if len(smtKvTemp) > 0 {
+		smtRes, err := p.Tree.UpdateMiddleSmt(smtKvTemp, opt)
+		if err != nil {
+			return nil, fmt.Errorf("tree.Update err: %s", err.Error())
 		}
-		if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
-			return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+		for i := range subAccountNewList {
+			key := smt.AccountIdToSmtH256(subAccountNewMap[i])
+			if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
+			}
+			if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+			}
+			subAccountNewList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
+			subAccountNewList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
 		}
-		subAccountNewList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
-		subAccountNewList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
 	}
 
 	log.Info("SmtRecordInfoList spend:", time.Since(time1).Seconds())
