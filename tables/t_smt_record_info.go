@@ -101,7 +101,8 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
 			currentSubAccount = *oldSubAccount
-			currentSubAccount.ExpiredAt = currentSubAccount.ExpiredAt + (31536000 * t.RenewYears)
+			currentSubAccount.Nonce++
+			currentSubAccount.ExpiredAt += uint64(common.OneYearSec) * t.RenewYears
 
 			subAccountNew.EditKey = t.EditKey
 			subAccountNew.SubAccountData = oldSubAccount
