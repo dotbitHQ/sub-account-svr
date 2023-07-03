@@ -91,10 +91,10 @@ func (d *DbDao) UpdateOrderPayStatusOkWithSmtRecord(paymentInfo tables.PaymentIn
 
 // =========
 
-func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr string) (info tables.OrderInfo, err error) {
+func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr string, actionType tables.ActionType) (info tables.OrderInfo, err error) {
 	timestamp := tables.GetEfficientOrderTimestamp()
 	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address!=? AND action_type=? AND pay_status=?",
-		accountId, timestamp, addr, tables.ActionTypeMint, tables.PayStatusPaid).
+		accountId, timestamp, addr, actionType, tables.PayStatusPaid).
 		Order("id DESC").First(&info).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
@@ -102,10 +102,10 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr str
 	return
 }
 
-func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string) (info tables.OrderInfo, err error) {
+func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string, actionType tables.ActionType) (info tables.OrderInfo, err error) {
 	timestamp := tables.GetEfficientOrderTimestamp()
 	err = d.db.Where("account_id=? AND timestamp>=? AND pay_address=? AND action_type=? AND pay_status=?",
-		accountId, timestamp, addr, tables.ActionTypeMint, tables.PayStatusPaid).
+		accountId, timestamp, addr, actionType, tables.PayStatusPaid).
 		Order("id DESC").First(&info).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
