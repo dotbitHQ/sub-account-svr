@@ -92,7 +92,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			currentSubAccount.AccountCharSet = accountCharSet
 			currentSubAccount.Suffix = t.Account[strings.Index(t.Account, "."):]
 			currentSubAccount.RegisteredAt = uint64(timeCellTimestamp)
-			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (31536000 * t.RegisterYears)
+			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (uint64(common.OneYearSec) * t.RegisterYears)
 
 			subAccountNew.SubAccountData = &currentSubAccount
 			return &currentSubAccount, &subAccountNew, nil

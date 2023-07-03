@@ -163,16 +163,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
-	// get balance cell
-	builderConfigCellSub, err := s.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsSubAccount)
-	if err != nil {
-		return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
-	}
-	newRate, err := molecule.Bytes2GoU32(builderConfigCellSub.ConfigCellSubAccount.NewSubAccountCustomPriceDasProfitRate().RawData())
-	if err != nil {
-		return nil, fmt.Errorf("NewSubAccountCustomPriceDasProfitRate err: %s", err.Error())
-	}
-
 	registerTotalYears := uint64(0)
 	renewTotalYears := uint64(0)
 	autoTotalCapacity := uint64(0)
@@ -236,8 +226,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
-	log.Infof("autoMintTotalPrice: %d newRate: %d", autoTotalCapacity, newRate)
-
 	var manualChange uint64
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
@@ -246,6 +234,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if autoTotalCapacity == 0 {
 			needCapacity += p.CommonFee
 		}
+		var err error
 		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      balanceDasLock,
 			DasType:      balanceDasType,
@@ -264,6 +253,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var autoChange uint64
 	autoBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	if autoTotalCapacity > 0 {
+		var err error
 		autoChange, autoBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      p.BalanceDasLock,
 			DasType:      p.BalanceDasType,
@@ -334,7 +324,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, timeCellTimestamp)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.SubAccountData, p.BaseInfo.ContractDas, timeCellTimestamp)
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 			}
