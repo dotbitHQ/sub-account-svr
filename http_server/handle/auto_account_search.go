@@ -200,39 +200,49 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 		return
 	}
 
-	smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId, common.SubActionCreate)
+	subAction := common.SubActionCreate
+	if actionType == tables.ActionTypeRenew {
+		subAction = common.SubActionRenew
+	}
+	smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId, subAction)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query mint record")
 		e = fmt.Errorf("GetSmtRecordMintingByAccountId err: %s %s", err.Error(), subAccountId)
 		return
 	}
 	if smtRecord.Id > 0 {
-		accStatus = AccStatusMinting
+		switch subAction {
+		case common.SubActionCreate:
+			accStatus = AccStatusMinting
+		case common.SubActionRenew:
+			accStatus = AccStatusRenewing
+		}
 		return
 	}
 
-	// check order of self
-	orderInfo, err := h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex, tables.ActionTypeMint)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")
-		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
-		return
-	} else if orderInfo.Id > 0 {
-		isSelf, orderId, accStatus = true, orderInfo.OrderId, AccStatusMinting
-		return
-	}
-	// check order of others
-	orderInfo, err = h.DbDao.GetMintOrderInProgressByAccountIdWithoutAddr(subAccountId, hexAddr.AddressHex, tables.ActionTypeMint)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")
-		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
-		return
-	} else if orderInfo.Id > 0 {
-		accStatus = AccStatusMinting
-		return
-	}
-
-	if actionType == tables.ActionTypeRenew {
+	switch actionType {
+	case tables.ActionTypeMint:
+		// check order of self
+		orderInfo, err := h.DbDao.GetMintOrderInProgressByAccountIdWithAddr(subAccountId, hexAddr.AddressHex, tables.ActionTypeMint)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")
+			e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
+			return
+		} else if orderInfo.Id > 0 {
+			isSelf, orderId, accStatus = true, orderInfo.OrderId, AccStatusMinting
+			return
+		}
+		// check order of others
+		orderInfo, err = h.DbDao.GetMintOrderInProgressByAccountIdWithoutAddr(subAccountId, hexAddr.AddressHex, tables.ActionTypeMint)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")
+			e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
+			return
+		} else if orderInfo.Id > 0 {
+			accStatus = AccStatusMinting
+			return
+		}
+	case tables.ActionTypeRenew:
 		smtRecord, err := h.DbDao.GetSmtRecordMintingByAccountId(subAccountId, common.SubActionRenew)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query mint record")
