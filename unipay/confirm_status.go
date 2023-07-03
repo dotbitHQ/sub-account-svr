@@ -167,6 +167,14 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	case tables.ActionTypeRenew:
 		smtRecord.RenewYears = order.Years
 		smtRecord.SubAction = common.SubActionRenew
+		accInfo, err := dbDao.GetAccountInfoByAccountId(order.AccountId)
+		if err != nil {
+			return err
+		}
+		if accInfo.Id == 0 {
+			return fmt.Errorf("account: [%s] no exist", order.Account)
+		}
+		smtRecord.Nonce = accInfo.Nonce + 1
 	}
 
 	paymentInfo := tables.PaymentInfo{
