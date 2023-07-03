@@ -2,6 +2,7 @@ package example
 
 import (
 	"context"
+	"das-pay/chain/chain_evm"
 	"das_sub_account/http_server/handle"
 	"das_sub_account/tables"
 	"fmt"
@@ -99,4 +100,106 @@ func TestRule(t *testing.T) {
 	fmt.Println(common.Bytes2Hex(common.GetAccountIdByAccount(subAccount)))
 	hit, index, err := rulePrice.Hit(subAccount)
 	fmt.Println(hit, index)
+}
+
+func TestAutoOrderMint(t *testing.T) {
+	req := handle.ReqAutoOrderCreate{
+		ChainTypeAddress: ctaETH,
+		ActionType:       tables.ActionTypeMint,
+		SubAccount:       "t10.rt01.bit",
+		TokenId:          tables.TokenIdEth,
+		Years:            1,
+	}
+	data := handle.RespAutoOrderCreate{}
+	url := fmt.Sprintf("%s/auto/order/create", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+
+	ethClient, err := chain_evm.Initialize(context.Background(), "https://rpc.ankr.com/eth_goerli", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	to := data.PaymentAddress
+	nonce, err := ethClient.NonceAt(ctaETH.KeyInfo.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx, err := ethClient.NewTransaction(ctaETH.KeyInfo.Key, to, data.Amount, []byte(data.OrderId), nonce, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err = ethClient.SignWithPrivateKey(private, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(tx.Hash().Hex())
+	if err := ethClient.SendTransaction(tx); err != nil {
+		fmt.Println("err:", err)
+		t.Fatal(err)
+	}
+
+	hashReq := handle.ReqAutoOrderHash{
+		ChainTypeAddress: ctaETH,
+		OrderId:          data.OrderId,
+		Hash:             tx.Hash().Hex(),
+	}
+	resp := handle.RespAutoOrderHash{}
+	if err := http_api.SendReq(fmt.Sprintf("%s/auto/order/hash", ApiUrl), &hashReq, &resp); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&resp))
+}
+
+func TestAutoOrderRenew(t *testing.T) {
+	req := handle.ReqAutoOrderCreate{
+		ChainTypeAddress: ctaETH,
+		ActionType:       tables.ActionTypeRenew,
+		SubAccount:       "t12.rt01.bit",
+		TokenId:          tables.TokenIdEth,
+		Years:            1,
+	}
+	data := handle.RespAutoOrderCreate{}
+	url := fmt.Sprintf("%s/auto/order/create", ApiUrl)
+	if err := http_api.SendReq(url, &req, &data); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&data))
+
+	ethClient, err := chain_evm.Initialize(context.Background(), "https://rpc.ankr.com/eth_goerli", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	to := data.PaymentAddress
+	nonce, err := ethClient.NonceAt(ctaETH.KeyInfo.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx, err := ethClient.NewTransaction(ctaETH.KeyInfo.Key, to, data.Amount, []byte(data.OrderId), nonce, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err = ethClient.SignWithPrivateKey(private, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(tx.Hash().Hex())
+	if err := ethClient.SendTransaction(tx); err != nil {
+		fmt.Println("err:", err)
+		t.Fatal(err)
+	}
+
+	hashReq := handle.ReqAutoOrderHash{
+		ChainTypeAddress: ctaETH,
+		OrderId:          data.OrderId,
+		Hash:             tx.Hash().Hex(),
+	}
+	resp := handle.RespAutoOrderHash{}
+	if err := http_api.SendReq(fmt.Sprintf("%s/auto/order/hash", ApiUrl), &hashReq, &resp); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("data:", toolib.JsonString(&resp))
 }

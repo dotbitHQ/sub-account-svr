@@ -324,7 +324,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.SubAccountData, p.BaseInfo.ContractDas, timeCellTimestamp)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, timeCellTimestamp)
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 			}
