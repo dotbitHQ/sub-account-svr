@@ -35,10 +35,11 @@ type RespAutoAccountSearch struct {
 type AccStatus int
 
 const (
-	AccStatusUnMinted AccStatus = 0
+	AccStatusDefault  AccStatus = 0
 	AccStatusMinting  AccStatus = 1
 	AccStatusMinted   AccStatus = 2
 	AccStatusRenewing AccStatus = 3
+	AccStatusUnMinted AccStatus = 4
 )
 
 func (h *HttpHandle) AutoAccountSearch(ctx *gin.Context) {
@@ -188,7 +189,7 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 }
 
 func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, e error) {
-	accStatus = AccStatusUnMinted
+	accStatus = AccStatusDefault
 	subAccount, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query sub-account")
@@ -197,6 +198,10 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 	}
 	if actionType == tables.ActionTypeMint && subAccount.Id > 0 {
 		accStatus = AccStatusMinted
+		return
+	}
+	if actionType == tables.ActionTypeRenew && subAccount.Id == 0 {
+		accStatus = AccStatusUnMinted
 		return
 	}
 
