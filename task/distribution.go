@@ -66,12 +66,15 @@ func (t *SmtTask) doUpdateDistribution() error {
 		if subAccDetail.HasCustomScriptArgs() {
 			customScripHash = subAccDetail.ArgsAndConfigHash()
 		}
-		//
+
 		count := 0
-		lastMintSignId := ""
 		addTask := true
 		ids = make([]uint64, 0)
+		lastMintSignIdMap := make(map[string]string)
+
 		for _, smtRecord := range smtRecordList {
+			lastMintSignId := lastMintSignIdMap[smtRecord.SubAction]
+
 			if count == maxUpdateCount {
 				addTask = true
 				count = 0
@@ -80,10 +83,12 @@ func (t *SmtTask) doUpdateDistribution() error {
 				count = 0
 			}
 			if smtRecord.MintSignId != "" {
-				lastMintSignId = smtRecord.MintSignId
+				lastMintSignIdMap[smtRecord.SubAction] = smtRecord.MintSignId
 			}
+
 			count++
 			//log.Info("doUpdateDistribution:", smtRecord.Id, count, lastMintSignId)
+
 			if addTask {
 				taskInfo := tables.TableTaskInfo{
 					Id:              0,
