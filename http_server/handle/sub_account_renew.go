@@ -31,9 +31,8 @@ type ReqSubAccountRenew struct {
 }
 
 type RenewSubAccount struct {
-	Account        string                  `json:"account"`
-	AccountCharStr []common.AccountCharSet `json:"account_char_str"`
-	RenewYears     uint64                  `json:"renew_years"`
+	Account    string `json:"account"`
+	RenewYears uint64 `json:"renew_years"`
 }
 
 type RespSubAccountRenew struct {
@@ -293,11 +292,6 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 			return nil, nil, fmt.Errorf("GetAccountInfoByAccountId: %s", err.Error())
 		}
 
-		content, err := json.Marshal(v.AccountCharStr)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "AccountCharStr err")
-			return nil, nil, fmt.Errorf("json Marshal err: %s", err.Error())
-		}
 		tmp := tables.TableSmtRecordInfo{
 			SvrName:         config.Cfg.Slb.SvrName,
 			AccountId:       subAccountId,
@@ -307,7 +301,6 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 			Action:          common.DasActionUpdateSubAccount,
 			ParentAccountId: parentAccountId,
 			Account:         v.Account,
-			Content:         string(content),
 			EditKey:         common.EditKeyManual,
 			SignRole:        signRole,
 			RenewYears:      v.RenewYears,

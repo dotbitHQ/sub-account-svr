@@ -99,7 +99,6 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell account")
 		return false, nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
-	maxLength, _ := configCellBuilder.MaxLength()
 	expirationGracePeriod, err := configCellBuilder.ExpirationGracePeriod()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -161,29 +160,6 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 		}
 		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccountList[i].Account))
 
-		if len(req.SubAccountList[i].AccountCharStr) == 0 {
-			accountCharStr, err := h.DasCore.GetAccountCharSetList(req.SubAccountList[i].Account)
-			if err != nil {
-				tmp.Status = RenewCheckStatusFail
-				tmp.Message = fmt.Sprintf("AccountToAccountChars err: %s", suffix)
-				isOk = false
-				resp.Result = append(resp.Result, tmp)
-				continue
-			}
-			req.SubAccountList[i].AccountCharStr = accountCharStr
-		}
-
-		accLen := len(req.SubAccountList[i].AccountCharStr)
-		if accLen <= 0 {
-			tmp.Status = RenewCheckStatusFail
-			tmp.Message = fmt.Sprintf("account length is 0")
-			isOk = false
-		} else if uint32(accLen) > maxLength {
-			tmp.Status = RenewCheckStatusFail
-			tmp.Message = fmt.Sprintf("account len more than: %d", maxLength)
-			isOk = false
-		}
-
 		if indexAcc, ok := subAccountMap[accountId]; ok {
 			resp.Result[indexAcc].Status = RenewCheckStatusFail
 			resp.Result[indexAcc].Message = fmt.Sprintf("same account")
@@ -197,11 +173,6 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 		} else if req.SubAccountList[i].RenewYears > config.Cfg.Das.MaxRenewYears {
 			tmp.Status = RenewCheckStatusFail
 			tmp.Message = fmt.Sprintf("renew years more than %d", config.Cfg.Das.MaxRenewYears)
-			isOk = false
-		} else if !h.checkAccountCharSet(req.SubAccountList[i].AccountCharStr, req.SubAccountList[i].Account[:strings.Index(req.SubAccountList[i].Account, ".")]) {
-			log.Info("checkAccountCharSet:", req.SubAccountList[i].Account, req.SubAccountList[i].AccountCharStr)
-			tmp.Status = RenewCheckStatusFail
-			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false
 		}
 
