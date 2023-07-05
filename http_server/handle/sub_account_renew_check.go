@@ -174,6 +174,21 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 			tmp.Status = RenewCheckStatusFail
 			tmp.Message = fmt.Sprintf("renew years more than %d", config.Cfg.Das.MaxRenewYears)
 			isOk = false
+		} else {
+			subAcc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query sub account")
+				return false, nil, fmt.Errorf("GetAccountInfoByAccountId: %s", err.Error())
+			}
+			if subAcc.Id == 0 {
+				tmp.Status = RenewCheckStatusNoExist
+				tmp.Message = fmt.Sprintf("sub account: %s no exist", subAcc.Account)
+				isOk = false
+			} else if time.Now().Unix()-int64(subAcc.ExpiredAt) > 0 {
+				tmp.Status = RenewCheckStatusExpired
+				tmp.Message = fmt.Sprintf("sub account: %s expired", subAcc.Account)
+				isOk = false
+			}
 		}
 
 		if subAccountEntity != nil {

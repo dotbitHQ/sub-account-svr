@@ -16,7 +16,6 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strings"
 	"time"
@@ -245,34 +244,6 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 	if nowTime-int64(acc.ExpiredAt) > 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")
 		return nil, nil
-	}
-
-	// check sub_account
-	wg := &errgroup.Group{}
-	wg.SetLimit(10)
-	for _, v := range req.SubAccountList {
-		account := v.Account
-		wg.Go(func() error {
-			subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(account))
-			subAcc, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query sub account")
-				return fmt.Errorf("GetAccountInfoByAccountId: %s", err.Error())
-			}
-			if subAcc.Id == 0 {
-				err = fmt.Errorf("sub account: %s no exist", subAcc.Account)
-				apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, err.Error())
-				return nil
-			}
-			if nowTime-int64(subAcc.ExpiredAt) > 0 {
-				apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")
-				return nil
-			}
-			return nil
-		})
-	}
-	if err := wg.Wait(); err != nil {
-		return nil, err
 	}
 	return &acc, nil
 }
