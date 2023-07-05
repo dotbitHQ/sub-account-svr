@@ -155,11 +155,13 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 	// create order
+
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress: req.ChainTypeAddress,
 		BusinessId:       unipay.BusinessIdAutoSubAccount,
 		Amount:           amount,
 		PayTokenId:       req.TokenId,
+		PaymentAddress:   config.GetPaymentAddress(req.TokenId),
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")

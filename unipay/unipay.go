@@ -15,9 +15,10 @@ const (
 
 type ReqOrderCreate struct {
 	core.ChainTypeAddress
-	BusinessId string          `json:"business_id"`
-	Amount     decimal.Decimal `json:"amount"`
-	PayTokenId tables.TokenId  `json:"pay_token_id"`
+	BusinessId     string          `json:"business_id"`
+	Amount         decimal.Decimal `json:"amount"`
+	PayTokenId     tables.TokenId  `json:"pay_token_id"`
+	PaymentAddress string          `json:"payment_address"`
 }
 
 type RespOrderCreate struct {

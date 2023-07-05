@@ -1,6 +1,7 @@
 package config
 
 import (
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/fsnotify/fsnotify"
@@ -110,11 +111,24 @@ type CfgServer struct {
 			DbNum    int    `json:"db_num" yaml:"db_num"`
 		} `json:"redis" yaml:"redis"`
 	} `json:"cache" yaml:"cache"`
-	SuspendMap map[string]string `json:"suspend_map" yaml:"suspend_map"`
+	SuspendMap        map[string]string `json:"suspend_map" yaml:"suspend_map"`
+	PaymentAddressMap map[string]string `json:"payment_address_map"`
 }
 
 type Server struct {
 	Name   string `json:"name" yaml:"name"`
 	Url    string `json:"url" yaml:"url"`
 	Weight int    `json:"weight" yaml:"weight"`
+}
+
+func GetPaymentAddress(tokenId tables.TokenId) string {
+	switch tokenId {
+	case tables.TokenIdEth, tables.TokenIdErc20USDT,
+		tables.TokenIdBnb, tables.TokenIdBep20USDT,
+		tables.TokenIdMatic:
+		return Cfg.PaymentAddressMap["eth"]
+	case tables.TokenIdTrx, tables.TokenIdTrc20USDT:
+		return Cfg.PaymentAddressMap["tron"]
+	}
+	return ""
 }

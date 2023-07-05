@@ -43,10 +43,10 @@ db:
     user: "test_user_iut2"
     password: "4k92Qv3TDr"
     db_name: "das2_db_test"
-#    addr: "127.0.0.1:3306"
-#    user: "root"
-#    password: "123456"
-#    db_name: "das_database"
+    #    addr: "127.0.0.1:3306"
+    #    user: "root"
+    #    password: "123456"
+    #    db_name: "das_database"
     max_open_conn: 100
     max_idle_conn: 50
   parser_mysql:
@@ -54,10 +54,10 @@ db:
     user: "test_user_iut2"
     password: "4k92Qv3TDr"
     db_name: "das_parser_test"
-#    addr: "127.0.0.1:3306"
-#    user: "root"
-#    password: "123456"
-#    db_name: "das_database"
+    #    addr: "127.0.0.1:3306"
+    #    user: "root"
+    #    password: "123456"
+    #    db_name: "das_database"
     max_open_conn: 100
     max_idle_conn: 50
   mongo:
@@ -68,3 +68,7 @@ cache:
     addr: "127.0.0.1:6379" # 172.17.0.1: docker 182.17.0.1: docker-compose
     password: ""
     db_num: 0
+payment_address_map:
+  "evm": ""
+  "tron": ""
+  "doge": ""
