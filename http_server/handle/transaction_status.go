@@ -115,6 +115,8 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			record, err = h.DbDao.GetLatestSmtRecordByParentAccountIdAction(accountId, req.Action, req.SubAction)
 		case common.SubActionEdit:
 			record, err = h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action, req.SubAction)
+		case common.SubActionRenew:
+			record, err = h.DbDao.GetLatestSmtRecordByParentAccountIdAction(accountId, req.Action, req.SubAction)
 		default:
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist sub-action[%s]", req.SubAction))
 			return nil
