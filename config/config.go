@@ -111,8 +111,8 @@ type CfgServer struct {
 			DbNum    int    `json:"db_num" yaml:"db_num"`
 		} `json:"redis" yaml:"redis"`
 	} `json:"cache" yaml:"cache"`
-	SuspendMap        map[string]string `json:"suspend_map" yaml:"suspend_map"`
-	PaymentAddressMap map[string]string `json:"payment_address_map"`
+	SuspendMap       map[string]string `json:"suspend_map" yaml:"suspend_map"`
+	UnipayAddressMap map[string]string `json:"unipay_address_map" yaml:"unipay_address_map"`
 }
 
 type Server struct {
@@ -121,14 +121,14 @@ type Server struct {
 	Weight int    `json:"weight" yaml:"weight"`
 }
 
-func GetPaymentAddress(tokenId tables.TokenId) string {
+func GetUnipayAddress(tokenId tables.TokenId) string {
 	switch tokenId {
 	case tables.TokenIdEth, tables.TokenIdErc20USDT,
 		tables.TokenIdBnb, tables.TokenIdBep20USDT,
 		tables.TokenIdMatic:
-		return Cfg.PaymentAddressMap["eth"]
+		return Cfg.UnipayAddressMap["eth"]
 	case tables.TokenIdTrx, tables.TokenIdTrc20USDT:
-		return Cfg.PaymentAddressMap["tron"]
+		return Cfg.UnipayAddressMap["tron"]
 	}
 	return ""
 }
