@@ -27,11 +27,12 @@ type RespDistributionList struct {
 }
 
 type DistributionListElement struct {
-	Time    int64  `json:"time"`
-	Account string `json:"account"`
-	Years   uint64 `json:"years"`
-	Amount  string `json:"amount"`
-	Symbol  string `json:"symbol"`
+	Time    int64            `json:"time"`
+	Account string           `json:"account"`
+	Years   uint64           `json:"years"`
+	Amount  string           `json:"amount"`
+	Symbol  string           `json:"symbol"`
+	Action  common.SubAction `json:"action"`
 }
 
 func (h *HttpHandle) DistributionList(ctx *gin.Context) {
@@ -105,6 +106,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 					Time:    record.CreatedAt.UnixMilli(),
 					Account: strings.Split(record.Account, ".")[0],
 					Years:   record.RegisterYears + record.RenewYears,
+					Action:  record.SubAction,
 				}
 
 				switch record.MintType {
