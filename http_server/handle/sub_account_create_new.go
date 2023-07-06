@@ -294,12 +294,11 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAcco
 	minSignInfo := tables.TableMintSignInfo{
 		SmtRoot:    common.Bytes2Hex(root),
 		ExpiredAt:  expiredAt,
-		MintSignId: "",
-		Signature:  "",
 		Timestamp:  uint64(time.Now().UnixNano() / 1e6),
 		KeyValue:   string(keyValueStr),
 		ChainType:  acc.ManagerChainType,
 		Address:    acc.Manager,
+		SubAction:  common.SubActionCreate,
 	}
 	minSignInfo.InitMintSignId(parentAccountId)
 	for i, _ := range listSmtRecord {
