@@ -44,3 +44,7 @@ const (
 func GetPaymentInfoTimestamp() int64 {
 	return time.Now().Add(-time.Hour * 24 * 3).UnixMilli()
 }
+
+func GetPaymentInfoTimestampBefore24h() int64 {
+	return time.Now().Add(-time.Hour * 24).UnixMilli()
+}
