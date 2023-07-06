@@ -40,6 +40,7 @@ const (
 	AccStatusMinted   AccStatus = 2
 	AccStatusRenewing AccStatus = 3
 	AccStatusUnMinted AccStatus = 4
+	AccStatusExpired  AccStatus = 5
 )
 
 func (h *HttpHandle) AutoAccountSearch(ctx *gin.Context) {
@@ -75,7 +76,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 		return nil
 	}
 
-	// check sub account name
+	// check sub_account name
 	parentAccountId := h.checkSubAccountName(apiResp, req.SubAccount)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -200,9 +201,29 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 		accStatus = AccStatusMinted
 		return
 	}
-	if actionType == tables.ActionTypeRenew && subAccount.Id == 0 {
-		accStatus = AccStatusUnMinted
-		return
+
+	if actionType == tables.ActionTypeRenew {
+		if subAccount.Id == 0 {
+			accStatus = AccStatusUnMinted
+			return
+		}
+
+		configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell account")
+			e = fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+			return
+		}
+		expirationGracePeriod, err := configCellBuilder.ExpirationGracePeriod()
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			e = err
+			return
+		}
+		if time.Now().Unix()-int64(subAccount.ExpiredAt) > int64(expirationGracePeriod) {
+			accStatus = AccStatusExpired
+			return
+		}
 	}
 
 	subAction := common.SubActionCreate

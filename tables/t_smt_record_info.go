@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/mylog"
 	"strings"
@@ -106,6 +107,8 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 
 			subAccountNew.EditKey = t.EditKey
 			subAccountNew.SubAccountData = oldSubAccount
+			expiredAt := molecule.GoU64ToMoleculeU64(currentSubAccount.ExpiredAt)
+			subAccountNew.EditValue = expiredAt.AsSlice()
 			return &currentSubAccount, &subAccountNew, nil
 		case common.SubActionEdit:
 			if oldSubAccount == nil {

@@ -248,7 +248,7 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 	return &acc, nil
 }
 
-func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableRenewSignInfo, error) {
+func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableMintSignInfo, error) {
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
 	listRecord := make([]tables.TableSmtRecordInfo, 0)
@@ -321,7 +321,7 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 	keyValueStr, _ := json.Marshal(&listKeyValue)
 
 	nowTime := time.Now()
-	renewSignInfo := &tables.TableRenewSignInfo{
+	renewSignInfo := &tables.TableMintSignInfo{
 		SmtRoot:   common.Bytes2Hex(r.Root),
 		ExpiredAt: uint64(nowTime.Add(time.Hour * 24 * 7).Unix()),
 		Timestamp: uint64(nowTime.UnixNano() / 1e6),
@@ -329,10 +329,11 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 		ChainType: addressHex.ChainType,
 		Address:   addressHex.AddressHex,
 		SignRole:  signRole,
+		SubAction: common.SubActionRenew,
 	}
 	renewSignInfo.InitMintSignId(parentAccountId)
 	for i := range listRecord {
-		listRecord[i].MintSignId = renewSignInfo.RenewSignId
+		listRecord[i].MintSignId = renewSignInfo.MintSignId
 	}
 	return listRecord, renewSignInfo, nil
 }

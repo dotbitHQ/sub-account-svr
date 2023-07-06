@@ -6,7 +6,6 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
-	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
@@ -30,7 +29,6 @@ const (
 	RenewCheckStatusExpirationGracePeriod RenewCheckStatus = 3
 	RenewCheckStatusExpired               RenewCheckStatus = 4
 	RenewCheckStatusRegistering           RenewCheckStatus = 5
-	RenewCheckStatusHitPreservedRules     RenewCheckStatus = 6
 )
 
 type RespSubAccountRenewCheck struct {
@@ -94,46 +92,6 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 	resp.Result = make([]CheckSubAccountRenew, 0)
 
 	var subAccountMap = make(map[string]int)
-	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell account")
-		return false, nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	}
-	expirationGracePeriod, err := configCellBuilder.ExpirationGracePeriod()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return false, nil, err
-	}
-
-	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	baseInfo, err := h.TxTool.GetBaseInfo()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "server error")
-		return false, nil, err
-	}
-
-	subAccountCell, err := h.getSubAccountCell(baseInfo.ContractSubAcc, parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return false, nil, fmt.Errorf("getAccountOrSubAccountCell err: %s", err.Error())
-	}
-	subAccountTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccountCell.OutPoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-		return false, nil, err
-	}
-
-	var subAccountEntity *witness.SubAccountRuleEntity
-	subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
-	if subAccountCellDetail.Flag == witness.FlagTypeCustomRule {
-		// check custom rule
-		subAccountEntity = witness.NewSubAccountRuleEntity(req.Account)
-		if err := subAccountEntity.ParseFromTx(subAccountTx.Transaction, common.ActionDataTypeSubAccountPreservedRules); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-			return false, nil, err
-		}
-	}
-
 	// check list
 	var accountIds []string
 	for i := range req.SubAccountList {
@@ -176,18 +134,6 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 			isOk = false
 		}
 
-		if subAccountEntity != nil {
-			hit, _, err := subAccountEntity.Hit(req.SubAccountList[i].Account)
-			if err != nil {
-				apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
-				return false, nil, err
-			}
-			if hit {
-				tmp.Status = RenewCheckStatusHitPreservedRules
-				tmp.Message = "sub account is preserved"
-				isOk = false
-			}
-		}
 		if tmp.Status != RenewCheckStatusOk {
 			resp.Result = append(resp.Result, tmp)
 			continue
@@ -222,6 +168,18 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 
 	// check
 	now := time.Now().Unix()
+
+	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get config cell account")
+		return false, nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	expirationGracePeriod, err := configCellBuilder.ExpirationGracePeriod()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return false, nil, err
+	}
+
 	for i, v := range req.SubAccountList {
 		acc, ok := mapRegistered[v.Account]
 		if !ok {
@@ -236,15 +194,10 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 			continue
 		}
 
-		if now-int64(acc.ExpiredAt) > 0 {
+		if now-int64(acc.ExpiredAt) > int64(expirationGracePeriod) {
 			isOk = false
-			if now-int64(acc.ExpiredAt) <= int64(expirationGracePeriod) {
-				resp.Result[i].Status = RenewCheckStatusExpirationGracePeriod
-				resp.Result[i].Message = "expiration grace period"
-			} else {
-				resp.Result[i].Status = RenewCheckStatusExpired
-				resp.Result[i].Message = "account expired"
-			}
+			resp.Result[i].Status = RenewCheckStatusExpired
+			resp.Result[i].Message = "account expired"
 		}
 	}
 	return isOk, &resp, nil
