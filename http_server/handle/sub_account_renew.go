@@ -179,10 +179,10 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		AlgId:           addressHex.DasAlgorithmId,
 		Address:         addressHex.AddressHex,
 		SubAction:       common.SubActionRenew,
-		RenewSignInfo:   renewSignInfo,
+		MinSignInfo:     renewSignInfo,
 		ListSmtRecord:   listSmtRecord,
 	}
-	signData := dataCache.GetRenewSignData(addressHex.DasAlgorithmId, apiResp)
+	signData := dataCache.GetCreateSignData(addressHex.DasAlgorithmId, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

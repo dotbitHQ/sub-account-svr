@@ -258,15 +258,9 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 	log.Info("UpdateSubAccountCache:", dataCache.Account, dataCache.SubAction)
 
 	switch dataCache.SubAction {
-	case common.SubActionCreate:
+	case common.SubActionCreate, common.SubActionRenew:
 		if err := h.doSubActionCreate(dataCache, req, apiResp); err != nil {
 			return fmt.Errorf("doSubActionCreate err: %s", err.Error())
-		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-			return nil
-		}
-	case common.SubActionRenew:
-		if err := h.doSubActionRenew(dataCache, req, apiResp); err != nil {
-			return fmt.Errorf("doSubActionRenew err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
@@ -371,37 +365,6 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 	dataCache.MinSignInfo.Signature = signMsg
 
 	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
-		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
-	}
-	return nil
-}
-
-func (h *HttpHandle) doSubActionRenew(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
-	signData := dataCache.GetRenewSignData(dataCache.AlgId, apiResp)
-	if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		return nil
-	}
-	if signData.SignMsg != dataCache.OldSignMsg {
-		apiResp.ApiRespErr(api_code.ApiCodeSignError, "SignMsg diff")
-		return nil
-	}
-	log.Info("doSubActionRenew", signData.SignMsg, dataCache.Address)
-
-	signMsg := req.List[0].SignList[0].SignMsg
-	signMsg, err := doSignCheck(signData, signMsg, dataCache.Address, apiResp)
-	if err != nil {
-		return fmt.Errorf("doSignCheck err: %s", err.Error())
-	}
-	if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		return nil
-	}
-	dataCache.RenewSignInfo.Signature = signMsg
-
-	for i := range dataCache.ListSmtRecord {
-		dataCache.ListSmtRecord[i].Signature = signMsg
-	}
-	if err := h.DbDao.CreateRenewSignInfo(*dataCache.RenewSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
 	}

@@ -229,7 +229,6 @@ type UpdateSubAccountCache struct {
 
 	OldSignMsg    string                      `json:"old_sign_msg"`
 	MinSignInfo   *tables.TableMintSignInfo   `json:"min_sign_info,omitempty"`
-	RenewSignInfo *tables.TableRenewSignInfo  `json:"renew_sign_info,omitempty"`
 	ListSmtRecord []tables.TableSmtRecordInfo `json:"list_smt_record"`
 }
 
@@ -430,33 +429,6 @@ func (u *UpdateSubAccountCache) GetCreateSignData(algId common.DasAlgorithmId, a
 	}
 	return
 }
-
-func (u *UpdateSubAccountCache) GetRenewSignData(algId common.DasAlgorithmId, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
-	// ExpiredAt + SmtRoot
-	expiredAtBys := bytes.NewBuffer([]byte{})
-	if err := binary.Write(expiredAtBys, binary.LittleEndian, u.RenewSignInfo.ExpiredAt); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
-		return
-	}
-	data := expiredAtBys.Bytes()
-
-	data = append(data, common.Hex2Bytes(u.RenewSignInfo.SmtRoot)...)
-
-	bys, err := blake2b.Blake256(data)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("blake2b.Blake256 err: %s", err.Error()))
-		return
-	}
-	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
-	log.Info("GetCreateSignData:", signData.SignMsg, u.RenewSignInfo.ExpiredAt, u.RenewSignInfo.SmtRoot)
-	// sig msg
-	signData.SignType = algId
-	if signData.SignType == common.DasAlgorithmIdEth712 {
-		signData.SignType = common.DasAlgorithmIdEth
-	}
-	return
-}
-
 
 // === Edit Value ===
 
