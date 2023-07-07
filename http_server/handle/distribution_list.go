@@ -102,17 +102,27 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 			idx := v
 			errG.Go(func() error {
 				record := recordInfo[idx]
+
+				action := common.SubActionCreate
+				if record.SubAction == common.SubActionRenew {
+					action = common.SubActionRenew
+				}
 				resp.List[idx] = DistributionListElement{
 					Time:    record.CreatedAt.UnixMilli(),
 					Account: strings.Split(record.Account, ".")[0],
 					Years:   record.RegisterYears + record.RenewYears,
-					Action:  record.SubAction,
+					Action:  action,
 				}
 
 				switch record.MintType {
 				case tables.MintTypeDefault, tables.MintTypeManual:
 					resp.List[idx].Amount = "0"
-					resp.List[idx].Symbol = "Free mint by manager"
+					switch action {
+					case common.SubActionCreate:
+						resp.List[idx].Symbol = "Free mint by manager"
+					case common.SubActionRenew:
+						resp.List[idx].Symbol = "Free renew by manager"
+					}
 					return nil
 				case tables.MintTypeAutoMint:
 					order, err := h.DbDao.GetOrderByOrderID(record.OrderID)
