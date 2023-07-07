@@ -53,7 +53,7 @@ func (t *ToolUniPay) doOrderCheck() error {
 				}
 			} else {
 				newStatus := tables.OrderStatusSuccess
-				if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
+				if smtRecord.Id == 0 || smtRecord.RecordType == tables.RecordTypeClosed {
 					newStatus = tables.OrderStatusFail
 				}
 				if err := t.DbDao.UpdateOrderStatusForCheckMint(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
@@ -74,8 +74,11 @@ func (t *ToolUniPay) doOrderCheck() error {
 			if err != nil {
 				return fmt.Errorf("GetSmtRecordByOrderId err: %s", err.Error())
 			}
+			if smtRecord.Id == 0 {
+				continue
+			}
 			newStatus := tables.OrderStatusSuccess
-			if smtRecord.Id == 0 || smtRecord.RecordType != tables.RecordTypeChain {
+			if smtRecord.RecordType == tables.RecordTypeClosed {
 				newStatus = tables.OrderStatusFail
 			}
 			if err := t.DbDao.UpdateOrderStatusForCheckRenew(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
