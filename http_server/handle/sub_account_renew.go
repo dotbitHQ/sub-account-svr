@@ -210,7 +210,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 }
 
 func (h *HttpHandle) doSubAccountRenewCheckParams(req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
-	if len(req.SubAccountList) > config.Cfg.Das.MaxRenewCount {
+	if len(req.SubAccountList) > config.Cfg.Das.MaxCreateCount {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("more than max renew num %d", config.Cfg.Das.MaxCreateCount))
 		return nil
 	}

@@ -128,9 +128,9 @@ func (h *HttpHandle) doSubAccountRenewCheckList(req *ReqSubAccountRenew, apiResp
 			tmp.Status = RenewCheckStatusFail
 			tmp.Message = "register years less than 1"
 			isOk = false
-		} else if req.SubAccountList[i].RenewYears > config.Cfg.Das.MaxRenewYears {
+		} else if req.SubAccountList[i].RenewYears > config.Cfg.Das.MaxRegisterYears {
 			tmp.Status = RenewCheckStatusFail
-			tmp.Message = fmt.Sprintf("renew years more than %d", config.Cfg.Das.MaxRenewYears)
+			tmp.Message = fmt.Sprintf("renew years more than %d", config.Cfg.Das.MaxRegisterYears)
 			isOk = false
 		}
 
