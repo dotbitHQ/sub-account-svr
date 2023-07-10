@@ -46,6 +46,10 @@ func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
 func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	var resp RespConfigInfo
 
+	if err := h.checkSystemUpgrade(apiResp); err != nil {
+		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
+	}
+
 	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
