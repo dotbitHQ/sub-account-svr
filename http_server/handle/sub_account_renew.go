@@ -107,25 +107,20 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 
 	// das lock
 	var signRole string
-	var addressHex core.DasAddressHex
-	if acc.OwnerChainType == req.chainType && strings.EqualFold(acc.Owner, req.address) {
-		addressHex.DasAlgorithmId = acc.OwnerChainType.ToDasAlgorithmId(true)
-		addressHex.AddressHex = acc.Owner
-		addressHex.ChainType = acc.OwnerChainType
-		signRole = common.ParamOwner
-	}
+	var addressHex *core.DasAddressHex
 	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
+		addressHex = &core.DasAddressHex{}
 		addressHex.DasAlgorithmId = acc.ManagerChainType.ToDasAlgorithmId(true)
 		addressHex.AddressHex = acc.Manager
 		addressHex.ChainType = acc.ManagerChainType
 		signRole = common.ParamManager
 	}
-	if addressHex.DasAlgorithmId == 0 {
+	if addressHex == nil {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
 	}
 
-	balanceDasLock, balanceDasType, err := h.DasCore.Daf().HexToScript(addressHex)
+	balanceDasLock, balanceDasType, err := h.DasCore.Daf().HexToScript(*addressHex)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("FormatAddressToDasLockScript err: %s", err.Error())
@@ -163,7 +158,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	}
 
 	// get renew sign info
-	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, addressHex, req, apiResp)
+	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, *addressHex, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doMinSignInfo err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {

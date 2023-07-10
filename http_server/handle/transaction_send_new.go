@@ -356,13 +356,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	address := acc.Manager
-	if dataCache.SubAction == common.SubActionRenew &&
-		dataCache.MinSignInfo.SignRole == common.ParamOwner {
-		address = acc.Owner
-	}
-
-	if signMsg, err = doSignCheck(signData, signMsg, address, apiResp); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
