@@ -78,7 +78,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 
 	// check sub_account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	accStatus, _, _, err := h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
+	accStatus, _, _, _, err := h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	}
