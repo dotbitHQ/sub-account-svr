@@ -25,11 +25,12 @@ type ReqAutoAccountSearch struct {
 }
 
 type RespAutoAccountSearch struct {
-	Price   decimal.Decimal `json:"price"`
-	MaxYear uint64          `json:"max_year"`
-	Status  AccStatus       `json:"status"`
-	IsSelf  bool            `json:"is_self"`
-	OrderId string          `json:"order_id"`
+	Price     decimal.Decimal `json:"price"`
+	MaxYear   uint64          `json:"max_year"`
+	Status    AccStatus       `json:"status"`
+	IsSelf    bool            `json:"is_self"`
+	OrderId   string          `json:"order_id"`
+	ExpiredAt uint64          `json:"expired_at"`
 }
 
 type AccStatus int
@@ -92,7 +93,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 
 	// check sub_account
 	subAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.SubAccount))
-	resp.Status, resp.IsSelf, resp.OrderId, err = h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
+	resp.Status, resp.IsSelf, resp.OrderId, resp.ExpiredAt, err = h.checkSubAccount(req.ActionType, apiResp, hexAddr, subAccountId)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -189,7 +190,7 @@ func (h *HttpHandle) checkParentAccount(apiResp *api_code.ApiResp, parentAccount
 	return &parentAccount, nil
 }
 
-func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, e error) {
+func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_code.ApiResp, hexAddr *core.DasAddressHex, subAccountId string) (accStatus AccStatus, isSelf bool, orderId string, expiredAt uint64, e error) {
 	accStatus = AccStatusDefault
 	subAccount, err := h.DbDao.GetAccountInfoByAccountId(subAccountId)
 	if err != nil {
@@ -224,6 +225,7 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 			accStatus = AccStatusExpired
 			return
 		}
+		expiredAt = subAccount.ExpiredAt * 1e3
 	}
 
 	subAction := common.SubActionCreate
