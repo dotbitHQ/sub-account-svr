@@ -142,14 +142,7 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 			smtRecord.RegisterArgs = common.Bytes2Hex(v.SubAccountData.Lock.Args)
 			smtRecord.RegisterYears = (v.SubAccountData.ExpiredAt - v.SubAccountData.RegisteredAt) / uint64(common.OneYearSec)
 		case common.SubActionRenew:
-			subAcc, err := b.DbDao.GetAccountInfoByAccountId(v.SubAccountData.AccountId)
-			if err != nil {
-				return nil, nil, err
-			}
-			if subAcc.Id == 0 {
-				return nil, nil, fmt.Errorf("account: [%s] is no exist", v.SubAccountData.Account())
-			}
-			smtRecord.RenewYears = (v.SubAccountData.ExpiredAt - subAcc.ExpiredAt) / uint64(common.OneYearSec)
+			smtRecord.RenewYears = (v.CurrentSubAccountData.ExpiredAt - v.SubAccountData.ExpiredAt) / uint64(common.OneYearSec)
 		case common.SubActionEdit:
 			if len(v.EditLockArgs) > 0 {
 				smtRecord.EditArgs = common.Bytes2Hex(v.EditLockArgs)
