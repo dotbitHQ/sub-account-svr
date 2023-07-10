@@ -273,7 +273,6 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 			ParentAccountId: parentAccountId,
 			Account:         v.Account,
 			EditKey:         common.EditKeyManual,
-			SignRole:        signRole,
 			RenewYears:      v.RenewYears,
 			Timestamp:       time.Now().UnixNano() / 1e6,
 			SubAction:       common.SubActionRenew,
