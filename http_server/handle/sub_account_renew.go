@@ -234,9 +234,7 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 		apiResp.ApiRespErr(api_code.ApiCodeEnableSubAccountIsOff, "sub account uninitialized")
 		return nil, nil
 	}
-
-	nowTime := time.Now().Unix()
-	if nowTime-int64(acc.ExpiredAt) > 0 {
+	if acc.IsExpired() {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account expired")
 		return nil, nil
 	}
