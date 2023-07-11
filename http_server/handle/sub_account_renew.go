@@ -242,7 +242,9 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 }
 
 func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, acc *tables.TableAccountInfo, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableMintSignInfo, error) {
-	expiredAt := uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
+	nowTime := time.Now()
+
+	expiredAt := uint64(nowTime.Add(time.Hour * 24 * 7).Unix())
 	if expiredAt > acc.ExpiredAt {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
 		return nil, nil, fmt.Errorf("account expiring soon")
@@ -317,7 +319,6 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 	}
 	keyValueStr, _ := json.Marshal(&listKeyValue)
 
-	nowTime := time.Now()
 	renewSignInfo := &tables.TableMintSignInfo{
 		SmtRoot:   common.Bytes2Hex(r.Root),
 		ExpiredAt: expiredAt,
