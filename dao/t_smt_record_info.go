@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (d *DbDao) CreateSmtRecordInfo(record tables.TableSmtRecordInfo) error {
@@ -186,4 +187,20 @@ func (d *DbDao) GetSmtRecordMintingByAccountId(accountId, subAction string) (inf
 	err = d.db.Where("account_id=? AND record_type=? AND sub_action=?",
 		accountId, tables.RecordTypeDefault, subAction).Limit(1).Find(&info).Error
 	return
+}
+
+func (d *DbDao) GetRecycleSmtRecord(subAccId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND sub_action=? AND record_type !=?",
+		subAccId, common.SubActionRecycle, tables.RecordTypeClosed).
+		Order("id DESC").Limit(1).Find(&info).Error
+	return
+}
+
+func (d *DbDao) CreateRecycleSmtRecordList(list []tables.TableSmtRecordInfo) error {
+	if len(list) == 0 {
+		return nil
+	}
+	return d.db.Clauses(clause.Insert{
+		Modifier: "IGNORE",
+	}).Create(&list).Error
 }

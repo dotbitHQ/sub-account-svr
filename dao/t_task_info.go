@@ -194,6 +194,7 @@ func (d *DbDao) UpdateToChainTask(taskId string, blockNumber uint64) error {
 			Where("task_id=?", taskId).
 			Updates(map[string]interface{}{
 				"record_type": tables.RecordTypeChain,
+				"RecordBN":    blockNumber,
 			}).Error; err != nil {
 			return err
 		}

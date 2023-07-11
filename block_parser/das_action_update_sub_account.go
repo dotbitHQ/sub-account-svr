@@ -120,6 +120,7 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 			AccountId:       v.SubAccountData.AccountId,
 			Nonce:           v.CurrentSubAccountData.Nonce,
 			RecordType:      tables.RecordTypeChain,
+			RecordBN:        req.BlockNumber,
 			TaskId:          taskInfo.TaskId,
 			Action:          req.Action,
 			ParentAccountId: parentAccountId,
@@ -154,6 +155,8 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 				}
 				smtRecord.EditRecords = string(recordsBys)
 			}
+		case common.SubActionRecycle:
+
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action [%s]", v.Action)
 		}

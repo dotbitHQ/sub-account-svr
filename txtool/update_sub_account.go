@@ -241,7 +241,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 
 		timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-		subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(oldSubAccount, p.BaseInfo.ContractDas, timeCellTimestamp)
+		subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(s.DasCore, oldSubAccount, p.BaseInfo.ContractDas, timeCellTimestamp)
 		if err != nil {
 			return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 		}
@@ -586,7 +586,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 		// update smt,get root and proof
 		if v.SubAction == common.SubActionCreate {
 			timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(nil, p.BaseInfo.ContractDas, timeCellTimestamp)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(s.DasCore, nil, p.BaseInfo.ContractDas, timeCellTimestamp)
 			if err != nil {
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			}
@@ -614,7 +614,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			if !ok {
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(s.DasCore, subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccount err: %s", err.Error())
 			}

@@ -9,8 +9,13 @@ import (
 )
 
 const (
-	ApiUrlInternal = "http://127.0.0.1:9126/v1"
+	ApiUrlInternal = "http://127.0.0.1:8127/v1"
 )
+
+func TestInternalRecycleAccount(t *testing.T) {
+	req := handle.ReqRecycleAccount{SubAccountIds: []string{}}
+	fmt.Printf("curl -X POST %s/internal/recycle/account -d '%s'\n", ApiUrlInternal, toolib.JsonString(&req))
+}
 
 func TestInternalSubAccountMint(t *testing.T) {
 	//url := ApiUrlInternal + "/internal/sub/account/mint"

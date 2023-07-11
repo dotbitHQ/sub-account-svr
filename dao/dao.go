@@ -24,6 +24,13 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
 	}
 
+	if db.Migrator().HasIndex(&tables.TableSmtRecordInfo{}, "uk_account_nonce") {
+		log.Info("HasIndex: uk_account_nonce")
+		if err := db.Migrator().DropIndex(&tables.TableSmtRecordInfo{}, "uk_account_nonce"); err != nil {
+			return nil, fmt.Errorf("DropIndex err: %s", err.Error())
+		}
+	}
+
 	// AutoMigrate will create tables, missing foreign keys, constraints, columns and indexes.
 	// It will change existing column’s type if its size, precision, nullable changed.
 	// It WON’T delete unused columns to protect your data.

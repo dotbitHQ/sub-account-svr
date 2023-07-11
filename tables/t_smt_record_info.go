@@ -17,11 +17,12 @@ var log = mylog.NewLogger("tables", mylog.LevelDebug)
 type TableSmtRecordInfo struct {
 	Id              uint64           `json:"id" gorm:"column:id;primaryKey;type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT ''"`
 	SvrName         string           `json:"svr_name" gorm:"column:svr_name; index:k_svr_name; type:varchar(255) NOT NULL DEFAULT '' COMMENT 'smt tree';"`
-	AccountId       string           `json:"account_id" gorm:"column:account_id;uniqueIndex:uk_account_nonce;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
-	Nonce           uint64           `json:"nonce" gorm:"column:nonce;uniqueIndex:uk_account_nonce;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
-	RecordType      RecordType       `json:"record_type" gorm:"column:record_type;uniqueIndex:uk_account_nonce;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-normal 1-closed 2-chain'"`
-	MintType        MintType         `json:"mint_type" gorm:"column:mint_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '铸造类型（0：默认值，旧数据；1：手动mint；2：自定义价格；3：自动mint）'"`
-	OrderID         string           `json:"order_id" gorm:"column:order_id;index:idx_order_id;type:varchar(255) NOT NULL DEFAULT '' COMMENT '自动分发订单号'"`
+	AccountId       string           `json:"account_id" gorm:"column:account_id;uniqueIndex:uk_acc_nonce_bn;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	Nonce           uint64           `json:"nonce" gorm:"column:nonce;uniqueIndex:uk_acc_nonce_bn;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
+	RecordType      RecordType       `json:"record_type" gorm:"column:record_type;uniqueIndex:uk_acc_nonce_bn;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-normal 1-closed 2-chain'"`
+	RecordBN        uint64           `json:"record_bn" gorm:"column:record_bn; uniqueIndex:uk_acc_nonce_bn; type:bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT ''; "`
+	MintType        MintType         `json:"mint_type" gorm:"column:mint_type;type:smallint(6) NOT NULL DEFAULT '0' COMMENT '0-default, 1-manually mint, 2-script mint, 3-auto mint';"`
+	OrderID         string           `json:"order_id" gorm:"column:order_id;index:idx_order_id;type:varchar(255) NOT NULL DEFAULT '' COMMENT 'auto mint orderId';"`
 	TaskId          string           `json:"task_id" gorm:"column:task_id;index:k_task_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	Action          string           `json:"action" gorm:"column:action;index:k_action;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	ParentAccountId string           `json:"parent_account_id" gorm:"column:parent_account_id;index:k_parent_account_id;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'smt tree'"`
@@ -69,7 +70,7 @@ func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err err
 	err = json.Unmarshal([]byte(t.EditRecords), &records)
 	return
 }
-func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
+func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
 	var currentSubAccount witness.SubAccountData
 	var subAccountNew witness.SubAccountNew
 	subAccountNew.Version = witness.SubAccountNewVersion2
@@ -93,7 +94,24 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			currentSubAccount.Suffix = t.Account[strings.Index(t.Account, "."):]
 			currentSubAccount.RegisteredAt = uint64(timeCellTimestamp)
 			currentSubAccount.ExpiredAt = currentSubAccount.RegisteredAt + (uint64(common.OneYearSec) * t.RegisterYears)
-
+			// default records
+			oHex, _, err := dasCore.Daf().ScriptToHex(currentSubAccount.Lock)
+			if err != nil {
+				return nil, nil, fmt.Errorf("default records ScriptToHex err: %s", err.Error())
+			}
+			if coinType := oHex.DasAlgorithmId.ToCoinType(); coinType != "" {
+				addrNormal, err := dasCore.Daf().HexToNormal(oHex)
+				if err != nil {
+					return nil, nil, fmt.Errorf("default records HexToNormal err: %s", err.Error())
+				}
+				currentSubAccount.Records = append(currentSubAccount.Records, witness.Record{
+					Key:   string(coinType),
+					Type:  "address",
+					Label: "",
+					Value: addrNormal.AddressNormal,
+					TTL:   300,
+				})
+			}
 			subAccountNew.SubAccountData = &currentSubAccount
 			return &currentSubAccount, &subAccountNew, nil
 		case common.SubActionRenew:
@@ -144,6 +162,12 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(oldSubAccount *witness.SubA
 			}
 			currentSubAccount.Nonce++
 			subAccountNew.SignExpiredAt = t.ExpiredAt
+			return &currentSubAccount, &subAccountNew, nil
+		case common.SubActionRecycle:
+			if oldSubAccount == nil {
+				return nil, nil, fmt.Errorf("oldSubAccount is nil")
+			}
+			subAccountNew.SubAccountData = oldSubAccount
 			return &currentSubAccount, &subAccountNew, nil
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action[%s]", t.SubAction)

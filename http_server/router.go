@@ -76,6 +76,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/owner/payment/export", h.H.OwnerPaymentExport)
 		internalV1.POST("/unipay/notice", h.H.UniPayNotice)
 		internalV1.POST("/service/provider/withdraw", h.H.ServiceProviderWithdraw)
+		internalV1.POST("/internal/recycle/account", h.H.RecycleAccount)
 	}
 }
 

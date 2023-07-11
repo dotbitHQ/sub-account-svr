@@ -69,6 +69,8 @@ type CfgServer struct {
 		SmtServer              string            `json:"smt_server" yaml:"smt_server"`
 		UniPayUrl              string            `json:"uni_pay_url" yaml:"uni_pay_url"`
 		RefundSwitch           bool              `json:"refund_switch" yaml:"refund_switch"`
+		RecycleSwitch          bool              `json:"recycle_switch" yaml:"recycle_switch"`
+		RecycleLimit           int               `json:"recycle_limit" yaml:"recycle_limit"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
