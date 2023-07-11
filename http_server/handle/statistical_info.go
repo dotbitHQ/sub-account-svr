@@ -272,6 +272,11 @@ func (h *HttpHandle) check(address, account string, action common.DasAction, api
 		apiResp.ApiRespErr(api_code.ApiCodeSubAccountNoEnable, err.Error())
 		return err
 	}
+	if accountInfo.IsExpired() {
+		err = errors.New("account expired, please renew before use")
+		apiResp.ApiRespErr(api_code.ApiCodeParentAccountExpired, err.Error())
+		return err
+	}
 
 	if action == common.DasActionConfigSubAccount {
 		task, err := h.DbDao.GetLatestTask(accountId, common.DasActionConfigSubAccount)
