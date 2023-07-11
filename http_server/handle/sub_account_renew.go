@@ -158,7 +158,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	}
 
 	// get renew sign info
-	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, *addressHex, req, apiResp)
+	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, *addressHex, acc, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doMinSignInfo err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -241,9 +241,14 @@ func (h *HttpHandle) doSubAccountRenewCheckAccount(req *ReqSubAccountRenew, apiR
 	return &acc, nil
 }
 
-func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableMintSignInfo, error) {
-	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddressHex, acc *tables.TableAccountInfo, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) ([]tables.TableSmtRecordInfo, *tables.TableMintSignInfo, error) {
+	expiredAt := uint64(time.Now().Add(time.Hour * 24 * 7).Unix())
+	if expiredAt > acc.ExpiredAt {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
+		return nil, nil, fmt.Errorf("account expiring soon")
+	}
 
+	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	listRecord := make([]tables.TableSmtRecordInfo, 0)
 	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
 	smtKv := make([]smt.SmtKv, 0)
@@ -315,7 +320,7 @@ func (h *HttpHandle) doRenewSignInfo(signRole string, addressHex core.DasAddress
 	nowTime := time.Now()
 	renewSignInfo := &tables.TableMintSignInfo{
 		SmtRoot:   common.Bytes2Hex(r.Root),
-		ExpiredAt: uint64(nowTime.Add(time.Hour * 24 * 7).Unix()),
+		ExpiredAt: expiredAt,
 		Timestamp: uint64(nowTime.UnixNano() / 1e6),
 		KeyValue:  string(keyValueStr),
 		ChainType: addressHex.ChainType,
