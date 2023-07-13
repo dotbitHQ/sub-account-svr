@@ -30,8 +30,10 @@ const (
 	TokenIdEth       TokenId = "eth_eth"
 	TokenIdErc20USDT TokenId = "eth_erc20_usdt"
 	TokenIdTrx       TokenId = "tron_trx"
+	TokenIdTrc20USDT TokenId = "tron_trc20_usdt"
 	TokenIdBnb       TokenId = "bsc_bnb"
 	TokenIdBep20USDT TokenId = "bsc_bep20_usdt"
 	TokenIdMatic     TokenId = "polygon_matic"
 	TokenIdDoge      TokenId = "doge_doge"
+	TokenIdStripeUSD TokenId = "stripe_usd"
 )
