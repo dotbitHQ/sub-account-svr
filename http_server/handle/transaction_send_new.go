@@ -270,6 +270,13 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		if err := h.doSubActionApproval(dataCache, req, apiResp); err != nil {
+			return fmt.Errorf("doSubActionApproval err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistConfirmAction, fmt.Sprintf("not exist sub action[%s]", dataCache.SubAction))
 		return nil
@@ -357,6 +364,29 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 	signMsg := req.List[0].SignList[0].SignMsg
 
 	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, apiResp); err != nil {
+		return fmt.Errorf("doSignCheck err: %s", err.Error())
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
+	dataCache.MinSignInfo.Signature = signMsg
+
+	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
+		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
+	}
+	return nil
+}
+
+func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	acc, err := h.DbDao.GetAccountInfoByAccountId(dataCache.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "fail to search account")
+		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	}
+	signMsg := req.List[0].SignList[0].SignMsg
+
+	if signMsg, err = doSignCheck(dataCache.SignData, signMsg, acc.Owner, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil

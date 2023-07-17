@@ -50,9 +50,20 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 		sams.SignRole = common.Hex2Bytes(common.ParamManager)
 	}
 
-	actionDataType := common.ActionDataTypeSubAccountMintSign
-	if t.SubAction == common.SubActionRenew {
+	actionDataType := ""
+	switch t.SubAction {
+	case common.SubActionCreate:
+		actionDataType = common.ActionDataTypeSubAccountMintSign
+	case common.SubActionRenew:
 		actionDataType = common.ActionDataTypeSubAccountRenewSign
+	case common.SubActionCreateApproval:
+		actionDataType = common.ActionDataTypeSubAccountCreateApprovalSign
+	case common.SubActionDelayApproval:
+		actionDataType = common.ActionDataTypeSubAccountDelayApprovalSign
+	case common.SubActionRevokeApproval:
+		actionDataType = common.ActionDataTypeSubAccountRevokeApprovalSign
+	case common.SubActionFullFillApproval:
+		actionDataType = common.ActionDataTypeSubAccountFulfillApprovalSign
 	}
 	return sams.GenWitnessWithAction(actionDataType)
 }

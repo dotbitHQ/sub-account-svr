@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -218,7 +219,9 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 // === UpdateSubAccount ===
 type UpdateSubAccountCache struct {
 	ParentAccountId string                `json:"parent_account_id"`
+	AccountId       string                `json:"account_id"`
 	Account         string                `json:"account"`
+	Nonce           uint64                `json:"nonce"`
 	ChainType       common.ChainType      `json:"chain_type"`
 	AlgId           common.DasAlgorithmId `json:"alg_id"`
 	Address         string                `json:"address"`
@@ -228,6 +231,7 @@ type UpdateSubAccountCache struct {
 	ExpiredAt       uint64                `json:"expired_at"`
 
 	OldSignMsg    string                      `json:"old_sign_msg"`
+	SignData      txbuilder.SignData          `json:"sign_data"`
 	MinSignInfo   *tables.TableMintSignInfo   `json:"min_sign_info,omitempty"`
 	ListSmtRecord []tables.TableSmtRecordInfo `json:"list_smt_record"`
 }
@@ -427,6 +431,26 @@ func (u *UpdateSubAccountCache) GetCreateSignData(algId common.DasAlgorithmId, a
 	if signData.SignType == common.DasAlgorithmIdEth712 {
 		signData.SignType = common.DasAlgorithmIdEth
 	}
+	return
+}
+
+func (u *UpdateSubAccountCache) GetApprovalSignData(approvalMol *molecule.AccountApproval, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
+	buf := bytes.NewBuffer([]byte{})
+	buf.WriteString(u.SubAction)
+	buf.Write(approvalMol.AsSlice())
+	if err := binary.Write(buf, binary.LittleEndian, u.MinSignInfo.ExpiredAt); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
+		return
+	}
+	nonce := molecule.GoU64ToMoleculeU64(u.Nonce)
+	buf.Write(nonce.AsSlice())
+
+	bys, err := blake2b.Blake256(buf.Bytes())
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("blake2b.Blake256 err: %s", err.Error()))
+		return
+	}
+	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
 	return
 }
 

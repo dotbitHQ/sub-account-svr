@@ -154,7 +154,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 				PlatformLock:     platformLock,
 				ProtectedUntil:   req.ProtectedUntil,
 				SealedUntil:      req.SealedUntil,
-				DelayCountRemain: 1,
+				DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
 				ToLock:           toLock,
 			},
 		},
@@ -216,7 +216,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 }
 
 func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
-	subAcc, _, _, err := h.doApprovalEnableCheck(req, apiResp)
+	subAcc, platformLock, toLock, err := h.doApprovalEnableCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -305,22 +305,40 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		listRecord[i].MintSignId = signInfo.MintSignId
 	}
 
+	accountApproval := &witness.AccountApproval{
+		Action: witness.AccountApprovalActionTransfer,
+		Params: witness.AccountApprovalTransferParams{
+			PlatformLock:     platformLock,
+			ProtectedUntil:   req.ProtectedUntil,
+			SealedUntil:      req.SealedUntil,
+			DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
+			ToLock:           toLock,
+		},
+	}
+	approvalMol, err := accountApproval.GenToMolecule()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
+
 	// sign info
 	dataCache := UpdateSubAccountCache{
-		ParentAccountId: subAcc.ParentAccountId,
-		Account:         req.Account,
-		ChainType:       ownerHex.ChainType,
-		AlgId:           ownerHex.DasAlgorithmId,
-		Address:         ownerHex.AddressHex,
-		SubAction:       common.DasActionCreateApproval,
-		MinSignInfo:     signInfo,
-		ListSmtRecord:   listRecord,
+		AccountId:     subAcc.AccountId,
+		Account:       req.Account,
+		Nonce:         subAcc.Nonce + 1,
+		ChainType:     ownerHex.ChainType,
+		AlgId:         ownerHex.DasAlgorithmId,
+		Address:       ownerHex.AddressHex,
+		SubAction:     common.DasActionCreateApproval,
+		MinSignInfo:   signInfo,
+		ListSmtRecord: listRecord,
 	}
-	signData := dataCache.GetCreateSignData(ownerHex.DasAlgorithmId, apiResp)
+	signData := dataCache.GetApprovalSignData(approvalMol, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
 	dataCache.OldSignMsg = signData.SignMsg
+	dataCache.SignData = signData
 
 	// cache
 	signKey := dataCache.CacheKey()

@@ -56,10 +56,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if v.MintSignId == "" {
 			continue
 		}
-		if v.SubAction != common.SubActionCreate &&
-			v.SubAction != common.SubActionRenew {
-			continue
-		}
 
 		if mintSignId := mintSignIdMap[v.SubAction]; mintSignId == "" {
 			mintSignIdMap[v.SubAction] = v.MintSignId
@@ -75,6 +71,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
 		}
 		witnessSignInfo[v.SubAction] = mintSignInfo.GenWitness()
+
 		var listKeyValue []tables.MintSignInfoKeyValue
 		err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
 		if err != nil {

@@ -85,7 +85,7 @@ type CfgServer struct {
 			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
 		} `json:"auto_mint" yaml:"auto_mint"`
 		Approval struct {
-			MaxDelayCount int `json:"max_delay_count"`
+			MaxDelayCount uint8 `json:"max_delay_count"`
 		} `json:"approval"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
