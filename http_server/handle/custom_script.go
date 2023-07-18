@@ -187,6 +187,7 @@ type paramBuildTx struct {
 	chainType  common.ChainType
 	address    string
 	action     common.DasAction
+	subAction  common.DasAction
 	account    string
 }
 
@@ -222,6 +223,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, str
 		ChainType: p.chainType,
 		Address:   p.address,
 		Action:    p.action,
+		SubAction: p.subAction,
 		Account:   p.account,
 		Capacity:  0,
 		BuilderTx: nil,

@@ -50,6 +50,7 @@ type SignInfoCache struct {
 	ChainType common.ChainType                   `json:"chain_type"`
 	Address   string                             `json:"address"`
 	Action    string                             `json:"action"`
+	SubAction string                             `json:"sub_action"`
 	Account   string                             `json:"account"`
 	Capacity  uint64                             `json:"capacity"`
 	BuilderTx *txbuilder.DasTxBuilderTransaction `json:"builder_tx"`
