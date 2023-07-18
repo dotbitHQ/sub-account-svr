@@ -222,7 +222,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 }
 
 func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
-	subAcc, platformLockBs, toLockBs, err := h.doApprovalEnableCheck(req, apiResp)
+	subAcc, _, _, err := h.doApprovalEnableCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -241,6 +241,8 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
 	smtKv := make([]smt.SmtKv, 0)
 
+	reqData, _ := json.Marshal(req)
+
 	listRecord = append(listRecord, tables.TableSmtRecordInfo{
 		SvrName:         config.Cfg.Slb.SvrName,
 		AccountId:       subAcc.AccountId,
@@ -252,6 +254,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		Account:         subAcc.Account,
 		EditKey:         common.EditKeyApproval,
 		Timestamp:       now.UnixNano() / 1e6,
+		Content:         string(reqData),
 	})
 
 	ownerHex := core.DasAddressHex{
