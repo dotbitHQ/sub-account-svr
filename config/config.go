@@ -84,6 +84,9 @@ type CfgServer struct {
 			PaymentMinPrice     int64             `json:"payment_min_price" yaml:"payment_min_price"`
 			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
 		} `json:"auto_mint" yaml:"auto_mint"`
+		Approval struct {
+			MaxDelayCount int `json:"max_delay_count"`
+		} `json:"approval"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {

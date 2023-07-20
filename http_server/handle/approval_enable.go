@@ -1,12 +1,10 @@
 package handle
 
 import (
-	"bytes"
 	"das_sub_account/config"
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -30,11 +28,7 @@ type ReqApprovalEnable struct {
 	Account        string                `json:"account" binding:"required"`
 	ProtectedUntil uint64                `json:"protected_until" binding:"required"`
 	SealedUntil    uint64                `json:"sealed_until" binding:"required"`
-	MaxDelayCount  uint8                 `json:"max_delay_count" binding:"required"`
-	ExpiredAt      uint64                `json:"expired_at" binding:"required"`
-	PlatformSign   string                `json:"platform_sign" binding:"required"`
-
-	isMainAcc bool
+	isMainAcc      bool
 }
 
 type RespApprovalEnable struct {
@@ -160,7 +154,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 				PlatformLock:     platformLockBs,
 				ProtectedUntil:   req.ProtectedUntil,
 				SealedUntil:      req.SealedUntil,
-				DelayCountRemain: req.MaxDelayCount,
+				DelayCountRemain: 1,
 				ToLock:           toLockBs,
 			},
 		},
@@ -355,11 +349,6 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 
 func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, platformLockBs []byte, toLockBs []byte, err error) {
 	nowTime := time.Now()
-	if req.ExpiredAt < uint64(nowTime.Unix()) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign expired")
-		return
-	}
-
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -404,14 +393,6 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	var platformHexAddr *core.DasAddressHex
-	platformHexAddr, err = req.Platform.FormatChainTypeAddress(config.Cfg.Server.Net, false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
-		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
-		return
-	}
-
 	var platformLock *types.Script
 	platformLock, _, err = req.Platform.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
@@ -429,24 +410,5 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 	toLockBs, _ = toLock.Serialize()
-
-	buf := bytes.NewBuffer([]byte{})
-	buf.WriteString(string(req.Owner.KeyInfo.CoinType))
-	buf.WriteString(req.Owner.KeyInfo.Key)
-	buf.WriteString(string(req.To.KeyInfo.CoinType))
-	buf.WriteString(req.To.KeyInfo.Key)
-	buf.WriteString(req.Account)
-	buf.WriteString(fmt.Sprint(req.ProtectedUntil))
-	buf.WriteString(fmt.Sprint(req.SealedUntil))
-	buf.WriteString(fmt.Sprint(req.MaxDelayCount))
-	buf.WriteString(fmt.Sprint(req.ExpiredAt))
-	bs, _ := blake2b.Blake256(buf.Bytes())
-
-	if _, err = doSignCheck(txbuilder.SignData{
-		SignType: platformHexAddr.DasAlgorithmId,
-		SignMsg:  hex.EncodeToString(bs),
-	}, req.PlatformSign, platformHexAddr.AddressHex, apiResp); err != nil {
-		return
-	}
 	return
 }
