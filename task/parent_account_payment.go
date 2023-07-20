@@ -6,6 +6,7 @@ import (
 	"das_sub_account/notify"
 	"fmt"
 	"github.com/robfig/cron/v3"
+	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"math"
 	"time"
@@ -35,7 +36,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 		log.Error("doParentAccountPayment StatisticsParentAccountPayment err:", err.Error())
 		return err
 	}
-	log.Info("doParentAccountPayment recordsNew:", recordsNew)
+	log.Info("doParentAccountPayment recordsNew:", toolib.JsonString(recordsNew))
 
 	if len(recordsNew) == 0 {
 		return nil
