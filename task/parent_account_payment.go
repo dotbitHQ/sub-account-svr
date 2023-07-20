@@ -32,6 +32,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 	endTime := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	recordsNew, err := t.TxTool.StatisticsParentAccountPayment("", false, endTime)
 	if err != nil {
+		log.Error("doParentAccountPayment StatisticsParentAccountPayment err:", err.Error())
 		return err
 	}
 	log.Info("doParentAccountPayment recordsNew:", recordsNew)
