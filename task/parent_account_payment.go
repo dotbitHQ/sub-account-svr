@@ -13,8 +13,8 @@ import (
 
 func (t *SmtTask) RunParentAccountPayment() error {
 	c := cron.New()
-	// 0 30 10 5 * *
-	if _, err := c.AddFunc("0 * * * * *", func() {
+	// 0 30 10 5 * ?
+	if _, err := c.AddFunc("0 */1 * * * ?", func() {
 		if err := t.doParentAccountPayment(); err != nil {
 			log.Error("doParentAccountPayment err:", err.Error())
 		}
