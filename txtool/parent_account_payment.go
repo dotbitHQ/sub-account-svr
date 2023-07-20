@@ -83,7 +83,8 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 
 			recordKeys, ok := common.TokenId2RecordKeyMap[tokenId]
 			if !ok {
-				return nil, fmt.Errorf("token id: [%s] to record key mapping failed", tokenId)
+				log.Warnf("token id: [%s] to record key mapping failed", tokenId)
+				continue
 			}
 			recordInfo, err := s.DbDao.GetRecordsByAccountIdAndTypeAndLabel(record.AccountId, "address", common.LabelTopDID, recordKeys)
 			if err != nil {
