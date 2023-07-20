@@ -12,7 +12,8 @@ import (
 )
 
 func (t *SmtTask) RunParentAccountPayment() error {
-	c := cron.New()
+	secondParser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
+	c := cron.New(cron.WithParser(secondParser), cron.WithChain())
 	// 0 30 10 5 * ?
 	if _, err := c.AddFunc("0 */1 * * * ?", func() {
 		if err := t.doParentAccountPayment(); err != nil {
@@ -33,6 +34,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 	if err != nil {
 		return err
 	}
+	log.Info("doParentAccountPayment recordsNew:", recordsNew)
 
 	if len(recordsNew) == 0 {
 		return nil
@@ -40,9 +42,11 @@ func (t *SmtTask) doParentAccountPayment() error {
 
 	buf := bytes.NewBufferString("")
 	for _, v := range recordsNew {
-		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))), v.Decimals)
-		buf.WriteString(fmt.Sprintf("-Account: %s\n", v.Account))
-		buf.WriteString(fmt.Sprintf("-%s: %s Amount: %s \n\n", v.TokenId, v.Address, amount))
+		for _, record := range v {
+			amount := record.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(record.Decimals)))), record.Decimals)
+			buf.WriteString(fmt.Sprintf("-Account: %s\n", record.Account))
+			buf.WriteString(fmt.Sprintf("-%s: %s Amount: %s \n\n", record.TokenId, record.Address, amount))
+		}
 	}
 	notify.SendLarkTextNotify(config.Cfg.Notify.LarkParentAccountPaymentKey, "OwnerPaymentInfo", buf.String())
 	return nil

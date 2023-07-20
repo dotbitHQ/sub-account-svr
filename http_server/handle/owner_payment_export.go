@@ -56,11 +56,13 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 		return
 	}
 	for _, v := range recordsNew {
-		amount := v.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(v.Decimals)))), v.Decimals)
-		if err := w.Write([]string{v.Account, v.Address, v.TokenId, amount.String()}); err != nil {
-			log.Error(err)
-			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
-			return
+		for _, record := range v {
+			amount := record.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(record.Decimals)))), record.Decimals)
+			if err := w.Write([]string{record.Account, record.Address, record.TokenId, amount.String()}); err != nil {
+				log.Error(err)
+				_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
 		}
 	}
 	w.Flush()
