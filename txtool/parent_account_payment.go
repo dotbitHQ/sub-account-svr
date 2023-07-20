@@ -46,7 +46,7 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		}
 
 		var csvRecord *CsvRecord
-		if _, ok := records[v.ParentAccountId]; !ok {
+		if _, ok = records[v.ParentAccountId]; !ok {
 			records[v.ParentAccountId] = make(map[string]*CsvRecord)
 		} else {
 			csvRecord, ok = records[v.ParentAccountId][v.TokenId]
