@@ -15,8 +15,7 @@ import (
 func (t *SmtTask) RunParentAccountPayment() error {
 	secondParser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
 	c := cron.New(cron.WithParser(secondParser), cron.WithChain())
-	// 0 30 10 5 * ?
-	if _, err := c.AddFunc("0 */1 * * * ?", func() {
+	if _, err := c.AddFunc("0 30 10 5 * ?", func() {
 		if err := t.doParentAccountPayment(); err != nil {
 			log.Error("doParentAccountPayment err:", err.Error())
 		}
@@ -30,8 +29,8 @@ func (t *SmtTask) RunParentAccountPayment() error {
 
 func (t *SmtTask) doParentAccountPayment() error {
 	now := time.Now()
-	//endTime := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	recordsNew, err := t.TxTool.StatisticsParentAccountPayment("", false, now)
+	endTime := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	recordsNew, err := t.TxTool.StatisticsParentAccountPayment("", false, endTime)
 	if err != nil {
 		log.Error("doParentAccountPayment StatisticsParentAccountPayment err:", err.Error())
 		return err
