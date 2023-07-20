@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230711020734-3cdc4255e94d
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230720094843-3ed6411e7a54
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
@@ -18,6 +18,7 @@ require (
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.5
 	github.com/shopspring/decimal v1.3.1

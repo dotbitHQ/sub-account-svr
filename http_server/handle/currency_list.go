@@ -10,10 +10,6 @@ import (
 	"net/http"
 )
 
-const (
-	LabelSubDIDApp = "topdid.com"
-)
-
 type ReqCurrencyList struct {
 	Account string `json:"account" binding:"required"`
 }
@@ -73,7 +69,7 @@ func (h *HttpHandle) doCurrencyList(req *ReqCurrencyList, apiResp *api_code.ApiR
 		}
 
 		if recordKeys, ok := common.TokenId2RecordKeyMap[v]; ok {
-			record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(accountId, "address", LabelSubDIDApp, recordKeys)
+			record, err := h.DbDao.GetRecordsByAccountIdAndTypeAndLabel(accountId, "address", common.LabelTopDID, recordKeys)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 				return err

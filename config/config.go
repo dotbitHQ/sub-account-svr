@@ -87,9 +87,10 @@ type CfgServer struct {
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {
-		LarkErrorKey               string `json:"lark_error_key" yaml:"lark_error_key"`
-		LarkCreateSubAccountKey    string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
-		DiscordCreateSubAccountKey string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`
+		LarkErrorKey                string `json:"lark_error_key" yaml:"lark_error_key"`
+		LarkCreateSubAccountKey     string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
+		DiscordCreateSubAccountKey  string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`
+		LarkParentAccountPaymentKey string `json:"lark_parent_account_payment_key" yaml:"lark_parent_account_payment_key"`
 	} `json:"notify" yaml:"notify"`
 	Chain struct {
 		CkbUrl             string `json:"ckb_url" yaml:"ckb_url"`
