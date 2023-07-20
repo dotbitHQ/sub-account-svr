@@ -36,7 +36,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 		log.Error("doParentAccountPayment StatisticsParentAccountPayment err:", err.Error())
 		return err
 	}
-	log.Info("doParentAccountPayment recordsNew:", toolib.JsonString(recordsNew))
+	log.Infof("doParentAccountPayment recordsNew: %s", toolib.JsonString(recordsNew))
 
 	if len(recordsNew) == 0 {
 		return nil
