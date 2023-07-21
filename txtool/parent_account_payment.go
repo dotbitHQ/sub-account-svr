@@ -147,8 +147,13 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 				if err := tx.Create(autoPaymentInfo).Error; err != nil {
 					return err
 				}
-				if err := s.DbDao.UpdateAutoPaymentIdById(record.Ids, autoPaymentInfo.AutoPaymentId); err != nil {
-					return err
+				if len(record.Ids) > 0 {
+					if err = tx.Model(&tables.OrderInfo{}).Where("id in (?)", record.Ids).
+						Updates(map[string]interface{}{
+							"auto_payment_id": autoPaymentInfo.AutoPaymentId,
+						}).Error; err != nil {
+						return err
+					}
 				}
 			}
 		}

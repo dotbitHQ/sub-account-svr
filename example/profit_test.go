@@ -3,7 +3,7 @@ package example
 import (
 	"das_sub_account/config"
 	"das_sub_account/dao"
-	"das_sub_account/http_server/handle"
+	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/shopspring/decimal"
@@ -52,7 +52,7 @@ func TestProfit(t *testing.T) {
 		return
 	}
 
-	records := make(map[string]*handle.CsvRecord)
+	records := make(map[string]*txtool.CsvRecord)
 	for _, v := range list {
 		token, ok := tokens[v.TokenId]
 		if !ok {
@@ -65,7 +65,7 @@ func TestProfit(t *testing.T) {
 		if !ok {
 			accounts := strings.Split(v.Account, ".")
 			acc := accounts[len(accounts)-2] + "." + accounts[len(accounts)-1]
-			csvRecord = &handle.CsvRecord{}
+			csvRecord = &txtool.CsvRecord{}
 			csvRecord.Account = acc
 			csvRecord.AccountId = v.ParentAccountId
 			csvRecord.TokenId = v.TokenId
@@ -77,7 +77,7 @@ func TestProfit(t *testing.T) {
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
-	recordsNew := make(map[string]*handle.CsvRecord)
+	recordsNew := make(map[string]*txtool.CsvRecord)
 	config.Cfg.Das.AutoMint.PaymentMinPrice = 50
 	for k, v := range records {
 		token, _ := tokens[v.TokenId]
@@ -93,7 +93,7 @@ func TestProfit(t *testing.T) {
 			t.Fatalf("token id: [%s] to record key mapping failed", v.TokenId)
 			return
 		}
-		record, err := dbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", handle.LabelSubDIDApp, recordKeys)
+		record, err := dbDao.GetRecordsByAccountIdAndTypeAndLabel(v.AccountId, "address", common.LabelTopDID, recordKeys)
 		if err != nil {
 			t.Fatal(err)
 			return
