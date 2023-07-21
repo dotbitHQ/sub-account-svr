@@ -46,7 +46,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 		for _, record := range v {
 			amount := record.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(record.Decimals)))), record.Decimals)
 			buf.WriteString(fmt.Sprintf("-Account: %s\n", record.Account))
-			buf.WriteString(fmt.Sprintf("-%s: %s Amount: %s \n\n", record.TokenId, record.Address, amount))
+			buf.WriteString(fmt.Sprintf("-%s: %s Amount: %s \n", record.TokenId, record.Address, amount))
 		}
 		buf.WriteString("\n")
 	}
