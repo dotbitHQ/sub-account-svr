@@ -5,13 +5,18 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/txbuilder"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 	"time"
@@ -70,6 +75,11 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		return fmt.Errorf("sync block number")
 	}
 
+	if err := h.doEditSignMsg(req, apiResp); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("doEditSignMsg err: %s", err.Error())
+	}
+
 	switch req.Action {
 	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
 		if err := h.doActionNormal(req, apiResp, &resp); err != nil {
@@ -122,7 +132,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
 			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp, h.DasCore); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -167,7 +177,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
 			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp, h.DasCore); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -297,7 +307,7 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, signAddress, apiResp); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, signAddress, req.SignAddress, apiResp, h.DasCore); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -319,6 +329,9 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 		RegisterArgs:    "",
 		EditKey:         dataCache.EditKey,
 		Signature:       signMsg,
+		LoginChainType:  dataCache.ChainType,
+		LoginAddress:    dataCache.Address,
+		SignAddress:     req.SignAddress,
 		EditArgs:        "",
 		RenewYears:      0,
 		EditRecords:     "",
@@ -356,14 +369,19 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, apiResp); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, req.SignAddress, apiResp, h.DasCore); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
 
 	dataCache.MinSignInfo.Signature = signMsg
+	for i, _ := range dataCache.ListSmtRecord {
+		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
+		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
+		dataCache.ListSmtRecord[i].SignAddress = req.SignAddress        //sign addr
 
+	}
 	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
@@ -371,33 +389,219 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 	return nil
 }
 
-func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiResp *api_code.ApiResp) (string, error) {
+func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	//过滤 ActionCurrencyUpdate, ActionMintConfigUpdate
+	hasWebAuthn := false
+	for _, signInfo := range req.List {
+		for _, v := range signInfo.SignList {
+			if v.SignType == common.DasAlgorithmIdWebauthn {
+				hasWebAuthn = true
+				break
+			}
+		}
+	}
+	if !hasWebAuthn {
+		return nil
+	}
+
+	txAddr := ""
+	switch req.Action {
+	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
+		var sic SignInfoCache
+		txStr, err := h.RC.GetSignTxCache(req.SignKey)
+		if err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		}
+		if err = json.Unmarshal([]byte(txStr), &sic); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+		txAddr = sic.Address
+	case common.DasActionUpdateSubAccount:
+		var dataCache UpdateSubAccountCache
+		txStr, err := h.RC.GetSignTxCache(req.SignKey)
+		if err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		}
+		if err = json.Unmarshal([]byte(txStr), &dataCache); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+		txAddr = dataCache.Address
+	case ActionCurrencyUpdate, ActionMintConfigUpdate:
+		chainTypeAddress := &core.ChainTypeAddress{}
+		txStr, err := h.RC.GetSignTxCache(req.SignKey)
+		if err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		}
+		if err = json.Unmarshal([]byte(txStr), &chainTypeAddress); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+		txAddr = chainTypeAddress.KeyInfo.Key
+	}
+
+	var keyList *molecule.DeviceKeyList
+	var KeyListCfgCell *indexer.LiveCell
+	dasLockKey := core.DasAddressHex{
+		DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
+		DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
+		AddressHex:        txAddr,
+		AddressPayload:    common.Hex2Bytes(txAddr),
+		ChainType:         common.ChainTypeWebauthn,
+	}
+	lockArgs, err := h.DasCore.Daf().HexToArgs(dasLockKey, dasLockKey)
+	KeyListCfgCell, err = h.DasCore.GetKeyListCell(lockArgs)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetKeyListCell err: "+err.Error())
+		return fmt.Errorf("GetKeyListCell(webauthn keyListCell) : %s", err.Error())
+	}
+	keyListConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, KeyListCfgCell.OutPoint.TxHash)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetTransaction err: "+err.Error())
+		return err
+	}
+	webAuthnKeyListConfigBuilder, err := witness.WebAuthnKeyListDataBuilderFromTx(keyListConfigTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "WebAuthnKeyListDataBuilderFromTx err: "+err.Error())
+		return err
+	}
+	dataBuilder := webAuthnKeyListConfigBuilder.DeviceKeyListCellData.AsBuilder()
+	deviceKeyListCellDataBuilder := dataBuilder.Build()
+	keyList = deviceKeyListCellDataBuilder.Keys()
+	if keyList == nil {
+		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "login status has not enable authorize")
+		return fmt.Errorf("login status has not enable authorize")
+	}
+
+	dasAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
+		ChainType:     common.ChainTypeWebauthn,
+		AddressNormal: req.SignAddress,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
+		return err
+	}
+
+	for i, signList := range req.List {
+		for j, _ := range signList.SignList {
+			if signList.SignList[j].SignType != common.DasAlgorithmIdWebauthn {
+				break
+			}
+			idx := -1
+			if txAddr == dasAddressHex.AddressHex {
+				idx = 255
+			} else {
+				for i := 0; i < int(keyList.Len()); i++ {
+					mainAlgId := common.DasAlgorithmId(keyList.Get(uint(i)).MainAlgId().RawData()[0])
+					subAlgId := common.DasSubAlgorithmId(keyList.Get(uint(i)).SubAlgId().RawData()[0])
+					cid1 := keyList.Get(uint(i)).Cid().RawData()
+					pk1 := keyList.Get(uint(i)).Pubkey().RawData()
+					addressHex := hex.EncodeToString(append(cid1, pk1...))
+					if dasAddressHex.DasAlgorithmId == mainAlgId &&
+						dasAddressHex.DasSubAlgorithmId == subAlgId &&
+						addressHex == dasAddressHex.AddressHex {
+						idx = i
+						break
+					}
+				}
+				if idx == -1 {
+					apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
+					return fmt.Errorf("the current signing device is not in the authorized list")
+				}
+				signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
+				idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
+				idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
+				signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
+				signMsgRes = append(signMsgRes, signMsg...)
+				req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
+			}
+		}
+	}
+	return nil
+}
+
+func beforeSignCheck(dc *core.DasCore, loginAddress, signAddress core.DasAddressHex) error {
+	res, err := dc.GetIdxOfKeylist(loginAddress, signAddress)
+	if err != nil {
+		return fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
+	}
+	if res == -1 {
+		return fmt.Errorf("permission denied")
+	}
+	return nil
+}
+
+func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress string, apiResp *api_code.ApiResp, dc *core.DasCore) (string, error) {
 	signOk := false
 	var err error
 	switch signData.SignType {
 	case common.DasAlgorithmIdEth:
 		signMsg = fixSignature(signMsg)
-		signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
+		signOk, err = sign.VerifyPersonalSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), loginAddress)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
 			return "", fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
 		}
 	case common.DasAlgorithmIdTron:
 		signMsg = fixSignature(signMsg)
-		if signAddress, err = common.TronHexToBase58(signAddress); err != nil {
+		if loginAddress, err = common.TronHexToBase58(loginAddress); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "TronHexToBase58 error")
 			return "", fmt.Errorf("TronHexToBase58 err: %s [%s]", err.Error(), signAddress)
 		}
-		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
+		signOk = sign.TronVerifySignature(true, common.Hex2Bytes(signMsg), []byte(signData.SignMsg), loginAddress)
 	case common.DasAlgorithmIdEd25519:
-		signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(signAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
+		signOk = sign.VerifyEd25519Signature(common.Hex2Bytes(loginAddress), common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg))
 	case common.DasAlgorithmIdDogeChain:
-		signOk, err = sign.VerifyDogeSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), signAddress)
+		signOk, err = sign.VerifyDogeSignature(common.Hex2Bytes(signMsg), []byte(signData.SignMsg), loginAddress)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyDogeSignature error")
 			return "", fmt.Errorf("VerifyDogeSignature err: %s [%s]", err.Error(), signAddress)
 		}
-		// TODO WebAuthn
+	case common.DasAlgorithmIdWebauthn:
+		//Todo: 验证，登陆态的keylist 里面是否有signAddress
+		loginAddrHex := core.DasAddressHex{
+			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
+			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
+			AddressHex:        loginAddress,
+			AddressPayload:    common.Hex2Bytes(loginAddress),
+			ChainType:         common.ChainTypeWebauthn,
+		}
+		signAddressHex, err := dc.Daf().NormalToHex(core.DasAddressNormal{
+			ChainType:     common.ChainTypeWebauthn,
+			AddressNormal: signAddress,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
+			return "", err
+		}
+		idx, err := dc.GetIdxOfKeylist(loginAddrHex, signAddressHex)
+		if err != nil {
+			return "", fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
+		}
+		if idx == -1 {
+			return "", fmt.Errorf("permission denied")
+		}
+		signOk, err = sign.VerifyWebauthnSignature(common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg), signAddressHex.AddressHex)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyWebauthnSignature error")
+			return "", fmt.Errorf("VerifyWebauthnSignature err: %s [%s]", err.Error(), signAddress)
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeNotExistSignType, fmt.Sprintf("not exist sign type[%d]", signData.SignType))
 		return "", nil
