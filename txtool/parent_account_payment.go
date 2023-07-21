@@ -114,48 +114,49 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		return nil, fmt.Errorf("service fee ratio: %f invalid", config.Cfg.Das.AutoMint.ServiceFeeRatio)
 	}
 
-	if payment {
-		err = s.DbDao.Transaction(func(tx *gorm.DB) error {
-			for parentId, v := range recordsNew {
-				for tokenId, record := range v {
-					amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
-					recordsNew[parentId][tokenId].Amount = amount
-
-					autoPaymentInfo := &tables.AutoPaymentInfo{
-						Account:       record.Account,
-						AccountId:     record.AccountId,
-						TokenId:       record.TokenId,
-						Amount:        amount,
-						OriginAmount:  record.Amount,
-						FeeRate:       decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio),
-						Address:       record.Address,
-						PaymentDate:   time.Now(),
-						PaymentStatus: tables.PaymentStatusSuccess,
-					}
-					if err := autoPaymentInfo.GenAutoPaymentId(); err != nil {
-						return err
-					}
-					if err := tx.Create(autoPaymentInfo).Error; err != nil {
-						return err
-					}
-					if err := s.DbDao.UpdateAutoPaymentIdById(record.Ids, autoPaymentInfo.AutoPaymentId); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-	} else {
+	if !payment {
 		for parentId, v := range recordsNew {
 			for tokenId, record := range v {
 				amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
 				recordsNew[parentId][tokenId].Amount = amount
 			}
 		}
+		return recordsNew, nil
+	}
+
+	err = s.DbDao.Transaction(func(tx *gorm.DB) error {
+		for parentId, v := range recordsNew {
+			for tokenId, record := range v {
+				amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
+				recordsNew[parentId][tokenId].Amount = amount
+
+				autoPaymentInfo := &tables.AutoPaymentInfo{
+					Account:       record.Account,
+					AccountId:     record.AccountId,
+					TokenId:       record.TokenId,
+					Amount:        amount,
+					OriginAmount:  record.Amount,
+					FeeRate:       decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio),
+					Address:       record.Address,
+					PaymentDate:   time.Now(),
+					PaymentStatus: tables.PaymentStatusSuccess,
+				}
+				if err := autoPaymentInfo.GenAutoPaymentId(); err != nil {
+					return err
+				}
+				if err := tx.Create(autoPaymentInfo).Error; err != nil {
+					return err
+				}
+				if err := s.DbDao.UpdateAutoPaymentIdById(record.Ids, autoPaymentInfo.AutoPaymentId); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err)
+		return nil, err
 	}
 	return recordsNew, nil
 }
