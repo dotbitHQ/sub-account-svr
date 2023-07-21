@@ -48,6 +48,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 			buf.WriteString(fmt.Sprintf("-Account: %s\n", record.Account))
 			buf.WriteString(fmt.Sprintf("-%s: %s Amount: %s \n\n", record.TokenId, record.Address, amount))
 		}
+		buf.WriteString("\n")
 	}
 	notify.SendLarkTextNotify(config.Cfg.Notify.LarkParentAccountPaymentKey, "OwnerPaymentInfo", buf.String())
 	return nil
