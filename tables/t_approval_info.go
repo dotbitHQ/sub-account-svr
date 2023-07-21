@@ -1,8 +1,6 @@
 package tables
 
-import (
-	"time"
-)
+import "time"
 
 type ApprovalInfo struct {
 	ID               uint64    `gorm:"column:id;primary_key;AUTO_INCREMENT"`
@@ -22,8 +20,8 @@ type ApprovalInfo struct {
 	MaxDelayCount    int       `gorm:"column:max_delay_count;default:0;NOT NULL"` // 可推迟次数
 	PostponedCount   int       `gorm:"column:postponed_count;default:0;NOT NULL"` // 推迟过的次数
 	Status           int       `gorm:"column:status;default:0;NOT NULL"`          // 0-default 1-开启授权 2:完成授权 3-撤销授权
-	CreatedAt        time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP;NOT NULL"`
-	UpdatedAt        time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP;NOT NULL"`
+	CreatedAt        time.Time `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"created_at"`
+	UpdatedAt        time.Time `gorm:"column:updated_at;type:timestamp;default:CURRENT_TIMESTAMP;NOT NULL" json:"updated_at"`
 }
 
 func (m *ApprovalInfo) TableName() string {
