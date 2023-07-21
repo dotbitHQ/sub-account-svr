@@ -81,7 +81,7 @@ func (h *HttpHandle) doApprovalEnableEnable(req *ReqApprovalEnable, apiResp *api
 }
 
 func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
-	accInfo, platformLockBs, toLockBs, err := h.doApprovalEnableCheck(req, apiResp)
+	accInfo, platformLock, toLock, err := h.doApprovalEnableCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	})
 
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionCreateApproval, []byte(common.ParamOwner))
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionCreateApproval, nil)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
@@ -151,11 +151,11 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 		AccountApproval: witness.AccountApproval{
 			Action: witness.AccountApprovalActionTransfer,
 			Params: witness.AccountApprovalTransferParams{
-				PlatformLock:     platformLockBs,
+				PlatformLock:     platformLock,
 				ProtectedUntil:   req.ProtectedUntil,
 				SealedUntil:      req.SealedUntil,
 				DelayCountRemain: 1,
-				ToLock:           toLockBs,
+				ToLock:           toLock,
 			},
 		},
 	})
@@ -347,7 +347,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	return nil
 }
 
-func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, platformLockBs []byte, toLockBs []byte, err error) {
+func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, platformLock, toLock *types.Script, err error) {
 	nowTime := time.Now()
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
@@ -393,22 +393,18 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	var platformLock *types.Script
 	platformLock, _, err = req.Platform.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
 		return
 	}
-	platformLockBs, _ = platformLock.Serialize()
 
-	var toLock *types.Script
 	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
 		return
 	}
-	toLockBs, _ = toLock.Serialize()
 	return
 }
