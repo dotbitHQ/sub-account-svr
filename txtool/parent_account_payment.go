@@ -119,6 +119,8 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			for parentId, v := range recordsNew {
 				for tokenId, record := range v {
 					amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
+					recordsNew[parentId][tokenId].Amount = amount
+
 					autoPaymentInfo := &tables.AutoPaymentInfo{
 						Account:       record.Account,
 						AccountId:     record.AccountId,
@@ -133,8 +135,6 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					if err := autoPaymentInfo.GenAutoPaymentId(); err != nil {
 						return err
 					}
-					recordsNew[parentId][tokenId].Amount = amount
-
 					if err := tx.Create(autoPaymentInfo).Error; err != nil {
 						return err
 					}
