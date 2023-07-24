@@ -586,7 +586,7 @@ func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress
 			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
 			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
 			AddressHex:        signAddress,
-			AddressPayload:    common.Hex2Bytes(loginAddress),
+			AddressPayload:    common.Hex2Bytes(signAddress),
 			ChainType:         common.ChainTypeWebauthn,
 		}
 		if err != nil {
