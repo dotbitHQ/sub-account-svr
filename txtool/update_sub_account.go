@@ -508,8 +508,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				return nil, fmt.Errorf("WebAuthnKeyListDataBuilderFromTx err : %s", err.Error())
 			}
 
-			tmp := molecule.NewDataBuilder().Dep(*webAuthnKeyListConfigBuilder.DataEntityOpt).Build()
-			keyListWitness := witness.GenDasDataWitness(common.ActionDataTypeKeyListCfgCell, &tmp)
+			webAuthnKeyListConfigBuilder.DataEntityOpt.AsSlice()
+			tmp := webAuthnKeyListConfigBuilder.DeviceKeyListCellData.AsSlice()
+			keyListWitness := witness.GenDasDataWitnessWithByte(common.ActionDataTypeKeyListCfgCellData, tmp)
 			txParams.OtherWitnesses = append(txParams.OtherWitnesses, keyListWitness)
 			keyListMap[cell.OutPoint.TxHash.Hex()] = true
 		}
