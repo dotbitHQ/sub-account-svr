@@ -497,7 +497,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
 		return err
 	}
-
+	req.SignAddress = dasAddressHex.AddressHex
 	for i, signList := range req.List {
 		for j, _ := range signList.SignList {
 			if signList.SignList[j].SignType != common.DasAlgorithmIdWebauthn {
