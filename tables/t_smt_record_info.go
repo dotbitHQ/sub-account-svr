@@ -32,8 +32,8 @@ type TableSmtRecordInfo struct {
 	RegisterArgs    string           `json:"register_args" gorm:"column:register_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditKey         string           `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
 	Signature       string           `json:"signature" gorm:"column:signature;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
-	LoginChainType  common.ChainType `json:"chain_type" gorm:"column:chain_type"`
-	LoginAddress    string           `json:"sign_address_role" gorm:"column:sign_address_role; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	LoginChainType  common.ChainType `json:"login_chain_type" gorm:"column:login_chain_type"`
+	LoginAddress    string           `json:"login_address" gorm:"column:login_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SignAddress     string           `json:"sign_address" gorm:"column:sign_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	EditArgs        string           `json:"edit_args" gorm:"column:edit_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	RenewYears      uint64           `json:"renew_years" gorm:"column:renew_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
