@@ -62,7 +62,7 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 		actionDataType = common.ActionDataTypeSubAccountDelayApprovalSign
 	case common.SubActionRevokeApproval:
 		actionDataType = common.ActionDataTypeSubAccountRevokeApprovalSign
-	case common.SubActionFullFillApproval:
+	case common.SubActionFullfillApproval:
 		actionDataType = common.ActionDataTypeSubAccountFulfillApprovalSign
 	}
 	return sams.GenWitnessWithAction(actionDataType)

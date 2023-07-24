@@ -150,12 +150,14 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 		Status: common.AccountStatusOnApproval,
 		AccountApproval: witness.AccountApproval{
 			Action: witness.AccountApprovalActionTransfer,
-			Params: witness.AccountApprovalTransferParams{
-				PlatformLock:     platformLock,
-				ProtectedUntil:   req.ProtectedUntil,
-				SealedUntil:      req.SealedUntil,
-				DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
-				ToLock:           toLock,
+			Params: witness.AccountApprovalParams{
+				Transfer: witness.AccountApprovalParamsTransfer{
+					PlatformLock:     platformLock,
+					ProtectedUntil:   req.ProtectedUntil,
+					SealedUntil:      req.SealedUntil,
+					DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
+					ToLock:           toLock,
+				},
 			},
 		},
 	})
@@ -235,7 +237,23 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
 	smtKv := make([]smt.SmtKv, 0)
 
-	reqData, _ := json.Marshal(req)
+	accountApproval := &witness.AccountApproval{
+		Action: witness.AccountApprovalActionTransfer,
+		Params: witness.AccountApprovalParams{
+			Transfer: witness.AccountApprovalParamsTransfer{
+				PlatformLock:     platformLock,
+				ProtectedUntil:   req.ProtectedUntil,
+				SealedUntil:      req.SealedUntil,
+				DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
+				ToLock:           toLock,
+			},
+		},
+	}
+	approvalMol, err := accountApproval.GenToMolecule()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
 
 	listRecord = append(listRecord, tables.TableSmtRecordInfo{
 		SvrName:         config.Cfg.Slb.SvrName,
@@ -248,7 +266,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		Account:         subAcc.Account,
 		EditKey:         common.EditKeyApproval,
 		Timestamp:       now.UnixNano() / 1e6,
-		Content:         string(reqData),
+		Content:         common.Bytes2Hex(approvalMol.AsSlice()),
 	})
 
 	ownerHex := core.DasAddressHex{
@@ -303,22 +321,6 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	signInfo.InitMintSignId(subAcc.ParentAccountId)
 	for i := range listRecord {
 		listRecord[i].MintSignId = signInfo.MintSignId
-	}
-
-	accountApproval := &witness.AccountApproval{
-		Action: witness.AccountApprovalActionTransfer,
-		Params: witness.AccountApprovalTransferParams{
-			PlatformLock:     platformLock,
-			ProtectedUntil:   req.ProtectedUntil,
-			SealedUntil:      req.SealedUntil,
-			DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
-			ToLock:           toLock,
-		},
-	}
-	approvalMol, err := accountApproval.GenToMolecule()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return err
 	}
 
 	// sign info
