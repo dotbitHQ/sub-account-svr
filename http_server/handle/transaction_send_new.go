@@ -597,7 +597,7 @@ func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress
 		if idx == -1 {
 			return "", fmt.Errorf("permission denied")
 		}
-		signOk, err = sign.VerifyWebauthnSignature(common.Hex2Bytes(signData.SignMsg), common.Hex2Bytes(signMsg), signAddressHex.AddressHex)
+		signOk, err = sign.VerifyWebauthnSignature([]byte(signData.SignMsg), common.Hex2Bytes(signMsg), signAddressHex.AddressHex)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyWebauthnSignature error")
 			return "", fmt.Errorf("VerifyWebauthnSignature err: %s [%s]", err.Error(), signAddress)
