@@ -501,7 +501,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 	for i, signList := range req.List {
 		for j, _ := range signList.SignList {
 			if signList.SignList[j].SignType != common.DasAlgorithmIdWebauthn {
-				break
+				continue
 			}
 			idx := -1
 			if txAddr == dasAddressHex.AddressHex {
