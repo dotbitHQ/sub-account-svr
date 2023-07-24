@@ -470,13 +470,12 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if v.LoginAddress == v.SignAddress || v.LoginChainType != common.ChainTypeWebauthn {
 			continue
 		}
-		addrHex, err := s.DasCore.Daf().NormalToHex(core.DasAddressNormal{
-			ChainType:     common.ChainTypeCkb,
-			AddressNormal: v.LoginAddress, //登陆态
-			Is712:         false,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("NormalToHex %s", err.Error())
+		addrHex := core.DasAddressHex{
+			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
+			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
+			AddressHex:        v.LoginAddress,
+			AddressPayload:    common.Hex2Bytes(v.LoginAddress),
+			ChainType:         common.ChainTypeWebauthn,
 		}
 		lockArgs, err := s.DasCore.Daf().HexToArgs(addrHex, addrHex)
 		keyListConfigCellContract, err := core.GetDasContractInfo(common.DasKeyListCellType)
