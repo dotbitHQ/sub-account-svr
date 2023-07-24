@@ -582,10 +582,13 @@ func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress
 			AddressPayload:    common.Hex2Bytes(loginAddress),
 			ChainType:         common.ChainTypeWebauthn,
 		}
-		signAddressHex, err := dc.Daf().NormalToHex(core.DasAddressNormal{
-			ChainType:     common.ChainTypeWebauthn,
-			AddressNormal: signAddress,
-		})
+		signAddressHex := core.DasAddressHex{
+			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
+			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
+			AddressHex:        signAddress,
+			AddressPayload:    common.Hex2Bytes(loginAddress),
+			ChainType:         common.ChainTypeWebauthn,
+		}
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
 			return "", err
