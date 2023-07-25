@@ -412,6 +412,8 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
 			return "", fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
 		}
+	case common.DasAlgorithmIdEth712:
+		sign.VerifyEIP712Signature(obj3, signature, address)
 	case common.DasAlgorithmIdTron:
 		signMsg = fixSignature(signMsg)
 		if signAddress, err = common.TronHexToBase58(signAddress); err != nil {

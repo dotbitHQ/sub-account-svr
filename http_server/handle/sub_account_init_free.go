@@ -110,7 +110,7 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 		return fmt.Errorf("buildSubAccountInitSubAccountTx err: %s", err.Error())
 	}
 
-	signKey, signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{},
 		chainType:  req.chainType,
@@ -124,10 +124,8 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 	}
 
 	resp.Action = common.DasActionEnableSubAccount
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: signList,
-	})
+	resp.SignKey = signList.SignKey
+	resp.List = signList.List
 
 	apiResp.ApiRespOK(resp)
 	return nil

@@ -21,25 +21,22 @@ import (
 	"time"
 )
 
-type ReqApprovalEnable struct {
-	Platform       core.ChainTypeAddress `json:"platform" binding:"required"`
-	Owner          core.ChainTypeAddress `json:"owner" binding:"required"`
-	To             core.ChainTypeAddress `json:"to" binding:"required"`
-	Account        string                `json:"account" binding:"required"`
-	ProtectedUntil uint64                `json:"protected_until" binding:"required"`
-	SealedUntil    uint64                `json:"sealed_until" binding:"required"`
-	isMainAcc      bool
+type ReqApprovalDelay struct {
+	core.ChainTypeAddress
+	Account     string `json:"account" binding:"required"`
+	SealedUntil uint64 `json:"sealed_until" binding:"required"`
+	isMainAcc   bool
 }
 
-type RespApprovalEnable struct {
+type RespApprovalDelay struct {
 	SignInfoList
 }
 
-func (h *HttpHandle) ApprovalEnable(ctx *gin.Context) {
+func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
 	var (
-		funcName               = "ReqApprovalEnable"
+		funcName               = "ReqApprovalDelay"
 		clientIp, remoteAddrIP = GetClientIp(ctx)
-		req                    ReqApprovalEnable
+		req                    ReqApprovalDelay
 		apiResp                api_code.ApiResp
 		err                    error
 	)
@@ -52,13 +49,13 @@ func (h *HttpHandle) ApprovalEnable(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
-	if err = h.doApprovalEnableEnable(&req, &apiResp); err != nil {
-		log.Error("ApprovalEnable err:", err.Error(), funcName, clientIp, remoteAddrIP)
+	if err = h.doApprovalDelay(&req, &apiResp); err != nil {
+		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalEnableEnable(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalDelay(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -75,13 +72,13 @@ func (h *HttpHandle) doApprovalEnableEnable(req *ReqApprovalEnable, apiResp *api
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalEnableMainAccount(req, apiResp)
+		return h.doApprovalDelayMainAccount(req, apiResp)
 	}
-	return h.doApprovalEnableSubAccount(req, apiResp)
+	return h.doApprovalDelaySubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
-	accInfo, platformLock, toLock, err := h.doApprovalEnableCheck(req, apiResp)
+func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
+	accInfo, err := h.doApprovalDelayCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -125,7 +122,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	})
 
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionCreateApproval, nil)
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionDelayApproval, nil)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
@@ -146,17 +143,12 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	}
 
 	accWitness, accData, err := builder.GenWitness(&witness.AccountCellParam{
-		Action: common.DasActionCreateApproval,
-		Status: common.AccountStatusOnApproval,
+		Action: common.DasActionDelayApproval,
 		AccountApproval: witness.AccountApproval{
 			Action: witness.AccountApprovalActionTransfer,
 			Params: witness.AccountApprovalParams{
 				Transfer: witness.AccountApprovalParamsTransfer{
-					PlatformLock:     platformLock,
-					ProtectedUntil:   req.ProtectedUntil,
-					SealedUntil:      req.SealedUntil,
-					DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
-					ToLock:           toLock,
+					SealedUntil: req.SealedUntil,
 				},
 			},
 		},
@@ -193,7 +185,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 
 	signList, txHash, err := h.buildTx(&paramBuildTx{
 		txParams: &txParams,
-		action:   common.DasActionCreateApproval,
+		action:   common.DasActionDelayApproval,
 		account:  req.Account,
 	})
 	if err != nil {
@@ -209,8 +201,8 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	return nil
 }
 
-func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
-	subAcc, platformLock, toLock, err := h.doApprovalEnableCheck(req, apiResp)
+func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
+	subAcc, err := h.doApprovalDelayCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -229,19 +221,14 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
 	smtKv := make([]smt.SmtKv, 0)
 
-	accountApproval := &witness.AccountApproval{
-		Action: witness.AccountApprovalActionTransfer,
-		Params: witness.AccountApprovalParams{
-			Transfer: witness.AccountApprovalParamsTransfer{
-				PlatformLock:     platformLock,
-				ProtectedUntil:   req.ProtectedUntil,
-				SealedUntil:      req.SealedUntil,
-				DelayCountRemain: config.Cfg.Das.Approval.MaxDelayCount,
-				ToLock:           toLock,
-			},
-		},
+	_, subAccountBuilderMap, err := h.TxTool.GetOldSubAccount([]string{subAcc.AccountId}, "")
+	if err != nil {
+		return fmt.Errorf("GetOldSubAccount err: %s", err.Error())
 	}
-	approvalMol, err := accountApproval.GenToMolecule()
+	subAccountData := subAccountBuilderMap[subAcc.AccountId]
+	oldData := subAccountData.CurrentSubAccountData
+	oldData.AccountApproval.Params.Transfer.SealedUntil = req.SealedUntil
+	approvalMol, err := oldData.AccountApproval.GenToMolecule()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
@@ -253,7 +240,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		Nonce:           subAcc.Nonce + 1,
 		RecordType:      tables.RecordTypeDefault,
 		Action:          common.DasActionUpdateSubAccount,
-		SubAction:       common.DasActionCreateApproval,
+		SubAction:       common.DasActionDelayApproval,
 		ParentAccountId: subAcc.ParentAccountId,
 		Account:         subAcc.Account,
 		EditKey:         common.EditKeyApproval,
@@ -308,7 +295,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		ChainType: ownerHex.ChainType,
 		Address:   ownerHex.AddressHex,
 		SignRole:  common.ParamOwner,
-		SubAction: common.DasActionCreateApproval,
+		SubAction: common.DasActionDelayApproval,
 	}
 	signInfo.InitMintSignId(subAcc.ParentAccountId)
 	for i := range listRecord {
@@ -323,7 +310,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 		ChainType:     ownerHex.ChainType,
 		AlgId:         ownerHex.DasAlgorithmId,
 		Address:       ownerHex.AddressHex,
-		SubAction:     common.DasActionCreateApproval,
+		SubAction:     common.DasActionDelayApproval,
 		MinSignInfo:   signInfo,
 		ListSmtRecord: listRecord,
 	}
@@ -344,7 +331,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	resp := RespApprovalEnable{
 		SignInfoList: SignInfoList{
 			Action:    common.DasActionUpdateSubAccount,
-			SubAction: common.DasActionCreateApproval,
+			SubAction: common.DasActionDelayApproval,
 			SignKey:   signKey,
 			List: []SignInfo{
 				{
@@ -359,7 +346,7 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 	return nil
 }
 
-func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, platformLock, toLock *types.Script, err error) {
+func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, err error) {
 	nowTime := time.Now()
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
@@ -379,43 +366,6 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 	}
 	if accInfo.ExpiredAt-uint64(nowTime.Unix()) < 3600*24*30 {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
-		return
-	}
-
-	keys := []core.ChainTypeAddress{req.Platform, req.Owner, req.To}
-	for i := 0; i < len(keys); i++ {
-		for j := i + 1; j < len(keys); j++ {
-			if keys[i].KeyInfo.CoinType == keys[j].KeyInfo.CoinType &&
-				strings.EqualFold(keys[i].KeyInfo.Key, keys[j].KeyInfo.Key) {
-				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "address is repeated")
-				return
-			}
-		}
-	}
-
-	ownerHexAddress, err := req.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
-		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
-		return
-	}
-	if accInfo.OwnerChainType != ownerHexAddress.ChainType ||
-		!strings.EqualFold(accInfo.Owner, ownerHexAddress.AddressHex) {
-		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
-		return
-	}
-
-	platformLock, _, err = req.Platform.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
-		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
-		return
-	}
-
-	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
-		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
 		return
 	}
 	return

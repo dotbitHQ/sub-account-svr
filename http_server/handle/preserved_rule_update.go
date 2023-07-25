@@ -66,7 +66,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 		return err
 	}
 
-	signKey, signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -80,10 +80,8 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 
 	resp := RespConfigAutoMintUpdate{}
 	resp.Action = action
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: signList,
-	})
+	resp.SignKey = signList.SignKey
+	resp.List = signList.List
 	log.Info("doPreservedRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {

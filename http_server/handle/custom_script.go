@@ -156,7 +156,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return fmt.Errorf("buildCustomScriptTx err: %s", err.Error())
 	}
 
-	signKey, signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{1},
 		chainType:  hexAddress.ChainType,
@@ -170,11 +170,8 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	}
 
 	resp.Action = common.DasActionConfigSubAccountCustomScript
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		//SignKey:  "",
-		SignList: signList,
-	})
+	resp.SignKey = signList.SignKey
+	resp.List = signList.List
 
 	log.Info("doCustomScript:", toolib.JsonString(resp))
 	apiResp.ApiRespOK(resp)
@@ -191,10 +188,10 @@ type paramBuildTx struct {
 	account    string
 }
 
-func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, string, error) {
+func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(p.txParams); err != nil {
-		return "", nil, "", fmt.Errorf("BuildTransaction err: %s", err.Error())
+		return nil, "", fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 
 	if p.action == common.DasActionConfigSubAccountCustomScript {
@@ -213,7 +210,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, str
 
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
 	if err != nil {
-		return "", nil, "", fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
+		return nil, "", fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
 	}
 
 	log.Info("buildTx:", txBuilder.TxString())
@@ -226,21 +223,36 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (string, []txbuilder.SignData, str
 		SubAction: p.subAction,
 		Account:   p.account,
 		Capacity:  0,
-		BuilderTx: nil,
+		BuilderTx: txBuilder.DasTxBuilderTransaction,
 	}
-	sic.BuilderTx = txBuilder.DasTxBuilderTransaction
 	signKey := sic.SignKey()
 	cacheStr := toolib.JsonString(&sic)
 	if err = h.RC.SetSignTxCache(signKey, cacheStr); err != nil {
-		return "", nil, "", fmt.Errorf("SetSignTxCache err: %s", err.Error())
+		return nil, "", fmt.Errorf("SetSignTxCache err: %s", err.Error())
 	}
 
 	txHash, err := txBuilder.Transaction.ComputeHash()
 	if err != nil {
-		return "", nil, "", err
+		return nil, "", err
 	}
 
-	return signKey, signList, txHash.Hex(), nil
+	signListInfo := SignInfoList{
+		Action:    p.action,
+		SubAction: p.subAction,
+		SignKey:   signKey,
+	}
+
+	if signList[0].SignType == common.DasAlgorithmIdEth712 {
+		mmJsonObj, err := txBuilder.BuildMMJsonObj(0)
+		if err != nil {
+			return nil, "", err
+		}
+		signListInfo.SignList = signList
+		signListInfo.MMJson = mmJsonObj
+	} else {
+		signListInfo.List = append(signListInfo.List, SignInfo{signList})
+	}
+	return &signListInfo, txHash.Hex(), nil
 }
 
 type paramCustomScriptTx struct {
