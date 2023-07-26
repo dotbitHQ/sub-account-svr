@@ -5,7 +5,6 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -13,10 +12,8 @@ import (
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/txbuilder"
-	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
-	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 	"time"
@@ -390,7 +387,6 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 }
 
 func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
-	//过滤 ActionCurrencyUpdate, ActionMintConfigUpdate
 	hasWebAuthn := false
 	for _, signInfo := range req.List {
 		for _, v := range signInfo.SignList {
@@ -456,40 +452,15 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		txAddr = chainTypeAddress.KeyInfo.Key
 	}
 
-	var keyList *molecule.DeviceKeyList
-	var KeyListCfgCell *indexer.LiveCell
-	dasLockKey := core.DasAddressHex{
+	loginAddrHex := core.DasAddressHex{
 		DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
 		DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
 		AddressHex:        txAddr,
 		AddressPayload:    common.Hex2Bytes(txAddr),
 		ChainType:         common.ChainTypeWebauthn,
 	}
-	lockArgs, err := h.DasCore.Daf().HexToArgs(dasLockKey, dasLockKey)
-	KeyListCfgCell, err = h.DasCore.GetKeyListCell(lockArgs)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetKeyListCell err: "+err.Error())
-		return fmt.Errorf("GetKeyListCell(webauthn keyListCell) : %s", err.Error())
-	}
-	keyListConfigTx, err := h.DasCore.Client().GetTransaction(h.Ctx, KeyListCfgCell.OutPoint.TxHash)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetTransaction err: "+err.Error())
-		return err
-	}
-	webAuthnKeyListConfigBuilder, err := witness.WebAuthnKeyListDataBuilderFromTx(keyListConfigTx.Transaction, common.DataTypeNew)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "WebAuthnKeyListDataBuilderFromTx err: "+err.Error())
-		return err
-	}
-	dataBuilder := webAuthnKeyListConfigBuilder.DeviceKeyListCellData.AsBuilder()
-	deviceKeyListCellDataBuilder := dataBuilder.Build()
-	keyList = deviceKeyListCellDataBuilder.Keys()
-	if keyList == nil {
-		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "login status has not enable authorize")
-		return fmt.Errorf("login status has not enable authorize")
-	}
 
-	dasAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
+	signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
 		ChainType:     common.ChainTypeWebauthn,
 		AddressNormal: req.SignAddress,
 	})
@@ -497,34 +468,19 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
 		return err
 	}
-	req.SignAddress = dasAddressHex.AddressHex
+	fmt.Println("-----", loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
+	idx, err := h.DasCore.GetIdxOfKeylist(loginAddrHex, signAddressHex)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "GetIdxOfKeylist err: "+err.Error())
+		return fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
+	}
+	if idx == -1 {
+		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
+		return fmt.Errorf("permission denied")
+	}
+
 	for i, signList := range req.List {
 		for j, _ := range signList.SignList {
-			if signList.SignList[j].SignType != common.DasAlgorithmIdWebauthn {
-				continue
-			}
-			idx := -1
-			if txAddr == dasAddressHex.AddressHex {
-				idx = 255
-			} else {
-				for i := 0; i < int(keyList.Len()); i++ {
-					mainAlgId := common.DasAlgorithmId(keyList.Get(uint(i)).MainAlgId().RawData()[0])
-					subAlgId := common.DasSubAlgorithmId(keyList.Get(uint(i)).SubAlgId().RawData()[0])
-					cid1 := keyList.Get(uint(i)).Cid().RawData()
-					pk1 := keyList.Get(uint(i)).Pubkey().RawData()
-					addressHex := hex.EncodeToString(append(cid1, pk1...))
-					if dasAddressHex.DasAlgorithmId == mainAlgId &&
-						dasAddressHex.DasSubAlgorithmId == subAlgId &&
-						addressHex == dasAddressHex.AddressHex {
-						idx = i
-						break
-					}
-				}
-				if idx == -1 {
-					apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
-					return fmt.Errorf("the current signing device is not in the authorized list")
-				}
-			}
 			signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
 			idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
 			idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
@@ -574,33 +530,8 @@ func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress
 			return "", fmt.Errorf("VerifyDogeSignature err: %s [%s]", err.Error(), signAddress)
 		}
 	case common.DasAlgorithmIdWebauthn:
-		//Todo: 验证，登陆态的keylist 里面是否有signAddress
-		loginAddrHex := core.DasAddressHex{
-			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
-			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
-			AddressHex:        loginAddress,
-			AddressPayload:    common.Hex2Bytes(loginAddress),
-			ChainType:         common.ChainTypeWebauthn,
-		}
-		signAddressHex := core.DasAddressHex{
-			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
-			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
-			AddressHex:        signAddress,
-			AddressPayload:    common.Hex2Bytes(signAddress),
-			ChainType:         common.ChainTypeWebauthn,
-		}
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
-			return "", err
-		}
-		idx, err := dc.GetIdxOfKeylist(loginAddrHex, signAddressHex)
-		if err != nil {
-			return "", fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
-		}
-		if idx == -1 {
-			return "", fmt.Errorf("permission denied")
-		}
-		signOk, err = sign.VerifyWebauthnSignature([]byte(signData.SignMsg), common.Hex2Bytes(signMsg), signAddressHex.AddressHex)
+		//no need to verify if signAddr is in loginaddr`s keylist
+		signOk, err = sign.VerifyWebauthnSignature([]byte(signData.SignMsg), common.Hex2Bytes(signMsg), signAddress)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyWebauthnSignature error")
 			return "", fmt.Errorf("VerifyWebauthnSignature err: %s [%s]", err.Error(), signAddress)
