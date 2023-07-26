@@ -77,6 +77,13 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		if err := h.doApproval(req, apiResp, &resp); err != nil {
+			return fmt.Errorf("doActionNormal err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
 	case common.DasActionUpdateSubAccount:
 		if err := h.doActionUpdateSubAccount(req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionUpdateSubAccount err: %s", err.Error())
@@ -239,6 +246,48 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 			log.Error("CreateTask err: ", err.Error())
 		}
 	}
+	return nil
+}
+
+func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
+	var sic SignInfoCache
+	txStr, err := h.RC.GetSignTxCache(req.SignKey)
+	if err != nil {
+		if err == redis.Nil {
+			apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+		}
+		return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+	}
+
+	if err := json.Unmarshal([]byte(txStr), &sic); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+	}
+
+	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
+	if len(req.List) > 0 {
+		if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
+			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
+		}
+	} else {
+		if err := txBuilder.AddSignatureForTx(req.SignList); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
+			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
+		}
+	}
+
+	hash, err := txBuilder.SendTransaction()
+	if err != nil {
+		return doSendTransactionError(err, apiResp)
+	}
+	h.DasCache.AddCellInputByAction("", sic.BuilderTx.Transaction.Inputs)
+	resp.HashList = append(resp.HashList, hash.Hex())
+	//accountId := common.Bytes2Hex(common.GetAccountIdByAccount(sic.Account))
+
+	// TODO add t_approval_info
 	return nil
 }
 
@@ -412,8 +461,6 @@ func doSignCheck(signData txbuilder.SignData, signMsg, signAddress string, apiRe
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "eth sign error")
 			return "", fmt.Errorf("VerifyPersonalSignature err: %s", err.Error())
 		}
-	case common.DasAlgorithmIdEth712:
-		sign.VerifyEIP712Signature(obj3, signature, address)
 	case common.DasAlgorithmIdTron:
 		signMsg = fixSignature(signMsg)
 		if signAddress, err = common.TronHexToBase58(signAddress); err != nil {
