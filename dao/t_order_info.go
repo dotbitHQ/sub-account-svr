@@ -113,8 +113,18 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 	return
 }
 
-func (d *DbDao) CreateOrderInfo(info tables.OrderInfo) error {
-	return d.db.Create(&info).Error
+func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.PaymentInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&info).Error; err != nil {
+			return err
+		}
+		if paymentInfo.PayHash != "" {
+			if err := tx.Create(&paymentInfo).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 type OrderAmountInfo struct {

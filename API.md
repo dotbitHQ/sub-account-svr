@@ -1120,7 +1120,9 @@ Please familiarize yourself with the meaning of some common parameters before re
     "max_year": 2, 
     "status": 0, 
     "is_self": false, 
-    "order_id": "" 
+    "order_id": "" ,
+    "premium_percentage": "0.036",
+    ""
   }
 }
 ```
@@ -1131,6 +1133,14 @@ Please familiarize yourself with the meaning of some common parameters before re
 #### Request
 
 * path: /v1/auto/order/create
+  * token_id
+  * eth_eth
+  * tron_trx
+  * bsc_bnb
+  * stripe_usd
+  * tron_trc20_usdt
+  * bsc_bep20_usdt
+  * polygon_matic
 
 ```json
 {
@@ -1155,7 +1165,9 @@ Please familiarize yourself with the meaning of some common parameters before re
   "data": {
     "order_id": "" ,
     "payment_address": "" ,
-    "amount": ""
+    "amount": "",
+    "contract_address": "", // for usdt contract
+    "client_secret": "", // for stripe usd
   }
 }
 ```

@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -27,6 +29,7 @@ type RespAutoOrderCreate struct {
 	OrderId         string          `json:"order_id"`
 	PaymentAddress  string          `json:"payment_address"`
 	ContractAddress string          `json:"contract_address"`
+	ClientSecret    string          `json:"client_secret"`
 	Amount          decimal.Decimal `json:"amount"`
 }
 
@@ -139,44 +142,79 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
-	log.Info("usdAmount:", usdAmount.String(), req.Years)
+	//log.Info("usdAmount:", usdAmount.String(), req.Years)
 	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
 	if amount.Cmp(decimal.Zero) != 1 {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
 		return nil
 	}
+	//
+	//if req.TokenId == tables.TokenIdStripeUSD && amount.Cmp(decimal.NewFromFloat(0.52)) == -1 {
+	//	apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
+	//	return nil
+	//}
 	// create order
+	premiumPercentage := decimal.Zero
+	premiumBase := decimal.Zero
+	if req.TokenId == tables.TokenIdStripeUSD {
+		premiumPercentage = config.Cfg.Stripe.PremiumPercentage
+		premiumBase = config.Cfg.Stripe.PremiumBase
+		amount = amount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+		amount = decimal.NewFromInt(amount.IntPart())
+		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+	}
 
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
-		ChainTypeAddress: req.ChainTypeAddress,
-		BusinessId:       unipay.BusinessIdAutoSubAccount,
-		Amount:           amount,
-		PayTokenId:       req.TokenId,
-		PaymentAddress:   config.GetUnipayAddress(req.TokenId),
+		ChainTypeAddress:  req.ChainTypeAddress,
+		BusinessId:        unipay.BusinessIdAutoSubAccount,
+		Amount:            amount,
+		PayTokenId:        req.TokenId,
+		PaymentAddress:    config.GetUnipayAddress(req.TokenId),
+		PremiumPercentage: premiumPercentage,
+		PremiumBase:       premiumBase,
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "600004") {
+			apiResp.ApiRespErr(http_api.ApiCodePaymentMethodDisable, "This payment method is unavailable")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
+		if strings.Contains(err.Error(), "600003") {
+			apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Amount must not be lower than 0.52$")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
 	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
 	orderInfo := tables.OrderInfo{
-		OrderId:         res.OrderId,
-		ActionType:      req.ActionType,
-		Account:         req.SubAccount,
-		AccountId:       subAccountId,
-		ParentAccountId: parentAccountId,
-		Years:           req.Years,
-		AlgorithmId:     hexAddr.DasAlgorithmId,
-		PayAddress:      hexAddr.AddressHex,
-		TokenId:         string(req.TokenId),
-		Amount:          amount,
-		USDAmount:       usdAmount,
-		PayStatus:       tables.PayStatusUnpaid,
-		OrderStatus:     tables.OrderStatusDefault,
-		Timestamp:       time.Now().UnixMilli(),
-		SvrName:         config.Cfg.Slb.SvrName,
+		OrderId:           res.OrderId,
+		ActionType:        req.ActionType,
+		Account:           req.SubAccount,
+		AccountId:         subAccountId,
+		ParentAccountId:   parentAccountId,
+		Years:             req.Years,
+		AlgorithmId:       hexAddr.DasAlgorithmId,
+		PayAddress:        hexAddr.AddressHex,
+		TokenId:           string(req.TokenId),
+		Amount:            amount,
+		USDAmount:         usdAmount,
+		PayStatus:         tables.PayStatusUnpaid,
+		OrderStatus:       tables.OrderStatusDefault,
+		Timestamp:         time.Now().UnixMilli(),
+		SvrName:           config.Cfg.Slb.SvrName,
+		PremiumPercentage: premiumPercentage,
+		PremiumBase:       premiumBase,
 	}
-	if err = h.DbDao.CreateOrderInfo(orderInfo); err != nil {
+	var paymentInfo tables.PaymentInfo
+	if req.TokenId == tables.TokenIdStripeUSD && res.StripePaymentIntentId != "" {
+		paymentInfo = tables.PaymentInfo{
+			PayHash:       res.StripePaymentIntentId,
+			OrderId:       res.OrderId,
+			PayHashStatus: tables.PayHashStatusPending,
+			Timestamp:     time.Now().UnixMilli(),
+		}
+	}
+	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}
@@ -185,6 +223,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	resp.Amount = amount
 	resp.PaymentAddress = res.PaymentAddress
 	resp.ContractAddress = res.ContractAddress
+	resp.ClientSecret = res.ClientSecret
 
 	apiResp.ApiRespOK(resp)
 	return nil

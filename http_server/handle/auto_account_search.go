@@ -25,12 +25,14 @@ type ReqAutoAccountSearch struct {
 }
 
 type RespAutoAccountSearch struct {
-	Price     decimal.Decimal `json:"price"`
-	MaxYear   uint64          `json:"max_year"`
-	Status    AccStatus       `json:"status"`
-	IsSelf    bool            `json:"is_self"`
-	OrderId   string          `json:"order_id"`
-	ExpiredAt uint64          `json:"expired_at"`
+	Price             decimal.Decimal `json:"price"`
+	MaxYear           uint64          `json:"max_year"`
+	Status            AccStatus       `json:"status"`
+	IsSelf            bool            `json:"is_self"`
+	OrderId           string          `json:"order_id"`
+	ExpiredAt         uint64          `json:"expired_at"`
+	PremiumPercentage decimal.Decimal `json:"premium_percentage"`
+	PremiumBase       decimal.Decimal `json:"premium_base"`
 }
 
 type AccStatus int
@@ -118,6 +120,9 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
+
+	resp.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
+	resp.PremiumBase = config.Cfg.Stripe.PremiumBase
 
 	apiResp.ApiRespOK(resp)
 	return nil
