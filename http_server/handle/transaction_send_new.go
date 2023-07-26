@@ -129,7 +129,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
 			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp, h.DasCore); err != nil {
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -174,7 +174,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		if _, err := doSignCheck(txbuilder.SignData{
 			SignType: req.List[0].SignList[0].SignType,
 			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp, h.DasCore); err != nil {
+		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -285,7 +285,7 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 }
 
 func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
-	signAddress, subAcc, err := dataCache.EditCheck(h.DbDao, apiResp)
+	loginAddress, subAcc, err := dataCache.EditCheck(h.DbDao, apiResp)
 	if err != nil {
 		return fmt.Errorf("EditCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -300,11 +300,11 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 		return nil
 	}
 
-	log.Warn("SubActionEdit:", signData.SignMsg, signAddress)
+	log.Warn("SubActionEdit:", signData.SignMsg, loginAddress)
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, signAddress, req.SignAddress, apiResp, h.DasCore); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, loginAddress, req.SignAddress, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -366,7 +366,7 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 
 	signMsg := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, req.SignAddress, apiResp, h.DasCore); err != nil {
+	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, req.SignAddress, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
@@ -468,6 +468,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign address NormalToHex err")
 		return err
 	}
+	req.SignAddress = signAddressHex.AddressHex
 	fmt.Println("-----", loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
 	idx, err := h.DasCore.GetIdxOfKeylist(loginAddrHex, signAddressHex)
 	if err != nil {
@@ -503,7 +504,7 @@ func beforeSignCheck(dc *core.DasCore, loginAddress, signAddress core.DasAddress
 	return nil
 }
 
-func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress string, apiResp *api_code.ApiResp, dc *core.DasCore) (string, error) {
+func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress string, apiResp *api_code.ApiResp) (string, error) {
 	signOk := false
 	var err error
 	switch signData.SignType {
