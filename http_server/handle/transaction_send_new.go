@@ -524,13 +524,13 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 					apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 					return fmt.Errorf("the current signing device is not in the authorized list")
 				}
-				signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
-				idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
-				idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
-				signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
-				signMsgRes = append(signMsgRes, signMsg...)
-				req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
 			}
+			signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
+			idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
+			idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
+			signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
+			signMsgRes = append(signMsgRes, signMsg...)
+			req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
 		}
 	}
 	return nil
