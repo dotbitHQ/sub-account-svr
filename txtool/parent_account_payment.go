@@ -62,7 +62,7 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			csvRecord.Ids = make([]uint64, 0)
 			records[v.ParentAccountId][v.TokenId] = csvRecord
 		}
-		csvRecord.Amount = csvRecord.Amount.Add(v.Amount)
+		csvRecord.Amount = csvRecord.Amount.Add(v.Amount.Sub(v.PremiumAmount))
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
