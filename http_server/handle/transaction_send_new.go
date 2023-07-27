@@ -482,12 +482,14 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 
 	for i, signList := range req.List {
 		for j, _ := range signList.SignList {
-			signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
-			idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
-			idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
-			signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
-			signMsgRes = append(signMsgRes, signMsg...)
-			req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
+			if req.List[i].SignList[j].SignType == common.DasAlgorithmIdWebauthn {
+				signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
+				idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
+				idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
+				signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
+				signMsgRes = append(signMsgRes, signMsg...)
+				req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
+			}
 		}
 	}
 	return nil
