@@ -156,10 +156,11 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	// create order
 	premiumPercentage := decimal.Zero
 	premiumBase := decimal.Zero
-	premiumAmount := amount
+	premiumAmount := decimal.Zero
 	if req.TokenId == tables.TokenIdStripeUSD {
 		premiumPercentage = config.Cfg.Stripe.PremiumPercentage
 		premiumBase = config.Cfg.Stripe.PremiumBase
+		premiumAmount = amount
 		amount = amount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 		amount = decimal.NewFromInt(amount.IntPart())
 		premiumAmount = amount.Sub(premiumAmount)
