@@ -134,7 +134,7 @@ type OrderAmountInfo struct {
 
 func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]decimal.Decimal, err error) {
 	list := make([]*OrderAmountInfo, 0)
-	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, sum(amount) as amount").
+	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, sum(amount-premium_amount) as amount").
 		Where("parent_account_id=? and pay_status=? and order_status=?", accountId, tables.PayStatusPaid, tables.OrderStatusSuccess)
 	if paid {
 		db = db.Where("auto_payment_id != ''")

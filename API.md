@@ -1121,8 +1121,8 @@ Please familiarize yourself with the meaning of some common parameters before re
     "status": 0, 
     "is_self": false, 
     "order_id": "" ,
-    "premium_percentage": "0.036",
-    ""
+    "premium_percentage": "0.036", // for usd premium
+    "premium_base": "0.52" // for usd premium
   }
 }
 ```
