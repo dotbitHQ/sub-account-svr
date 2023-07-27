@@ -96,7 +96,7 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 			csvRecord.Ids = make([]uint64, 0)
 			records[recordKey] = csvRecord
 		}
-		csvRecord.Amount = csvRecord.Amount.Add(v.Amount)
+		csvRecord.Amount = csvRecord.Amount.Add(v.Amount.Sub(v.PremiumAmount))
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
