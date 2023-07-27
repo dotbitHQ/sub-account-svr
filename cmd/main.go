@@ -169,6 +169,9 @@ func runServer(ctx *cli.Context) error {
 	smtTask.RunUpdateSubAccountTaskDistribution()
 	smtTask.RunUpdateSubAccountTask()
 	smtTask.RunRecycleSubAccount()
+	if err := smtTask.RunParentAccountPayment(); err != nil {
+		panic(err)
+	}
 
 	log.Infof("task ok")
 
