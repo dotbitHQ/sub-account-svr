@@ -194,18 +194,28 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		return nil, "", fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 
-	if p.action == common.DasActionConfigSubAccountCustomScript {
+	switch p.action {
+	case common.DasActionConfigSubAccountCustomScript:
 		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 		changeCapacity := txBuilder.Transaction.Outputs[1].Capacity - sizeInBlock - 1000
 		txBuilder.Transaction.Outputs[1].Capacity = changeCapacity
-	}
-
-	if p.action == common.DasActionConfigSubAccount {
+	case common.DasActionConfigSubAccount:
 		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 		latestOutput := len(txBuilder.Transaction.Outputs) - 1
 		changeCapacity := txBuilder.Transaction.Outputs[latestOutput].Capacity - sizeInBlock - 5000
 		txBuilder.Transaction.Outputs[latestOutput].Capacity = changeCapacity
 		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity)
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsAccount)
+		if err != nil {
+			return nil, "", fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
+		}
+		feeCapacity, _ := configCellBuilder.CommonFee()
+		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
+		changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - feeCapacity
+		txBuilder.Transaction.Outputs[0].Capacity = changeCapacity
+		log.Info("buildTx:", p.action, sizeInBlock, changeCapacity)
 	}
 
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
@@ -222,7 +232,6 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		Action:    p.action,
 		SubAction: p.subAction,
 		Account:   p.account,
-		Capacity:  0,
 		BuilderTx: txBuilder.DasTxBuilderTransaction,
 	}
 	signKey := sic.SignKey()
