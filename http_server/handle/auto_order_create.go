@@ -163,7 +163,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		premiumBase = config.Cfg.Stripe.PremiumBase
 		premiumAmount = amount
 		amount = amount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
-		amount = decimal.NewFromInt(amount.IntPart())
+		amount = decimal.NewFromInt(amount.Ceil().IntPart())
 		premiumAmount = amount.Sub(premiumAmount)
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 	}
