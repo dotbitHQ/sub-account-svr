@@ -148,6 +148,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
 		return nil
 	}
+	amount = RoundAmount(amount, req.TokenId)
 	//
 	//if req.TokenId == tables.TokenIdStripeUSD && amount.Cmp(decimal.NewFromFloat(0.52)) == -1 {
 	//	apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
@@ -232,4 +233,20 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+func RoundAmount(amount decimal.Decimal, tokenId tables.TokenId) decimal.Decimal {
+	switch tokenId {
+	case tables.TokenIdEth, tables.TokenIdBnb, tables.TokenIdMatic:
+		dec := decimal.New(1, 8)
+		amount = amount.Div(dec).Ceil().Mul(dec)
+	case tables.TokenIdCkb, tables.TokenIdDoge:
+		dec := decimal.New(1, 4)
+		amount = amount.Div(dec).Ceil().Mul(dec)
+	case tables.TokenIdTrx, tables.TokenIdErc20USDT,
+		tables.TokenIdBep20USDT, tables.TokenIdTrc20USDT:
+		dec := decimal.New(1, 3)
+		amount = amount.Div(dec).Ceil().Mul(dec)
+	}
+	return amount
 }
