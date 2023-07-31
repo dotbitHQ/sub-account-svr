@@ -156,7 +156,8 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 				smtRecord.EditRecords = string(recordsBys)
 			}
 		case common.SubActionRecycle:
-
+		case common.DasActionCreateApproval, common.DasActionDelayApproval,
+			common.DasActionRevokeApproval, common.DasActionFulfillApproval:
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action [%s]", v.Action)
 		}
