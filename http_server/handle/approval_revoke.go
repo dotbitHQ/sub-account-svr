@@ -21,22 +21,21 @@ import (
 	"time"
 )
 
-type ReqApprovalDelay struct {
+type ReqApprovalRevoke struct {
 	core.ChainTypeAddress
-	Account     string `json:"account" binding:"required"`
-	SealedUntil uint64 `json:"sealed_until" binding:"required"`
-	isMainAcc   bool
+	Account   string `json:"account" binding:"required"`
+	isMainAcc bool
 }
 
-type RespApprovalDelay struct {
+type RespApprovalRevoke struct {
 	SignInfoList
 }
 
-func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
+func (h *HttpHandle) ApprovalRevoke(ctx *gin.Context) {
 	var (
-		funcName               = "ReqApprovalDelay"
+		funcName               = "ApprovalRevoke"
 		clientIp, remoteAddrIP = GetClientIp(ctx)
-		req                    ReqApprovalDelay
+		req                    ReqApprovalRevoke
 		apiResp                api_code.ApiResp
 		err                    error
 	)
@@ -49,13 +48,13 @@ func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
 
-	if err = h.doApprovalDelay(&req, &apiResp); err != nil {
+	if err = h.doApprovalRevoke(&req, &apiResp); err != nil {
 		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalDelay(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalRevoke(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -72,13 +71,13 @@ func (h *HttpHandle) doApprovalDelay(req *ReqApprovalDelay, apiResp *api_code.Ap
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalDelayMainAccount(req, apiResp)
+		return h.doApprovalRevokeMainAccount(req, apiResp)
 	}
-	return h.doApprovalDelaySubAccount(req, apiResp)
+	return h.doApprovalRevokeSubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
-	accInfo, accountBuilder, _, err := h.doApprovalDelayCheck(req, apiResp)
+func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
+	accInfo, accountBuilder, _, err := h.doApprovalRevokeCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -129,23 +128,16 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 	// witness account cell
-	accWitness, accData, err := accountBuilder.GenWitness(&witness.AccountCellParam{
-		Action: common.DasActionDelayApproval,
-		AccountApproval: witness.AccountApproval{
-			Action: witness.AccountApprovalActionTransfer,
-			Params: witness.AccountApprovalParams{
-				Transfer: witness.AccountApprovalParamsTransfer{
-					SealedUntil: req.SealedUntil,
-				},
-			},
-		},
-	})
-	txParams.Witnesses = append(txParams.Witnesses, accWitness)
-
 	res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
 	if err != nil {
 		return fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
+
+	accWitness, accData, err := accountBuilder.GenWitness(&witness.AccountCellParam{
+		Action:          common.DasActionRevokeApproval,
+		AccountApproval: accountBuilder.AccountApproval,
+	})
+	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[accountBuilder.Index][common.HashBytesLen:]...)
 
 	lockArgs, err := h.DasCore.Daf().HexToArgs(core.DasAddressHex{
@@ -175,7 +167,7 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 
 	signList, txHash, err := h.buildTx(&paramBuildTx{
 		txParams: &txParams,
-		action:   common.DasActionDelayApproval,
+		action:   common.DasActionRevokeApproval,
 		account:  req.Account,
 	})
 	if err != nil {
@@ -191,8 +183,8 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 	return nil
 }
 
-func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
-	subAcc, _, oldData, err := h.doApprovalDelayCheck(req, apiResp)
+func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
+	subAcc, _, subOldData, err := h.doApprovalRevokeCheck(req, apiResp)
 	if err != nil {
 		return err
 	}
@@ -211,25 +203,16 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
 	smtKv := make([]smt.SmtKv, 0)
 
-	oldData.AccountApproval.Params.Transfer.SealedUntil = req.SealedUntil
-	approvalMol, err := oldData.AccountApproval.GenToMolecule()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return err
-	}
-
 	listRecord = append(listRecord, tables.TableSmtRecordInfo{
 		SvrName:         config.Cfg.Slb.SvrName,
 		AccountId:       subAcc.AccountId,
 		Nonce:           subAcc.Nonce + 1,
 		RecordType:      tables.RecordTypeDefault,
 		Action:          common.DasActionUpdateSubAccount,
-		SubAction:       common.DasActionDelayApproval,
+		SubAction:       common.SubActionRevokeApproval,
 		ParentAccountId: subAcc.ParentAccountId,
 		Account:         subAcc.Account,
-		EditKey:         common.EditKeyApproval,
 		Timestamp:       now.UnixNano() / 1e6,
-		Content:         common.Bytes2Hex(approvalMol.AsSlice()),
 	})
 
 	ownerHex := core.DasAddressHex{
@@ -278,8 +261,7 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 		KeyValue:  string(keyValueStr),
 		ChainType: ownerHex.ChainType,
 		Address:   ownerHex.AddressHex,
-		SignRole:  common.ParamOwner,
-		SubAction: common.DasActionDelayApproval,
+		SubAction: common.SubActionRevokeApproval,
 	}
 	signInfo.InitMintSignId(subAcc.ParentAccountId)
 	for i := range listRecord {
@@ -294,11 +276,16 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 		ChainType:     ownerHex.ChainType,
 		AlgId:         ownerHex.DasAlgorithmId,
 		Address:       ownerHex.AddressHex,
-		SubAction:     common.DasActionDelayApproval,
+		SubAction:     common.SubActionRevokeApproval,
 		MinSignInfo:   signInfo,
 		ListSmtRecord: listRecord,
 	}
-	signData := dataCache.GetApprovalSignData(approvalMol, apiResp)
+
+	accApproval, err := subOldData.AccountApproval.GenToMolecule()
+	if err != nil {
+		return err
+	}
+	signData := dataCache.GetApprovalSignData(accApproval, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
@@ -315,7 +302,7 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 	resp := RespApprovalEnable{
 		SignInfoList: SignInfoList{
 			Action:    common.DasActionUpdateSubAccount,
-			SubAction: common.DasActionDelayApproval,
+			SubAction: common.SubActionRevokeApproval,
 			SignKey:   signKey,
 			List: []SignInfo{
 				{
@@ -330,7 +317,7 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 	return nil
 }
 
-func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_code.ApiResp) (accInfo *tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
+func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) (accInfo *tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -353,27 +340,30 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
 		res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
 		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return nil, nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
 		}
 		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 		}
-		if req.SealedUntil <= accountBuilder.AccountApproval.Params.Transfer.SealedUntil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealed_until invalid")
-			return nil, nil, nil, fmt.Errorf("sealed_until invalid")
+
+		if uint64(time.Now().Unix()) <= accountBuilder.AccountApproval.Params.Transfer.ProtectedUntil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protected_until invalid")
+			return nil, nil, nil, fmt.Errorf("protected_until invalid")
 		}
 	} else {
 		_, subAccountBuilderMap, err := h.TxTool.GetOldSubAccount([]string{accountId}, "")
 		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return nil, nil, nil, fmt.Errorf("GetOldSubAccount err: %s", err.Error())
 		}
 		subAccountData := subAccountBuilderMap[accountId]
 		oldData = subAccountData.CurrentSubAccountData
 
-		if req.SealedUntil <= oldData.AccountApproval.Params.Transfer.SealedUntil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealed_until invalid")
-			return nil, nil, nil, fmt.Errorf("sealed_until invalid")
+		if uint64(time.Now().Unix()) <= oldData.AccountApproval.Params.Transfer.ProtectedUntil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protected_until invalid")
+			return nil, nil, nil, fmt.Errorf("protected_until invalid")
 		}
 	}
 	return &acc, accountBuilder, oldData, nil
