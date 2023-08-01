@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
@@ -469,7 +468,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		return err
 	}
 	req.SignAddress = signAddressHex.AddressHex
-	fmt.Println("-----", loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
+	log.Info("-----", loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
 	idx, err := h.DasCore.GetIdxOfKeylist(loginAddrHex, signAddressHex)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "GetIdxOfKeylist err: "+err.Error())
@@ -483,12 +482,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 	for i, signList := range req.List {
 		for j, _ := range signList.SignList {
 			if req.List[i].SignList[j].SignType == common.DasAlgorithmIdWebauthn {
-				signMsg := common.Hex2Bytes(req.List[i].SignList[j].SignMsg)
-				idxMolecule := molecule.GoU8ToMoleculeU8(uint8(idx))
-				idxLen := molecule.GoU8ToMoleculeU8(uint8(len(idxMolecule.RawData())))
-				signMsgRes := append(idxLen.RawData(), idxMolecule.RawData()...)
-				signMsgRes = append(signMsgRes, signMsg...)
-				req.List[i].SignList[j].SignMsg = common.Bytes2Hex(signMsgRes)
+				h.DasCore.AddPkIndexForSignMsg(&req.List[i].SignList[j].SignMsg, idx)
 			}
 		}
 	}
