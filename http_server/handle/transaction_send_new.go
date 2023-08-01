@@ -448,7 +448,15 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
 			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 		}
-		txAddr = chainTypeAddress.KeyInfo.Key
+		txAddrAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
+			ChainType:     common.ChainTypeWebauthn,
+			AddressNormal: chainTypeAddress.KeyInfo.Key,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "chainTypeAddress.KeyInfo.Key  NormalToHex err")
+			return err
+		}
+		txAddr = txAddrAddressHex.AddressHex
 	}
 
 	loginAddrHex := core.DasAddressHex{
