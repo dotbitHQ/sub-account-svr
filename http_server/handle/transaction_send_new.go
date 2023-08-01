@@ -534,7 +534,7 @@ func doSignCheck(signData txbuilder.SignData, signMsg, loginAddress, signAddress
 		}
 	case common.DasAlgorithmIdWebauthn:
 		//no need to verify if signAddr is in loginaddr`s keylist
-		signOk, err = sign.VerifyWebauthnSignature([]byte(signData.SignMsg), common.Hex2Bytes(signMsg), signAddress)
+		signOk, err = sign.VerifyWebauthnSignature([]byte(signData.SignMsg), common.Hex2Bytes(signMsg), signAddress[20:])
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifyWebauthnSignature error")
 			return "", fmt.Errorf("VerifyWebauthnSignature err: %s [%s]", err.Error(), signAddress)
