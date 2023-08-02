@@ -382,6 +382,16 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
+	approval, err := h.DbDao.GetAccountApprovalByAccountId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+		return
+	}
+	if approval.ID > 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeApprovalAlreadyExist, "approval already exist")
+		return
+	}
+
 	keys := []core.ChainTypeAddress{req.Platform, req.Owner, req.To}
 	for i := 0; i < len(keys); i++ {
 		for j := i + 1; j < len(keys); j++ {

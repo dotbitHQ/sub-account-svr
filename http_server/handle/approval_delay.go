@@ -347,17 +347,31 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 		return
 	}
 
+	ownerHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return
+	}
+	if accInfo.OwnerChainType != ownerHex.ChainType || !strings.EqualFold(accInfo.Owner, ownerHex.AddressHex) {
+		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
+		return
+	}
+
 	var accountBuilder *witness.AccountCellDataBuilder
 	var oldData *witness.SubAccountData
 	if req.isMainAcc {
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
 		res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+			err = fmt.Errorf("GetTransaction err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil, nil, nil, err
 		}
 		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
+			err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil, nil, nil, err
 		}
 		if req.SealedUntil <= accountBuilder.AccountApproval.Params.Transfer.SealedUntil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealed_until invalid")
@@ -366,7 +380,9 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 	} else {
 		_, subAccountBuilderMap, err := h.TxTool.GetOldSubAccount([]string{accountId}, "")
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+			err = fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil, nil, nil, err
 		}
 		subAccountData := subAccountBuilderMap[accountId]
 		oldData = subAccountData.CurrentSubAccountData
