@@ -73,7 +73,7 @@ func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err err
 func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
 	var currentSubAccount witness.SubAccountData
 	var subAccountNew witness.SubAccountNew
-	subAccountNew.Version = witness.SubAccountNewVersion2
+	subAccountNew.Version = witness.SubAccountNewVersion3
 	subAccountNew.Action = t.SubAction
 
 	if contractDas == nil {
