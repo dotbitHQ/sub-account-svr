@@ -207,13 +207,8 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity)
 	case common.DasActionCreateApproval, common.DasActionDelayApproval,
 		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
-		configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsAccount)
-		if err != nil {
-			return nil, "", fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
-		}
-		feeCapacity, _ := configCellBuilder.CommonFee()
 		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-		changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - feeCapacity
+		changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - 1000
 		txBuilder.Transaction.Outputs[0].Capacity = changeCapacity
 		log.Info("buildTx:", p.action, sizeInBlock, changeCapacity)
 	}
