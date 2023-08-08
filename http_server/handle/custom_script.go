@@ -186,6 +186,7 @@ type paramBuildTx struct {
 	action     common.DasAction
 	subAction  common.SubAction
 	account    string
+	evmChainId int64
 }
 
 func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
@@ -218,6 +219,14 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		return nil, "", fmt.Errorf("GenerateDigestListFromTx err: %s", err.Error())
 	}
 
+	var mmJsonObj *common.MMJsonObj
+	if signList[0].SignType == common.DasAlgorithmIdEth712 {
+		mmJsonObj, err = txBuilder.BuildMMJsonObj(p.evmChainId)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	log.Info("buildTx:", txBuilder.TxString())
 
 	// cache
@@ -244,12 +253,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		SubAction: p.subAction,
 		SignKey:   signKey,
 	}
-
-	if signList[0].SignType == common.DasAlgorithmIdEth712 {
-		mmJsonObj, err := txBuilder.BuildMMJsonObj(0)
-		if err != nil {
-			return nil, "", err
-		}
+	if mmJsonObj != nil {
 		signListInfo.SignList = signList
 		signListInfo.MMJson = mmJsonObj
 	} else {

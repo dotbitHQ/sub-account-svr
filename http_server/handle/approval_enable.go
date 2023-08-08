@@ -28,6 +28,7 @@ type ReqApprovalEnable struct {
 	Account        string                `json:"account" binding:"required"`
 	ProtectedUntil uint64                `json:"protected_until" binding:"required"`
 	SealedUntil    uint64                `json:"sealed_until" binding:"required"`
+	EvmChainId     int64                 `json:"evm_chain_id"`
 	isMainAcc      bool
 }
 
@@ -136,13 +137,9 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	if err != nil {
 		return fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
-	builderMap, err := witness.AccountCellDataBuilderMapFromTx(res.Transaction, common.DataTypeNew)
+	builder, err := witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
 	if err != nil {
 		return fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
-	}
-	builder, ok := builderMap[req.Account]
-	if !ok {
-		return fmt.Errorf("builderMap not exist account: %s", req.Account)
 	}
 
 	accWitness, accData, err := builder.GenWitness(&witness.AccountCellParam{
@@ -192,9 +189,10 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
 	signList, txHash, err := h.buildTx(&paramBuildTx{
-		txParams: &txParams,
-		action:   common.DasActionCreateApproval,
-		account:  req.Account,
+		txParams:   &txParams,
+		action:     common.DasActionCreateApproval,
+		account:    req.Account,
+		evmChainId: req.EvmChainId,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
