@@ -158,7 +158,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 			},
 		},
 	})
-	log.Info("doApprovalEnableSubAccount accWitness:", toolib.JsonString(accWitness))
+	log.Info("doApprovalEnableSubAccount accWitness:", common.Bytes2Hex(accWitness))
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[builder.Index][common.HashBytesLen:]...)
 
