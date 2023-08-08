@@ -158,7 +158,11 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 			},
 		},
 	})
-	log.Info("doApprovalEnableSubAccount accWitness:", common.Bytes2Hex(accWitness))
+	if err != nil {
+		log.Error("GenWitness err:", err.Error())
+		return err
+	}
+
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[builder.Index][common.HashBytesLen:]...)
 

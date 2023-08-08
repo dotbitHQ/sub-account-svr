@@ -25,6 +25,7 @@ type ReqApprovalDelay struct {
 	core.ChainTypeAddress
 	Account     string `json:"account" binding:"required"`
 	SealedUntil uint64 `json:"sealed_until" binding:"required"`
+	EvmChainId  int64  `json:"evm_chain_id"`
 	isMainAcc   bool
 }
 
@@ -174,9 +175,10 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
 	signList, txHash, err := h.buildTx(&paramBuildTx{
-		txParams: &txParams,
-		action:   common.DasActionDelayApproval,
-		account:  req.Account,
+		txParams:   &txParams,
+		action:     common.DasActionDelayApproval,
+		account:    req.Account,
+		evmChainId: req.EvmChainId,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
