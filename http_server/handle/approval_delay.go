@@ -52,6 +52,9 @@ func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
 
 	if err = h.doApprovalDelay(&req, &apiResp); err != nil {
 		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP)
+		if apiResp.ErrNo == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		}
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
@@ -141,6 +144,10 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 			},
 		},
 	})
+	if err != nil {
+		log.Error("GenWitness err:", err.Error())
+		return err
+	}
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
 	res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
