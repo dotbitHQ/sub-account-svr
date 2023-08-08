@@ -184,7 +184,7 @@ type paramBuildTx struct {
 	chainType  common.ChainType
 	address    string
 	action     common.DasAction
-	subAction  common.DasAction
+	subAction  common.SubAction
 	account    string
 }
 
@@ -225,7 +225,6 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		ChainType: p.chainType,
 		Address:   p.address,
 		Action:    p.action,
-		SubAction: p.subAction,
 		Account:   p.account,
 		BuilderTx: txBuilder.DasTxBuilderTransaction,
 	}

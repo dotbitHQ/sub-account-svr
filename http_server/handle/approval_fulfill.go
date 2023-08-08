@@ -341,9 +341,11 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, apiResp *ap
 		return
 	}
 	if uint64(time.Now().Unix()) <= approval.SealedUntil {
-		ownerHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		var ownerHex *core.DasAddressHex
+		ownerHex, err = req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			err = fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 			return
 		}
 		if ownerHex.DasAlgorithmId != approval.OwnerAlgorithmID || !strings.EqualFold(ownerHex.AddressHex, approval.Owner) {
