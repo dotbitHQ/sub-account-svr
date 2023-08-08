@@ -172,6 +172,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
+	var err error
 	var manualChange uint64
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
@@ -180,7 +181,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if autoTotalCapacity == 0 {
 			needCapacity += p.CommonFee
 		}
-		var err error
 		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      balanceDasLock,
 			DasType:      balanceDasType,
@@ -199,7 +199,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var autoChange uint64
 	autoBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	if autoTotalCapacity > 0 {
-		var err error
 		autoChange, autoBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      p.BalanceDasLock,
 			DasType:      p.BalanceDasType,
@@ -211,6 +210,20 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
 		autoChange += p.CommonFee
+	}
+
+	balanceLiveCells := make([]*indexer.LiveCell, 0)
+	if manualChange == 0 && autoChange == 0 {
+		_, balanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
+			DasLock:      p.BalanceDasLock,
+			DasType:      p.BalanceDasType,
+			NeedCapacity: common.OneCkb,
+		})
+		if err != nil {
+			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
+			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+		}
 	}
 
 	// update smt status
@@ -332,6 +345,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			PreviousOutput: v.OutPoint,
 		})
 	}
+	for _, v := range balanceLiveCells {
+		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+			PreviousOutput: v.OutPoint,
+		})
+	}
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
@@ -368,6 +386,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			txParams.Outputs = append(txParams.Outputs, splitList[i])
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
+	}
+	for _, v := range balanceLiveCells {
+		txParams.Outputs = append(txParams.Outputs, v.Output)
+		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 
 	// witness
