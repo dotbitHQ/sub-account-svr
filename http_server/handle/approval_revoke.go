@@ -285,7 +285,20 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 	if err != nil {
 		return err
 	}
-	signData := dataCache.GetApprovalSignData(accApproval, apiResp)
+	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
+	if err != nil {
+		return err
+	}
+	if approvalInfo.ID == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+		return fmt.Errorf("account approval not exist")
+	}
+	if uint64(time.Now().Unix()) < approvalInfo.ProtectedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account approval protected")
+		return fmt.Errorf("account approval protected")
+	}
+
+	signData := dataCache.GetApprovalSignData(common.DasAlgorithmIdEth, accApproval, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

@@ -434,7 +434,7 @@ func (u *UpdateSubAccountCache) GetCreateSignData(algId common.DasAlgorithmId, a
 	return
 }
 
-func (u *UpdateSubAccountCache) GetApprovalSignData(approvalMol *molecule.AccountApproval, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
+func (u *UpdateSubAccountCache) GetApprovalSignData(algId common.DasAlgorithmId, approvalMol *molecule.AccountApproval, apiResp *api_code.ApiResp) (signData txbuilder.SignData) {
 	buf := bytes.NewBuffer([]byte{})
 	buf.WriteString(u.SubAction)
 	buf.Write(approvalMol.AsSlice())
@@ -451,6 +451,10 @@ func (u *UpdateSubAccountCache) GetApprovalSignData(approvalMol *molecule.Accoun
 		return
 	}
 	signData.SignMsg = common.DotBitPrefix + hex.EncodeToString(bys)
+	signData.SignType = algId
+	if signData.SignType == common.DasAlgorithmIdEth712 {
+		signData.SignType = common.DasAlgorithmIdEth
+	}
 	return
 }
 

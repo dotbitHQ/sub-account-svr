@@ -78,6 +78,8 @@ const (
 	ApiCodeAccountRenewNoSupportCustomScript  ApiCode = 40048
 	ApiCodeSubAccountRenewing                 ApiCode = 40049
 	ApiCodeApprovalAlreadyExist               ApiCode = 40052
+	ApiCodeAccountApprovalNotExist            ApiCode = 40053
+	ApiCodeAccountApprovalProtected           ApiCode = 40054
 )
 
 const (

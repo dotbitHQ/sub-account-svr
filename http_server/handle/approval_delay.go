@@ -307,7 +307,7 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 		MinSignInfo:   signInfo,
 		ListSmtRecord: listRecord,
 	}
-	signData := dataCache.GetApprovalSignData(approvalMol, apiResp)
+	signData := dataCache.GetApprovalSignData(ownerHex.DasAlgorithmId, approvalMol, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

@@ -433,15 +433,25 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "fail to search account")
 		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
 	}
-	signMsg := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(dataCache.SignData, signMsg, acc.Owner, apiResp); err != nil {
-		return fmt.Errorf("doSignCheck err: %s", err.Error())
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		return nil
+	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(dataCache.AccountId)
+	if err != nil {
+		return err
 	}
-
-	dataCache.MinSignInfo.Signature = signMsg
+	if approvalInfo.ID == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+		return fmt.Errorf("account approval not exist")
+	}
+	if dataCache.SubAction == common.SubActionFullfillApproval &&
+		uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
+		signMsg := req.List[0].SignList[0].SignMsg
+		if signMsg, err = doSignCheck(dataCache.SignData, signMsg, acc.Owner, apiResp); err != nil {
+			return fmt.Errorf("doSignCheck err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+		dataCache.MinSignInfo.Signature = signMsg
+	}
 
 	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")

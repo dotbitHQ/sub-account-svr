@@ -285,7 +285,21 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 	if err != nil {
 		return err
 	}
-	signData := dataCache.GetApprovalSignData(accApproval, apiResp)
+
+	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
+	if err != nil {
+		return err
+	}
+	if approvalInfo.ID == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+		return fmt.Errorf("account approval not exist")
+	}
+
+	var algId common.DasAlgorithmId
+	if uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
+		algId = ownerHex.DasAlgorithmId
+	}
+	signData := dataCache.GetApprovalSignData(algId, accApproval, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
