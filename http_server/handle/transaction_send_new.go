@@ -442,10 +442,15 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
 		return fmt.Errorf("account approval not exist")
 	}
-	if dataCache.SubAction == common.SubActionFullfillApproval &&
+	if dataCache.SubAction != common.SubActionFullfillApproval ||
 		uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
 		signMsg := req.List[0].SignList[0].SignMsg
-		if signMsg, err = doSignCheck(dataCache.SignData, signMsg, acc.Owner, apiResp); err != nil {
+
+		addr := acc.Owner
+		if dataCache.SubAction == common.SubActionRevokeApproval {
+			addr = approvalInfo.Platform
+		}
+		if signMsg, err = doSignCheck(dataCache.SignData, signMsg, addr, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
