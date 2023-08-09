@@ -434,22 +434,26 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
 	}
 
-	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(dataCache.AccountId)
-	if err != nil {
-		return err
+	var approvalInfo tables.ApprovalInfo
+	if dataCache.SubAction != common.SubActionCreateApproval {
+		approvalInfo, err = h.DbDao.GetAccountApprovalByAccountId(dataCache.AccountId)
+		if err != nil {
+			return err
+		}
+		if approvalInfo.ID == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+			return fmt.Errorf("account approval not exist")
+		}
 	}
-	if approvalInfo.ID == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
-		return fmt.Errorf("account approval not exist")
-	}
+
 	if dataCache.SubAction != common.SubActionFullfillApproval ||
 		uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
-		signMsg := req.List[0].SignList[0].SignMsg
 
 		addr := acc.Owner
 		if dataCache.SubAction == common.SubActionRevokeApproval {
 			addr = approvalInfo.Platform
 		}
+		signMsg := req.List[0].SignList[0].SignMsg
 		if signMsg, err = doSignCheck(dataCache.SignData, signMsg, addr, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
