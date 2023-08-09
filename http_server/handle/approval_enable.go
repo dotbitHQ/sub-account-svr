@@ -388,6 +388,19 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
+	if uint64(nowTime.Unix()) > req.ProtectedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protectedUntil must be greater than current time")
+		return
+	}
+	if uint64(nowTime.Unix()) > req.SealedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealedUntil must be greater than current time")
+		return
+	}
+	if req.SealedUntil <= req.ProtectedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealedUntil must be greater than protectedUntil")
+		return
+	}
+
 	approval, err := h.DbDao.GetAccountApprovalByAccountId(accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
