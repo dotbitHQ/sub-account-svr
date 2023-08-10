@@ -182,29 +182,6 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 
 			currentSubAccount = *oldSubAccount
 			currentSubAccount.Nonce++
-
-			switch t.SubAction {
-			case common.SubActionCreateApproval:
-				currentSubAccount.Status = common.AccountStatusOnApproval
-				accountApproval, err := witness.AccountApprovalFromSlice(common.Hex2Bytes(t.EditValue))
-				if err != nil {
-					return nil, nil, fmt.Errorf("AccountApprovalFromSlice err: %s", err.Error())
-				}
-				currentSubAccount.AccountApproval = *accountApproval
-			case common.DasActionDelayApproval:
-				accountApproval, err := witness.AccountApprovalFromSlice(common.Hex2Bytes(t.EditValue))
-				if err != nil {
-					return nil, nil, fmt.Errorf("AccountApprovalFromSlice err: %s", err.Error())
-				}
-				currentSubAccount.AccountApproval = *accountApproval
-			case common.SubActionRevokeApproval:
-				currentSubAccount.Status = common.AccountStatusNormal
-				currentSubAccount.AccountApproval = witness.AccountApproval{}
-			case common.SubActionFullfillApproval:
-				currentSubAccount.Status = common.AccountStatusNormal
-				currentSubAccount.Lock = currentSubAccount.AccountApproval.Params.Transfer.ToLock
-			}
-
 			if t.SignRole != "" {
 				subAccountNew.SignRole = common.Hex2Bytes(t.SignRole)
 			}
