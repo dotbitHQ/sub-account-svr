@@ -255,11 +255,9 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 		}
-		key := smt.AccountIdToSmtH256(v.AccountId)
-		value := subAccountData.ToH256()
 		smtKv = append(smtKv, smt.SmtKv{
-			Key:   key,
-			Value: value,
+			Key:   smt.AccountIdToSmtH256(v.AccountId),
+			Value: subAccountData.ToH256(),
 		})
 		common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 		subAccountIdMap[len(subAccountList)] = v.AccountId
