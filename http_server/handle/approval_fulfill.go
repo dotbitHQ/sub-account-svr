@@ -5,15 +5,12 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
-	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
-	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -199,10 +196,28 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 		return fmt.Errorf("account expiring soon")
 	}
 
-	listRecord := make([]tables.TableSmtRecordInfo, 0)
-	listKeyValue := make([]tables.MintSignInfoKeyValue, 0)
-	smtKv := make([]smt.SmtKv, 0)
+	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
+	if err != nil {
+		return err
+	}
+	if approvalInfo.ID == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+		return fmt.Errorf("account approval not exist")
+	}
+	ownerHex := core.DasAddressHex{
+		DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
+		AddressHex:     subAcc.Owner,
+		ChainType:      subAcc.OwnerChainType,
+	}
 
+	var signRole string
+	var algId common.DasAlgorithmId
+	if uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
+		algId = ownerHex.DasAlgorithmId
+		signRole = common.ParamOwner
+	}
+
+	listRecord := make([]tables.TableSmtRecordInfo, 0)
 	listRecord = append(listRecord, tables.TableSmtRecordInfo{
 		SvrName:         config.Cfg.Slb.SvrName,
 		AccountId:       subAcc.AccountId,
@@ -213,60 +228,9 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 		ParentAccountId: subAcc.ParentAccountId,
 		Account:         subAcc.Account,
 		Timestamp:       now.UnixNano() / 1e6,
+		ExpiredAt:       expiredAt,
+		SignRole:        signRole,
 	})
-
-	ownerHex := core.DasAddressHex{
-		DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
-		AddressHex:     subAcc.Owner,
-		ChainType:      subAcc.OwnerChainType,
-	}
-	ownerArgs, err := h.DasCore.Daf().HexToArgs(ownerHex, ownerHex)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "HexToArgs err")
-		return fmt.Errorf("HexToArgs err: %s", err.Error())
-	}
-
-	smtKey := smt.AccountIdToSmtH256(subAcc.AccountId)
-	smtValue, err := blake2b.Blake256(ownerArgs)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt value err")
-		return fmt.Errorf("blake2b.Blake256 err: %s", err.Error())
-	}
-	smtKv = append(smtKv, smt.SmtKv{
-		Key:   smtKey,
-		Value: smtValue,
-	})
-
-	listKeyValue = append(listKeyValue, tables.MintSignInfoKeyValue{
-		Key:   subAcc.AccountId,
-		Value: common.Bytes2Hex(ownerArgs),
-	})
-
-	tree := smt.NewSmtSrv(*h.SmtServerUrl, "")
-	r, err := tree.UpdateSmt(smtKv, smt.SmtOpt{GetProof: false, GetRoot: true})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt update err")
-		return fmt.Errorf("tree.Update err: %s", err.Error())
-	}
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "smt root err")
-		return fmt.Errorf("tree.Root err: %s", err.Error())
-	}
-	keyValueStr, _ := json.Marshal(&listKeyValue)
-
-	signInfo := &tables.TableMintSignInfo{
-		SmtRoot:   common.Bytes2Hex(r.Root),
-		ExpiredAt: expiredAt,
-		Timestamp: uint64(now.UnixNano() / 1e6),
-		KeyValue:  string(keyValueStr),
-		ChainType: ownerHex.ChainType,
-		Address:   ownerHex.AddressHex,
-		SubAction: common.SubActionFullfillApproval,
-	}
-	signInfo.InitMintSignId(subAcc.ParentAccountId)
-	for i := range listRecord {
-		listRecord[i].MintSignId = signInfo.MintSignId
-	}
 
 	// sign info
 	dataCache := UpdateSubAccountCache{
@@ -277,27 +241,13 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 		AlgId:         ownerHex.DasAlgorithmId,
 		Address:       ownerHex.AddressHex,
 		SubAction:     common.SubActionFullfillApproval,
-		MinSignInfo:   signInfo,
 		ListSmtRecord: listRecord,
+		ExpiredAt:     expiredAt,
 	}
 
 	accApproval, err := subOldData.AccountApproval.GenToMolecule()
 	if err != nil {
 		return err
-	}
-
-	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
-	if err != nil {
-		return err
-	}
-	if approvalInfo.ID == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
-		return fmt.Errorf("account approval not exist")
-	}
-
-	var algId common.DasAlgorithmId
-	if uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
-		algId = ownerHex.DasAlgorithmId
 	}
 	signData := dataCache.GetApprovalSignData(algId, accApproval, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {

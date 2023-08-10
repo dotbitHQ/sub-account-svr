@@ -305,8 +305,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				price := molecule.GoU64ToMoleculeU64(subAccountPrice)
 				subAccountNew.EditValue = append(subAccountNew.EditValue, price.AsSlice()...)
 			}
-		case common.SubActionCreateApproval, common.SubActionDelayApproval:
-			subAccountNew.EditValue = common.Hex2Bytes(v.Content)
 		}
 	}
 

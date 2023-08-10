@@ -438,7 +438,7 @@ func (u *UpdateSubAccountCache) GetApprovalSignData(algId common.DasAlgorithmId,
 	buf := bytes.NewBuffer([]byte{})
 	buf.WriteString(u.SubAction)
 	buf.Write(approvalMol.AsSlice())
-	if err := binary.Write(buf, binary.LittleEndian, u.MinSignInfo.ExpiredAt); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, u.ExpiredAt); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("binary.Write err: %s", err.Error()))
 		return
 	}
