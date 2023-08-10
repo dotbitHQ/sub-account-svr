@@ -116,7 +116,10 @@ func (h *HttpHandle) doSmtCheck(req *ReqSmtCheck, apiResp *api_code.ApiResp) err
 	// check
 	for _, v := range smtList {
 		item, _ := subAccountBuilderMap[v.AccountId]
-		chainValue := item.CurrentSubAccountData.ToH256()
+		chainValue, err := item.CurrentSubAccountData.ToH256()
+		if err != nil {
+			return err
+		}
 		diff := common.Bytes2Hex(chainValue) != v.LeafDataHash
 		resp.List = append(resp.List, SmtCheckData{
 			AccountId:  v.AccountId,
