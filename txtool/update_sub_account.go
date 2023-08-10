@@ -255,9 +255,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 		}
+
+		value, err := subAccountData.ToH256()
+		if err != nil {
+			return nil, err
+		}
 		smtKv = append(smtKv, smt.SmtKv{
 			Key:   smt.AccountIdToSmtH256(v.AccountId),
-			Value: subAccountData.ToH256(),
+			Value: value,
 		})
 		common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
 		subAccountIdMap[len(subAccountList)] = v.AccountId
@@ -661,7 +666,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
-			value := subAccountData.ToH256()
+			value, err := subAccountData.ToH256()
+			if err != nil {
+				return nil, err
+			}
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
 				Key:   key,
@@ -689,7 +697,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 				return nil, fmt.Errorf("GetCurrentSubAccount err: %s", err.Error())
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
-			value := subAccountData.ToH256()
+			value, err := subAccountData.ToH256()
+			if err != nil {
+				return nil, err
+			}
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
 				Key:   key,
