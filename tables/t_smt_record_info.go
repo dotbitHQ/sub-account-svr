@@ -191,6 +191,11 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			subAccountNew.EditKey = t.EditKey
 			if t.EditValue != "" {
 				subAccountNew.EditValue = common.Hex2Bytes(t.EditValue)
+				accApproval, err := witness.AccountApprovalFromSlice(subAccountNew.EditValue)
+				if err != nil {
+					return nil, nil, err
+				}
+				currentSubAccount.AccountApproval = *accApproval
 			}
 			return &currentSubAccount, &subAccountNew, nil
 		default:
