@@ -11,7 +11,7 @@ import (
 type TableMintSignInfo struct {
 	Id         uint64           `json:"id" gorm:"column:id; primaryKey; type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '';"`
 	MintSignId string           `json:"mint_sign_id" gorm:"column:mint_sign_id; uniqueIndex:uk_mint_sign_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Signature  string           `json:"signature" gorm:"column:signature; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	Signature  string           `json:"signature" gorm:"column:signature; type:text NOT NULL DEFAULT '' COMMENT '';"`
 	SignRole   string           `json:"sign_role" gorm:"column:sign_role; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SubAction  common.SubAction `json:"sub_action" gorm:"column:sub_action; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SmtRoot    string           `json:"smt_root" gorm:"column:smt_root; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`

@@ -464,6 +464,59 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
+	//webauthn
+	keyListMap := make(map[string]bool, 0)
+	for _, v := range p.SmtRecordInfoList {
+		if v.LoginAddress == v.SignAddress || v.LoginChainType != common.ChainTypeWebauthn {
+			continue
+		}
+		addrHex := core.DasAddressHex{
+			DasAlgorithmId:    common.DasAlgorithmIdWebauthn,
+			DasSubAlgorithmId: common.DasWebauthnSubAlgorithmIdES256,
+			AddressHex:        v.LoginAddress,
+			AddressPayload:    common.Hex2Bytes(v.LoginAddress),
+			ChainType:         common.ChainTypeWebauthn,
+		}
+		lockArgs, err := s.DasCore.Daf().HexToArgs(addrHex, addrHex)
+		keyListConfigCellContract, err := core.GetDasContractInfo(common.DasKeyListCellType)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		}
+
+		txParams.CellDeps = append(txParams.CellDeps, keyListConfigCellContract.ToCellDep())
+		cell, err := s.DasCore.GetKeyListCell(lockArgs)
+		if err != nil {
+			return nil, fmt.Errorf("GetKeyListCell(webauthn keyListCell) : %s", err.Error())
+		}
+		//has enable authorize
+		if cell != nil {
+			if _, ok := keyListMap[cell.OutPoint.TxHash.Hex()]; ok {
+				continue
+			}
+
+			txParams.CellDeps = append(txParams.CellDeps, &types.CellDep{
+				OutPoint: cell.OutPoint,
+				DepType:  types.DepTypeCode,
+			})
+			//2. add master device keyList witness
+			keyListConfigTx, err := s.DasCore.Client().GetTransaction(s.Ctx, cell.OutPoint.TxHash)
+			if err != nil {
+				return nil, fmt.Errorf("GetTransaction err : %s", err.Error())
+			}
+			webAuthnKeyListConfigBuilder, err := witness.WebAuthnKeyListDataBuilderFromTx(keyListConfigTx.Transaction, common.DataTypeNew)
+			if err != nil {
+				return nil, fmt.Errorf("WebAuthnKeyListDataBuilderFromTx err : %s", err.Error())
+			}
+
+			webAuthnKeyListConfigBuilder.DataEntityOpt.AsSlice()
+			tmp := webAuthnKeyListConfigBuilder.DeviceKeyListCellData.AsSlice()
+			keyListWitness := witness.GenDasDataWitnessWithByte(common.ActionDataTypeKeyListCfgCellData, tmp)
+			txParams.OtherWitnesses = append(txParams.OtherWitnesses, keyListWitness)
+			keyListMap[cell.OutPoint.TxHash.Hex()] = true
+		}
+
+	}
+
 	// build tx
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(s.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(&txParams); err != nil {
