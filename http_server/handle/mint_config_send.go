@@ -86,7 +86,7 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 	if _, err = doSignCheck(txbuilder.SignData{
 		SignType: res.DasAlgorithmId,
 		SignMsg:  signMsg,
-	}, req.List[0].SignList[0].SignMsg, res.AddressHex, apiResp); err != nil {
+	}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
 		return fmt.Errorf("doSignCheck err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil

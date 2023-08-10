@@ -38,12 +38,13 @@ type SignInfo struct {
 }
 
 type SignInfoList struct {
-	Action    common.DasAction     `json:"action"`
-	SubAction common.SubAction     `json:"sub_action"`
-	SignKey   string               `json:"sign_key"`
-	List      []SignInfo           `json:"list,omitempty"`
-	SignList  []txbuilder.SignData `json:"sign_list,omitempty"` // sign list
-	MMJson    *common.MMJsonObj    `json:"mm_json,omitempty"`   // 712 mmjson
+	Action      common.DasAction     `json:"action"`
+	SubAction   common.SubAction     `json:"sub_action"`
+	SignKey     string               `json:"sign_key"`
+	SignAddress string               `json:"sign_address"`
+	List        []SignInfo           `json:"list"`
+	SignList    []txbuilder.SignData `json:"sign_list,omitempty"` // sign list
+	MMJson      *common.MMJsonObj    `json:"mm_json,omitempty"`   // 712 mmjson
 }
 
 // =========

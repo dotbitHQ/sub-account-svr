@@ -67,3 +67,15 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 func (d *DbDao) Transaction(fc func(tx *gorm.DB) error) error {
 	return d.db.Transaction(fc)
 }
+
+func NewDbDao(dbMysql, parserMysql config.DbMysql) (*DbDao, error) {
+	db, err := toolib.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
+	if err != nil {
+		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
+	}
+	parserDb, err := toolib.NewGormDB(parserMysql.Addr, parserMysql.User, parserMysql.Password, parserMysql.DbName, parserMysql.MaxOpenConn, parserMysql.MaxIdleConn)
+	if err != nil {
+		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
+	}
+	return &DbDao{db: db, parserDb: parserDb}, nil
+}

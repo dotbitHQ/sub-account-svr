@@ -18,6 +18,7 @@ require (
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.5
 	github.com/shopspring/decimal v1.3.1
