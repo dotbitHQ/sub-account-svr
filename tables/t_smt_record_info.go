@@ -31,7 +31,7 @@ type TableSmtRecordInfo struct {
 	RegisterYears   uint64           `json:"register_years" gorm:"column:register_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RegisterArgs    string           `json:"register_args" gorm:"column:register_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditKey         string           `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
-	EditValue       string           `json:"edit_value" gorm:"column:edit_value;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	EditValue       string           `json:"edit_value" gorm:"type:text;column:edit_value"`
 	SignRole        string           `json:"sign_role" gorm:"column:sign_role;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
 	Signature       string           `json:"signature" gorm:"column:signature;type:text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	LoginChainType  common.ChainType `json:"login_chain_type" gorm:"column:login_chain_type"`
