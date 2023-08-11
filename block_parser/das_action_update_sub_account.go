@@ -10,6 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
+	"gorm.io/gorm"
 )
 
 func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (resp FuncTransactionHandleResp) {
@@ -28,23 +29,15 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 		resp.Err = fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 		return
 	}
-	parentAccountId, outpoint, refOutpoint := "", "", ""
-	for i, v := range req.Tx.Outputs {
+	refOutpoint, outpoint, err := b.getOutpoint(req, common.DASContractNameSubAccountCellType)
+	if err != nil {
+		resp.Err = fmt.Errorf("getOutpoint err: %s", err.Error())
+		return
+	}
+	parentAccountId := ""
+	for _, v := range req.Tx.Outputs {
 		if v.Type != nil && contractSub.IsSameTypeId(v.Type.CodeHash) {
 			parentAccountId = common.Bytes2Hex(v.Type.Args)
-			outpoint = common.OutPoint2String(req.TxHash, uint(i))
-		}
-	}
-	for _, v := range req.Tx.Inputs {
-		res, err := b.DasCore.Client().GetTransaction(b.Ctx, v.PreviousOutput.TxHash)
-		if err != nil {
-			resp.Err = fmt.Errorf("GetTransaction err: %s", err.Error())
-			return
-		}
-		tmp := res.Transaction.Outputs[v.PreviousOutput.Index]
-		if tmp.Type != nil && contractSub.IsSameTypeId(tmp.Type.CodeHash) {
-			refOutpoint = common.OutPointStruct2String(v.PreviousOutput)
-			break
 		}
 	}
 
@@ -62,10 +55,40 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 		return
 	}
 
+	approvalAction := make([]tables.TableSmtRecordInfo, 0)
+	for _, v := range smtRecordList {
+		switch v.SubAction {
+		case common.SubActionCreateApproval, common.SubActionDelayApproval,
+			common.SubActionRevokeApproval, common.SubActionFullfillApproval:
+			approvalAction = append(approvalAction, v)
+		}
+	}
+
 	// add task and smt records
 	if selfTask.TaskId != "" {
-		// maybe rollback
-		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber); err != nil {
+		if err := b.DbDao.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Model(tables.TableTaskInfo{}).Where("task_id=?", selfTask.TaskId).
+				Updates(map[string]interface{}{
+					"task_type":    tables.TaskTypeChain,
+					"smt_status":   tables.SmtStatusNeedToWrite,
+					"tx_status":    tables.TxStatusCommitted,
+					"block_number": req.BlockNumber,
+				}).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(tables.TableSmtRecordInfo{}).
+				Where("task_id=?", selfTask.TaskId).
+				Updates(map[string]interface{}{
+					"record_type": tables.RecordTypeChain,
+					"RecordBN":    req.BlockNumber,
+				}).Error; err != nil {
+				return err
+			}
+			if err := b.doApprovalAction(req, tx, approvalAction); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
 			resp.Err = fmt.Errorf("UpdateToChainTask err: %s", err.Error())
 			return
 		}
@@ -80,6 +103,139 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 	b.doNotifyLark(smtRecordList)
 
 	return
+}
+
+func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB, smtRecordList []tables.TableSmtRecordInfo) error {
+	refOutpoint, outpoint, err := b.getOutpoint(req, common.DASContractNameSubAccountCellType)
+	if err != nil {
+		return err
+	}
+	var sanb witness.SubAccountNewBuilder
+	builderMap, err := sanb.SubAccountNewMapFromTx(req.Tx)
+	if err != nil {
+		return err
+	}
+	for _, v := range smtRecordList {
+		accountInfo, err := b.DbDao.GetAccountInfoByAccountId(v.AccountId)
+		if err != nil {
+			return err
+		}
+		subAccBuilder, ok := builderMap[v.AccountId]
+		if !ok {
+			return fmt.Errorf("subAccBuilder not found: %s", v.AccountId)
+		}
+		subAccData := subAccBuilder.CurrentSubAccountData
+
+		switch v.SubAction {
+		case common.SubActionCreateApproval:
+			transfer := subAccData.AccountApproval.Params.Transfer
+			dasf := core.DasAddressFormat{DasNetType: config.Cfg.Server.Net}
+			toHex, _, err := dasf.ScriptToHex(transfer.ToLock)
+			if err != nil {
+				return err
+			}
+			platformHex, _, err := dasf.ScriptToHex(transfer.PlatformLock)
+			if err != nil {
+				return err
+			}
+			if err := tx.Create(tables.ApprovalInfo{
+				BlockNumber:      req.BlockNumber,
+				RefOutpoint:      refOutpoint,
+				Outpoint:         outpoint,
+				Account:          subAccData.Account(),
+				AccountID:        subAccData.AccountId,
+				Action:           common.DasActionCreateApproval,
+				Platform:         platformHex.AddressHex,
+				OwnerAlgorithmID: accountInfo.OwnerAlgorithmId,
+				Owner:            accountInfo.Owner,
+				ToAlgorithmID:    toHex.DasAlgorithmId,
+				To:               toHex.AddressHex,
+				ProtectedUntil:   transfer.ProtectedUntil,
+				SealedUntil:      transfer.SealedUntil,
+				MaxDelayCount:    transfer.DelayCountRemain,
+				Status:           tables.ApprovalStatusEnable,
+			}).Error; err != nil {
+				return err
+			}
+		case common.SubActionDelayApproval:
+			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			if err != nil {
+				return err
+			}
+			if approval.ID == 0 {
+				return fmt.Errorf("approval not found")
+			}
+			transfer := subAccData.AccountApproval.Params.Transfer
+			approval.SealedUntil = transfer.SealedUntil
+			approval.PostponedCount++
+
+			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
+				"outpoint":        outpoint,
+				"ref_outpoint":    refOutpoint,
+				"sealed_until":    approval.SealedUntil,
+				"postponed_count": approval.PostponedCount,
+			}).Error; err != nil {
+				return err
+			}
+		case common.SubActionRevokeApproval:
+			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			if err != nil {
+				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
+			}
+			if approval.ID == 0 {
+				return fmt.Errorf("approval not found")
+			}
+			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
+				"outpoint":     outpoint,
+				"ref_outpoint": refOutpoint,
+				"status":       tables.ApprovalStatusRevoke,
+			}).Error; err != nil {
+				return err
+			}
+		case common.SubActionFullfillApproval:
+			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			if err != nil {
+				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
+			}
+			if approval.ID == 0 {
+				return fmt.Errorf("approval not found")
+			}
+			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
+				"outpoint":     outpoint,
+				"ref_outpoint": refOutpoint,
+				"status":       tables.ApprovalStatusFulFill,
+			}).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (b *BlockParser) getOutpoint(req FuncTransactionHandleReq, dasContractName common.DasContractName) (string, string, error) {
+	// get ref outpoint
+	contractSub, err := core.GetDasContractInfo(dasContractName)
+	if err != nil {
+		return "", "", err
+	}
+	outpoint, refOutpoint := "", ""
+	for i, v := range req.Tx.Outputs {
+		if v.Type != nil && contractSub.IsSameTypeId(v.Type.CodeHash) {
+			outpoint = common.OutPoint2String(req.TxHash, uint(i))
+		}
+	}
+	for _, v := range req.Tx.Inputs {
+		res, err := b.DasCore.Client().GetTransaction(b.Ctx, v.PreviousOutput.TxHash)
+		if err != nil {
+			return "", "", err
+		}
+		tmp := res.Transaction.Outputs[v.PreviousOutput.Index]
+		if tmp.Type != nil && contractSub.IsSameTypeId(tmp.Type.CodeHash) {
+			refOutpoint = common.OutPointStruct2String(v.PreviousOutput)
+			break
+		}
+	}
+	return refOutpoint, outpoint, nil
 }
 
 func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
