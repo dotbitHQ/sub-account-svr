@@ -371,7 +371,7 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 		oldData = subAccountData.CurrentSubAccountData
 
 		if req.SealedUntil <= oldData.AccountApproval.Params.Transfer.SealedUntil {
-			err = errors.New("sealed_until invalid")
+			err = fmt.Errorf("request sealed_until: %d can not less than old sealed_until: %d", req.SealedUntil, oldData.AccountApproval.Params.Transfer.SealedUntil)
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
 			return
 		}
