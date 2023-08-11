@@ -349,7 +349,7 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	approval, err := h.DbDao.GetAccountApprovalByAccountId(accountId)
+	approval, err := h.DbDao.GetAccountPendingApproval(accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		return

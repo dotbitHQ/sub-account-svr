@@ -315,18 +315,17 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 		return
 	}
 
-	accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
 	var res *types.TransactionWithStatus
-	res, err = h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
-	if err != nil {
-		err = fmt.Errorf("GetTransaction err: %s", err.Error())
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return
-	}
-
 	var accountBuilder *witness.AccountCellDataBuilder
 	var oldData *witness.SubAccountData
 	if req.isMainAcc {
+		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
+		res, err = h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
+		if err != nil {
+			err = fmt.Errorf("GetTransaction err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
 		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
 		if err != nil {
 			err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
@@ -339,8 +338,26 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 			return
 		}
 	} else {
+		var approvalInfo tables.ApprovalInfo
 		var sanb witness.SubAccountNewBuilder
 		var builderMap map[string]*witness.SubAccountNew
+
+		approvalInfo, err = h.DbDao.GetAccountPendingApproval(accountId)
+		if err != nil {
+			return
+		}
+		if approvalInfo.ID == 0 {
+			err = fmt.Errorf("pending approval info not exist: %s", accountId)
+			apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, err.Error())
+			return
+		}
+		approvalOutpoint := common.String2OutPointStruct(approvalInfo.Outpoint)
+		res, err = h.DasCore.Client().GetTransaction(h.Ctx, approvalOutpoint.TxHash)
+		if err != nil {
+			err = fmt.Errorf("GetTransaction err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
 		builderMap, err = sanb.SubAccountNewMapFromTx(res.Transaction)
 		if err != nil {
 			return

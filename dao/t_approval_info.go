@@ -27,8 +27,8 @@ func (d *DbDao) GetAccountApprovalByOutpoint(outpoint string) (approval tables.A
 	return
 }
 
-func (d *DbDao) GetAccountApprovalByAccountId(accountId string) (approval tables.ApprovalInfo, err error) {
-	err = d.db.Where("account_id=? and status=?", accountId, tables.ApprovalStatusEnable).First(&approval).Error
+func (d *DbDao) GetAccountPendingApproval(accountId string) (approval tables.ApprovalInfo, err error) {
+	err = d.db.Where("account_id=? and status=?", accountId, tables.ApprovalStatusEnable).Order("id desc").First(&approval).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}

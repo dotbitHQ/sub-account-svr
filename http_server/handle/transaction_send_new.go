@@ -445,7 +445,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 
 	var approvalInfo tables.ApprovalInfo
 	if dataCache.SubAction != common.SubActionCreateApproval {
-		approvalInfo, err = h.DbDao.GetAccountApprovalByAccountId(dataCache.AccountId)
+		approvalInfo, err = h.DbDao.GetAccountPendingApproval(dataCache.AccountId)
 		if err != nil {
 			return err
 		}

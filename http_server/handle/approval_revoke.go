@@ -233,7 +233,7 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 	if err != nil {
 		return err
 	}
-	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
+	approvalInfo, err := h.DbDao.GetAccountPendingApproval(subAcc.AccountId)
 	if err != nil {
 		return err
 	}

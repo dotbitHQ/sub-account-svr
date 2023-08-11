@@ -196,7 +196,7 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 		return fmt.Errorf("account expiring soon")
 	}
 
-	approvalInfo, err := h.DbDao.GetAccountApprovalByAccountId(subAcc.AccountId)
+	approvalInfo, err := h.DbDao.GetAccountPendingApproval(subAcc.AccountId)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, apiResp *ap
 		return
 	}
 
-	approval, err := h.DbDao.GetAccountApprovalByAccountId(accountId)
+	approval, err := h.DbDao.GetAccountPendingApproval(accountId)
 	if err != nil || approval.ID == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
 		err = fmt.Errorf("GetAccountApprovalByAccountId err: %s %s", err.Error(), accountId)
