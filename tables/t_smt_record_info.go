@@ -190,8 +190,14 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			if oldSubAccount == nil {
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
-
 			currentSubAccount = *oldSubAccount.CurrentSubAccountData
+
+			switch t.SubAction {
+			case common.SubActionCreateApproval:
+				currentSubAccount.Status = common.AccountStatusOnApproval
+			case common.SubActionRevokeApproval, common.SubActionFullfillApproval:
+				currentSubAccount.Status = common.AccountStatusNormal
+			}
 			currentSubAccount.Nonce++
 			if t.SignRole != "" {
 				subAccountNew.SignRole = common.Hex2Bytes(t.SignRole)
