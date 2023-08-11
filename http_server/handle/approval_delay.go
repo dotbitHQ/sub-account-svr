@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -287,9 +288,9 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 	return nil
 }
 
-func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_code.ApiResp) (accInfo *tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
+func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
 		err = fmt.Errorf("GetAccountInfoByAccountId err: %s %s", err.Error(), accountId)
@@ -314,40 +315,49 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 		return
 	}
 
+	accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
+	var res *types.TransactionWithStatus
+	res, err = h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
+	if err != nil {
+		err = fmt.Errorf("GetTransaction err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return
+	}
+
 	var accountBuilder *witness.AccountCellDataBuilder
 	var oldData *witness.SubAccountData
 	if req.isMainAcc {
-		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
-		res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
-		if err != nil {
-			err = fmt.Errorf("GetTransaction err: %s", err.Error())
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, err
-		}
 		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
 		if err != nil {
 			err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, err
+			return
 		}
 		if req.SealedUntil <= accountBuilder.AccountApproval.Params.Transfer.SealedUntil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealed_until invalid")
-			return nil, nil, nil, fmt.Errorf("sealed_until invalid")
+			err = errors.New("sealed_until invalid")
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+			return
 		}
 	} else {
-		_, subAccountBuilderMap, err := h.TxTool.GetOldSubAccount([]string{accountId}, "")
+		var sanb witness.SubAccountNewBuilder
+		var builderMap map[string]*witness.SubAccountNew
+		builderMap, err = sanb.SubAccountNewMapFromTx(res.Transaction)
 		if err != nil {
-			err = fmt.Errorf("GetOldSubAccount err: %s", err.Error())
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, err
+			return
 		}
-		subAccountData := subAccountBuilderMap[accountId]
+		subAccountData, ok := builderMap[accountId]
+		if !ok {
+			err = fmt.Errorf("accountId no exist in tx: %s", accountId)
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
 		oldData = subAccountData.CurrentSubAccountData
 
 		if req.SealedUntil <= oldData.AccountApproval.Params.Transfer.SealedUntil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealed_until invalid")
-			return nil, nil, nil, fmt.Errorf("sealed_until invalid")
+			err = errors.New("sealed_until invalid")
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+			return
 		}
 	}
-	return &acc, accountBuilder, oldData, nil
+	return
 }
