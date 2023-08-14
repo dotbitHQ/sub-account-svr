@@ -214,6 +214,8 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 		return fmt.Errorf("account expiring soon")
 	}
 
+	oldData.AccountApproval.Params.Transfer.DelayCountRemain--
+	oldData.AccountApproval.Params.Transfer.SealedUntil = req.SealedUntil
 	approvalMol, err := oldData.AccountApproval.GenToMolecule()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -373,7 +375,6 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
 			return
 		}
-		oldData.AccountApproval.Params.Transfer.SealedUntil = req.SealedUntil
 	}
 	return
 }
