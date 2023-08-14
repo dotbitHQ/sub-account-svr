@@ -278,7 +278,7 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 	return nil
 }
 
-func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
+func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, accountBuilder *witness.AccountCellDataBuilder, oldData *witness.SubAccountData, err error) {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -308,8 +308,6 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 	}
 
 	var txRes *types.TransactionWithStatus
-	var oldData *witness.SubAccountData
-	var accountBuilder *witness.AccountCellDataBuilder
 	if req.isMainAcc {
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
 		txRes, err = h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
