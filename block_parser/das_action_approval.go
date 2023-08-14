@@ -80,7 +80,6 @@ func (b *BlockParser) DasActionCreateApproval(req FuncTransactionHandleReq) (res
 		Outpoint:         outpoint,
 		Account:          accountCellBuilder.Account,
 		AccountID:        accountCellBuilder.AccountId,
-		Action:           common.DasActionCreateApproval,
 		Platform:         platformHex.AddressHex,
 		OwnerAlgorithmID: accountInfo.OwnerAlgorithmId,
 		Owner:            accountInfo.Owner,
