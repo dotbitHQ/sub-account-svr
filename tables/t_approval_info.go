@@ -21,7 +21,6 @@ type ApprovalInfo struct {
 	Account          string                `gorm:"column:account;NOT NULL"`
 	AccountID        string                `gorm:"column:account_id;index:idx_account_id;NOT NULL"`
 	ParentAccountID  string                `gorm:"column:parent_account_id;index:idx_parent_account_id;NOT NULL"`
-	Action           string                `gorm:"column:action;NOT NULL"`
 	Platform         string                `gorm:"column:platform;NOT NULL"` // platform address
 	OwnerAlgorithmID common.DasAlgorithmId `gorm:"column:owner_algorithm_id;default:0;NOT NULL"`
 	Owner            string                `gorm:"column:owner;index:idx_owner;NOT NULL"` // owner address

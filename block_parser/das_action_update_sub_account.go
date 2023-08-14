@@ -126,6 +126,11 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 		}
 		subAccData := subAccBuilder.CurrentSubAccountData
 
+		approval := tables.ApprovalInfo{
+			BlockNumber: req.BlockNumber,
+			RefOutpoint: refOutpoint,
+			Outpoint:    outpoint,
+		}
 		switch v.SubAction {
 		case common.SubActionCreateApproval:
 			transfer := subAccData.AccountApproval.Params.Transfer
@@ -138,13 +143,12 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 			if err != nil {
 				return err
 			}
-			if err := tx.Create(&tables.ApprovalInfo{
+			approval = tables.ApprovalInfo{
 				BlockNumber:      req.BlockNumber,
 				RefOutpoint:      refOutpoint,
 				Outpoint:         outpoint,
 				Account:          subAccData.Account(),
 				AccountID:        subAccData.AccountId,
-				Action:           common.DasActionCreateApproval,
 				Platform:         platformHex.AddressHex,
 				OwnerAlgorithmID: accountInfo.OwnerAlgorithmId,
 				Owner:            accountInfo.Owner,
@@ -154,11 +158,9 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 				SealedUntil:      transfer.SealedUntil,
 				MaxDelayCount:    transfer.DelayCountRemain,
 				Status:           tables.ApprovalStatusEnable,
-			}).Error; err != nil {
-				return err
 			}
 		case common.SubActionDelayApproval:
-			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			approval, err = b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
 			if err != nil {
 				return err
 			}
@@ -168,45 +170,30 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 			transfer := subAccData.AccountApproval.Params.Transfer
 			approval.SealedUntil = transfer.SealedUntil
 			approval.PostponedCount++
-
-			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
-				"outpoint":        outpoint,
-				"ref_outpoint":    refOutpoint,
-				"sealed_until":    approval.SealedUntil,
-				"postponed_count": approval.PostponedCount,
-			}).Error; err != nil {
-				return err
-			}
 		case common.SubActionRevokeApproval:
-			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			approval, err = b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
 			if err != nil {
 				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 			}
 			if approval.ID == 0 {
 				return fmt.Errorf("approval not found")
 			}
-			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
-				"outpoint":     outpoint,
-				"ref_outpoint": refOutpoint,
-				"status":       tables.ApprovalStatusRevoke,
-			}).Error; err != nil {
-				return err
-			}
+			approval.Status = tables.ApprovalStatusRevoke
 		case common.SubActionFullfillApproval:
-			approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+			approval, err = b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
 			if err != nil {
 				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 			}
 			if approval.ID == 0 {
 				return fmt.Errorf("approval not found")
 			}
-			if err := tx.Model(&tables.ApprovalInfo{}).Where("id=?", approval.ID).Updates(map[string]interface{}{
-				"outpoint":     outpoint,
-				"ref_outpoint": refOutpoint,
-				"status":       tables.ApprovalStatusFulFill,
-			}).Error; err != nil {
-				return err
-			}
+			approval.Status = tables.ApprovalStatusFulFill
+		default:
+			return fmt.Errorf("unknown sub action: %s", v.SubAction)
+		}
+
+		if err := tx.Save(&approval).Error; err != nil {
+			return err
 		}
 	}
 	return nil
