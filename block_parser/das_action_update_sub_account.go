@@ -138,7 +138,7 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 			if err != nil {
 				return err
 			}
-			if err := tx.Create(tables.ApprovalInfo{
+			if err := tx.Create(&tables.ApprovalInfo{
 				BlockNumber:      req.BlockNumber,
 				RefOutpoint:      refOutpoint,
 				Outpoint:         outpoint,
