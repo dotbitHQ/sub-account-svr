@@ -317,15 +317,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			return nil, fmt.Errorf("tree.Update err: %s", err.Error())
 		}
 		for i := range subAccountList {
-			key := smt.AccountIdToSmtH256(subAccountIdMap[i])
-			if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
+			key := common.Bytes2Hex(smt.AccountIdToSmtH256(subAccountIdMap[i]))
+			pprof, ok := smtRes.Proofs[key]
+			if !ok {
 				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
 			}
-			if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
-				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+			newRoot, ok := smtRes.Roots[key]
+			if !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Roots)
 			}
-			subAccountList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
-			subAccountList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
+			subAccountList[i].Proof = common.Hex2Bytes(pprof)
+			subAccountList[i].NewRoot = newRoot
 		}
 	}
 
