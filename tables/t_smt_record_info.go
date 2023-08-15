@@ -201,6 +201,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 				currentSubAccount.Status = common.AccountStatusOnApproval
 			case common.SubActionRevokeApproval, common.SubActionFullfillApproval:
 				currentSubAccount.Status = common.AccountStatusNormal
+				currentSubAccount.AccountApproval = witness.AccountApproval{}
 			}
 			currentSubAccount.Nonce++
 			if t.SignRole != "" {
