@@ -124,16 +124,23 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 		}
 		_, signMsg, _ := data.GetSignInfo()
-
-		if _, err := doSignCheck(txbuilder.SignData{
-			SignType: req.List[0].SignList[0].SignType,
-			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
-			return fmt.Errorf("doSignCheck err: %s", err.Error())
-		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		address := ""
+		signType := req.List[0].SignList[0].SignType
+		signature := req.List[0].SignList[0].SignMsg
+		if signType == common.DasAlgorithmIdWebauthn {
+			address = req.SignAddress
+		} else {
+			address = res.AddressHex
+		}
+		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+			return fmt.Errorf("VerifySignature err: %s", err.Error())
+		}
+		if !verifyRes {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 			return nil
 		}
-
 		accountId := common.Bytes2Hex(common.GetAccountIdByAccount(data.Account))
 		paymentConfig, err := h.DbDao.GetUserPaymentConfig(accountId)
 		if err != nil {
@@ -169,13 +176,21 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 		}
 		_, signMsg, _ := data.GetSignInfo()
-
-		if _, err := doSignCheck(txbuilder.SignData{
-			SignType: req.List[0].SignList[0].SignType,
-			SignMsg:  signMsg,
-		}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
-			return fmt.Errorf("doSignCheck err: %s", err.Error())
-		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		address := ""
+		signType := req.List[0].SignList[0].SignType
+		signature := req.List[0].SignList[0].SignMsg
+		if signType == common.DasAlgorithmIdWebauthn {
+			address = req.SignAddress
+		} else {
+			address = res.AddressHex
+		}
+		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+			return fmt.Errorf("VerifySignature err: %s", err.Error())
+		}
+		if !verifyRes {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 			return nil
 		}
 
@@ -301,11 +316,21 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 
 	log.Warn("SubActionEdit:", signData.SignMsg, loginAddress)
 
-	signMsg := req.List[0].SignList[0].SignMsg
+	signature := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, loginAddress, req.SignAddress, apiResp); err != nil {
-		return fmt.Errorf("doSignCheck err: %s", err.Error())
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	address := ""
+	if signData.SignType == common.DasAlgorithmIdWebauthn {
+		address = req.SignAddress
+	} else {
+		address = loginAddress
+	}
+	verifyRes, signature, err := api_code.VerifySignature(signData.SignType, signData.SignMsg, signature, address)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+		return fmt.Errorf("VerifySignature err: %s", err.Error())
+	}
+	if !verifyRes {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 		return nil
 	}
 
@@ -324,7 +349,7 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 		RegisterYears:   0,
 		RegisterArgs:    "",
 		EditKey:         dataCache.EditKey,
-		Signature:       signMsg,
+		Signature:       signature,
 		LoginChainType:  dataCache.ChainType,
 		LoginAddress:    dataCache.Address,
 		SignAddress:     req.SignAddress,
@@ -363,15 +388,25 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 		return nil
 	}
 
-	signMsg := req.List[0].SignList[0].SignMsg
+	signature := req.List[0].SignList[0].SignMsg
 
-	if signMsg, err = doSignCheck(signData, signMsg, acc.Manager, req.SignAddress, apiResp); err != nil {
-		return fmt.Errorf("doSignCheck err: %s", err.Error())
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	address := ""
+	if signData.SignType == common.DasAlgorithmIdWebauthn {
+		address = req.SignAddress
+	} else {
+		address = acc.Manager
+	}
+	verifyRes, signature, err := api_code.VerifySignature(signData.SignType, signData.SignMsg, signature, address)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+		return fmt.Errorf("VerifySignature err: %s", err.Error())
+	}
+	if !verifyRes {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 		return nil
 	}
 
-	dataCache.MinSignInfo.Signature = signMsg
+	dataCache.MinSignInfo.Signature = signature
 	for i, _ := range dataCache.ListSmtRecord {
 		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
 		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
