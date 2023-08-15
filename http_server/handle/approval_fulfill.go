@@ -74,7 +74,8 @@ func (h *HttpHandle) doApprovalFulfill(req *ReqApprovalFulfill, apiResp *api_cod
 }
 
 func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
-	accInfo, accountBuilder, _, err := h.doApprovalFulfillCheck(req, apiResp)
+	now := time.Now()
+	accInfo, accountBuilder, _, err := h.doApprovalFulfillCheck(req, now, apiResp)
 	if err != nil {
 		return err
 	}
@@ -181,7 +182,8 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 }
 
 func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
-	subAcc, _, subOldData, err := h.doApprovalFulfillCheck(req, apiResp)
+	now := time.Now()
+	subAcc, _, subOldData, err := h.doApprovalFulfillCheck(req, now, apiResp)
 	if err != nil {
 		return err
 	}
@@ -189,7 +191,6 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 		return nil
 	}
 
-	now := time.Now()
 	expiredAt := uint64(now.Add(time.Hour * 24 * 7).Unix())
 	if expiredAt > subAcc.ExpiredAt {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountExpiringSoon, "account expiring soon")
@@ -281,9 +282,9 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 	return nil
 }
 
-func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, apiResp *api_code.ApiResp) (accInfo *tables.TableAccountInfo, builder *witness.AccountCellDataBuilder, data *witness.SubAccountData, err error) {
+func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Time, apiResp *api_code.ApiResp) (accInfo tables.TableAccountInfo, accountBuilder *witness.AccountCellDataBuilder, oldData *witness.SubAccountData, err error) {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
 		err = fmt.Errorf("GetAccountInfoByAccountId err: %s %s", err.Error(), accountId)
@@ -304,7 +305,14 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, apiResp *ap
 		err = fmt.Errorf("GetAccountApprovalByAccountId err: %s %s", err.Error(), accountId)
 		return
 	}
-	if uint64(time.Now().Unix()) <= approval.SealedUntil {
+
+	nowUntil := uint64(time.Now().Unix())
+	if nowUntil < approval.ProtectedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account protected")
+		return
+	}
+
+	if nowUntil < approval.SealedUntil {
 		var ownerHex *core.DasAddressHex
 		ownerHex, err = req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
@@ -318,28 +326,51 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, apiResp *ap
 		}
 	}
 
-	var accountBuilder *witness.AccountCellDataBuilder
-	var oldData *witness.SubAccountData
+	var txRes *types.TransactionWithStatus
 	if req.isMainAcc {
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
-		res, err := h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
+		txRes, err = h.DasCore.Client().GetTransaction(h.Ctx, accOutPoint.TxHash)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, fmt.Errorf("GetTransaction err: %s", err.Error())
+			return
 		}
-		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
+		accountBuilder, err = witness.AccountCellDataBuilderFromTx(txRes.Transaction, common.DataTypeNew)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
+			return
 		}
 	} else {
-		_, subAccountBuilderMap, err := h.TxTool.GetOldSubAccount([]string{accountId}, "")
+		var approvalInfo tables.ApprovalInfo
+		var sanb witness.SubAccountNewBuilder
+		var builderMap map[string]*witness.SubAccountNew
+
+		approvalInfo, err = h.DbDao.GetAccountPendingApproval(accountId)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, nil, fmt.Errorf("GetOldSubAccount err: %s", err.Error())
+			return
 		}
-		subAccountData := subAccountBuilderMap[accountId]
+		if approvalInfo.ID == 0 {
+			err = fmt.Errorf("pending approval info not exist: %s", accountId)
+			apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, err.Error())
+			return
+		}
+		approvalOutpoint := common.String2OutPointStruct(approvalInfo.Outpoint)
+		txRes, err = h.DasCore.Client().GetTransaction(h.Ctx, approvalOutpoint.TxHash)
+		if err != nil {
+			err = fmt.Errorf("GetTransaction err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
+		builderMap, err = sanb.SubAccountNewMapFromTx(txRes.Transaction)
+		if err != nil {
+			return
+		}
+		subAccountData, ok := builderMap[accountId]
+		if !ok {
+			err = fmt.Errorf("accountId no exist in tx: %s", accountId)
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return
+		}
 		oldData = subAccountData.CurrentSubAccountData
 	}
-	return &acc, accountBuilder, oldData, nil
+	return
 }

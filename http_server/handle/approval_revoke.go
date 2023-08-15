@@ -306,6 +306,11 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 		err = fmt.Errorf("GetAccountApprovalByAccountIdAndPlatform err: %s %s %s", err.Error(), accountId, platformHex.AddressHex)
 		return
 	}
+	now := uint64(time.Now().Unix())
+	if now < approval.ProtectedUntil {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account protected")
+		return
+	}
 
 	var txRes *types.TransactionWithStatus
 	if req.isMainAcc {
