@@ -455,6 +455,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		}
 	}
 
+	var signMsg string
 	if dataCache.SubAction != common.SubActionFullfillApproval ||
 		uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
 
@@ -462,7 +463,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		if dataCache.SubAction == common.SubActionRevokeApproval {
 			addr = approvalInfo.Platform
 		}
-		signMsg := req.List[0].SignList[0].SignMsg
+		signMsg = req.List[0].SignList[0].SignMsg
 		if signMsg, err = doSignCheck(dataCache.SignData, signMsg, addr, addr, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -474,6 +475,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
 		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
 		dataCache.ListSmtRecord[i].SignAddress = req.SignAddress        //sign addr
+		dataCache.ListSmtRecord[i].Signature = signMsg                  //sign msg
 	}
 	if err := h.DbDao.CreateSmtRecordList(dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create smt record info")
