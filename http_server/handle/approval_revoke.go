@@ -208,12 +208,12 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 		Account:         subAcc.Account,
 		Timestamp:       now.UnixNano() / 1e6,
 		ExpiredAt:       expiredAt,
+		SignRole:        common.ParamOwner,
 	})
 
-	ownerHex := core.DasAddressHex{
-		DasAlgorithmId: subAcc.OwnerChainType.ToDasAlgorithmId(true),
-		AddressHex:     subAcc.Owner,
-		ChainType:      subAcc.OwnerChainType,
+	ownerHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, false)
+	if err != nil {
+		return err
 	}
 
 	// sign info
