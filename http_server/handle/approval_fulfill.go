@@ -306,7 +306,7 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 		return
 	}
 
-	nowUntil := uint64(time.Now().Unix())
+	nowUntil := uint64(now.Unix())
 	if nowUntil < approval.ProtectedUntil {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account protected")
 		return
