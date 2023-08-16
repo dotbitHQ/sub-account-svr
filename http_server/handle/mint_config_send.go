@@ -2,7 +2,6 @@ package handle
 
 import (
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"encoding/hex"
@@ -11,7 +10,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/dotbitHQ/das-lib/txbuilder"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/scorpiotzh/toolib"
@@ -82,15 +81,31 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 		return errors.New("no operation permission")
 	}
 	signMsg = common.DotBitPrefix + hex.EncodeToString(common.Blake2b([]byte(signMsg)))
-
-	if _, err = doSignCheck(txbuilder.SignData{
-		SignType: res.DasAlgorithmId,
-		SignMsg:  signMsg,
-	}, req.List[0].SignList[0].SignMsg, res.AddressHex, req.SignAddress, apiResp); err != nil {
-		return fmt.Errorf("doSignCheck err: %s", err.Error())
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	address := ""
+	signType := res.DasAlgorithmId
+	signature := req.List[0].SignList[0].SignMsg
+	if signType == common.DasAlgorithmIdWebauthn {
+		signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
+			ChainType:     common.ChainTypeWebauthn,
+			AddressNormal: req.SignAddress,
+		})
+		if err != nil {
+			return fmt.Errorf("dc.Daf().NormalToHex: ", err.Error())
+		}
+		address = signAddressHex.AddressHex
+	} else {
+		address = res.AddressHex
+	}
+	verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+		return fmt.Errorf("VerifySignature err: %s", err.Error())
+	}
+	if !verifyRes {
+		apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 		return nil
 	}
+
 	h.RC.Red.Del(req.SignKey)
 
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(signData.Account))

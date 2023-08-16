@@ -5,6 +5,7 @@ import (
 	"das_sub_account/config"
 	"encoding/json"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/parnurzeal/gorequest"
 	"github.com/scorpiotzh/mylog"
@@ -48,19 +49,19 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 		statusCode := ctx.Writer.Status()
 
 		if statusCode == http.StatusOK && blw.body.String() != "" {
-			var resp ApiResp
+			var resp http_api.ApiResp
 			if err := json.Unmarshal(blw.body.Bytes(), &resp); err == nil {
-				if resp.ErrNo != ApiCodeSuccess {
+				if resp.ErrNo != http_api.ApiCodeSuccess {
 					log.Warn("DoMonitorLog:", method, resp.ErrNo, resp.ErrMsg)
 				}
-				if resp.ErrNo == ApiCodeSignError {
-					resp.ErrNo = ApiCodeSuccess
+				if resp.ErrNo == http_api.ApiCodeSignError {
+					resp.ErrNo = http_api.ApiCodeSuccess
 				}
-				if resp.ErrNo == ApiCodeAccountExpiringSoon {
-					resp.ErrNo = ApiCodeSuccess
+				if resp.ErrNo == http_api.ApiCodeAccountExpiringSoon {
+					resp.ErrNo = http_api.ApiCodeSuccess
 				}
-				if resp.ErrNo == ApiCodeAccountIsExpired {
-					resp.ErrNo = ApiCodeSuccess
+				if resp.ErrNo == http_api.ApiCodeAccountIsExpired {
+					resp.ErrNo = http_api.ApiCodeSuccess
 				}
 				pushLog := ReqPushLog{
 					Index:   config.Cfg.Server.PushLogIndex,
@@ -76,7 +77,7 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 	}
 }
 
-func DoMonitorLogRpc(apiResp *ApiResp, method, clientIp string, startTime time.Time) {
+func DoMonitorLogRpc(apiResp *http_api.ApiResp, method, clientIp string, startTime time.Time) {
 	pushLog := ReqPushLog{
 		Index:   config.Cfg.Server.PushLogIndex,
 		Method:  method,
@@ -85,7 +86,7 @@ func DoMonitorLogRpc(apiResp *ApiResp, method, clientIp string, startTime time.T
 		ErrMsg:  apiResp.ErrMsg,
 		ErrNo:   apiResp.ErrNo,
 	}
-	if apiResp.ErrNo != ApiCodeSuccess {
+	if apiResp.ErrNo != http_api.ApiCodeSuccess {
 		log.Warn("DoMonitorLog:", method, apiResp.ErrNo, apiResp.ErrMsg)
 	}
 	PushLog(config.Cfg.Server.PushLogUrl, pushLog)
