@@ -118,7 +118,7 @@ func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp
 	})
 
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionDelayApproval, nil)
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionRevokeApproval)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
@@ -131,8 +131,7 @@ func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp
 	}
 
 	accWitness, accData, err := accountBuilder.GenWitness(&witness.AccountCellParam{
-		Action:          common.DasActionRevokeApproval,
-		AccountApproval: accountBuilder.AccountApproval,
+		Action: common.DasActionRevokeApproval,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[accountBuilder.Index][common.HashBytesLen:]...)

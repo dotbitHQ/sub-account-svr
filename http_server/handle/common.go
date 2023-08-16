@@ -42,7 +42,7 @@ type SignInfoList struct {
 	SubAction   common.SubAction     `json:"sub_action"`
 	SignKey     string               `json:"sign_key"`
 	SignAddress string               `json:"sign_address"`
-	List        []SignInfo           `json:"list"`
+	List        []SignInfo           `json:"list,omitempty"`
 	SignList    []txbuilder.SignData `json:"sign_list,omitempty"` // sign list
 	MMJson      *common.MMJsonObj    `json:"mm_json,omitempty"`   // 712 mmjson
 }

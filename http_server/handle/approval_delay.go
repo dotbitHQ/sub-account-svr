@@ -124,7 +124,7 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 	})
 
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionDelayApproval, nil)
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionDelayApproval)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}

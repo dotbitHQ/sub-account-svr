@@ -126,7 +126,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	})
 
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionCreateApproval, nil)
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionCreateApproval)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
@@ -144,7 +144,6 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 
 	accWitness, accData, err := builder.GenWitness(&witness.AccountCellParam{
 		Action: common.DasActionCreateApproval,
-		Status: common.AccountStatusOnApproval,
 		AccountApproval: witness.AccountApproval{
 			Action: witness.AccountApprovalActionTransfer,
 			Params: witness.AccountApprovalParams{

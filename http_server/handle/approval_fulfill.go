@@ -118,8 +118,13 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 		PreviousOutput: accOutPoint,
 	})
 
+	params := common.Hex2Bytes(common.ParamOwner)
+	if uint64(now.Unix()) > accountBuilder.AccountApproval.Params.Transfer.SealedUntil {
+		params = []byte{}
+	}
+
 	// witness action
-	actionWitness, err := witness.GenActionDataWitness(common.DasActionFulfillApproval, nil)
+	actionWitness, err := witness.GenActionDataWitness(common.DasActionFulfillApproval, params)
 	if err != nil {
 		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
@@ -132,8 +137,7 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	}
 
 	accWitness, accData, err := accountBuilder.GenWitness(&witness.AccountCellParam{
-		Action:          common.DasActionFulfillApproval,
-		AccountApproval: accountBuilder.AccountApproval,
+		Action: common.DasActionFulfillApproval,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[accountBuilder.Index][common.HashBytesLen:]...)
