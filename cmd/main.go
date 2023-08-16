@@ -226,6 +226,7 @@ func initDasCore() (*core.DasCore, *dascache.DasCache, error) {
 		common.DasContractNameAlwaysSuccess,
 		common.DASContractNameSubAccountCellType,
 		common.DASContractNameEip712LibCellType,
+		common.DasKeyListCellType,
 	)
 
 	// das init
