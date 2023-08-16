@@ -15,8 +15,9 @@ import (
 type EventType string
 
 const (
-	EventTypeOrderPay    EventType = "ORDER.PAY"
-	EventTypeOrderRefund EventType = "ORDER.REFUND"
+	EventTypeOrderPay       EventType = "ORDER.PAY"
+	EventTypeOrderRefund    EventType = "ORDER.REFUND"
+	EventTypePaymentDispute EventType = "PAYMENT.DISPUTE"
 )
 
 type EventInfo struct {
@@ -80,6 +81,11 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId, v.RefundHash); err != nil {
 				log.Error("UpdateRefundStatusToRefunded err: ", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdateRefundStatusToRefunded", err.Error())
+			}
+		case EventTypePaymentDispute:
+			if err := h.DbDao.UpdatePayHashStatusToFailByDispute(v.PayHash, v.OrderId); err != nil {
+				log.Error("UpdatePayHashStatusToFailByDispute err: ", err.Error())
+				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdatePayHashStatusToFailByDispute", err.Error())
 			}
 		default:
 			log.Error("EventType invalid:", v.EventType)

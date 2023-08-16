@@ -19,6 +19,10 @@ das:
       - "eth_eth"
       - "tron_trx"
       - "bsc_bnb"
+      - "stripe_usd"
+      - "tron_trc20_usdt"
+      - "bsc_bep20_usdt"
+      - "polygon_matic"
     background_colors:
       eth_eth: "#f0fdf4"
       tron_trx: "#eff6ff"

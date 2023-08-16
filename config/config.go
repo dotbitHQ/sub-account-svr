@@ -7,6 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -116,6 +117,10 @@ type CfgServer struct {
 	} `json:"cache" yaml:"cache"`
 	SuspendMap       map[string]string `json:"suspend_map" yaml:"suspend_map"`
 	UnipayAddressMap map[string]string `json:"unipay_address_map" yaml:"unipay_address_map"`
+	Stripe           struct {
+		PremiumPercentage decimal.Decimal `json:"premium_percentage" yaml:"premium_percentage"`
+		PremiumBase       decimal.Decimal `json:"premium_base" yaml:"premium_base"`
+	} `json:"stripe" yaml:"stripe"`
 }
 
 type Server struct {

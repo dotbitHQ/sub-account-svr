@@ -137,7 +137,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 					}
 					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
 					token := tokens[order.TokenId]
-					amount := order.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
+					amount := order.Amount.Sub(order.PremiumAmount).Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
 					resp.List[idx].Amount = amount.String()
 					resp.List[idx].Symbol = token.Symbol
 				}
