@@ -2,12 +2,12 @@ package handle
 
 import (
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
@@ -292,13 +292,13 @@ func (h *HttpHandle) doMinSignInfo(parentAccountId string, acc *tables.TableAcco
 	}
 	keyValueStr, _ := json.Marshal(&listKeyValue)
 	minSignInfo := tables.TableMintSignInfo{
-		SmtRoot:    common.Bytes2Hex(root),
-		ExpiredAt:  expiredAt,
-		Timestamp:  uint64(time.Now().UnixNano() / 1e6),
-		KeyValue:   string(keyValueStr),
-		ChainType:  acc.ManagerChainType,
-		Address:    acc.Manager,
-		SubAction:  common.SubActionCreate,
+		SmtRoot:   common.Bytes2Hex(root),
+		ExpiredAt: expiredAt,
+		Timestamp: uint64(time.Now().UnixNano() / 1e6),
+		KeyValue:  string(keyValueStr),
+		ChainType: acc.ManagerChainType,
+		Address:   acc.Manager,
+		SubAction: common.SubActionCreate,
 	}
 	minSignInfo.InitMintSignId(parentAccountId)
 	for i, _ := range listSmtRecord {

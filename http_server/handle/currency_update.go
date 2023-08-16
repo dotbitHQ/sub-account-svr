@@ -3,13 +3,13 @@ package handle
 import (
 	"crypto/md5"
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
@@ -105,6 +105,31 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 		return err
 	}
 
+	// check price
+	//accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	//if req.TokenId == string(tables.TokenIdStripeUSD) {
+	//	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(accountId)
+	//	if err != nil {
+	//		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search rule config")
+	//		return fmt.Errorf("GetRuleConfigByAccountId err: %s", err.Error())
+	//	}
+	//	ruleTx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(ruleConfig.TxHash))
+	//	if err != nil {
+	//		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rule tx")
+	//		return fmt.Errorf("GetTransaction err: %s", err.Error())
+	//	}
+	//	rulePrice := witness.NewSubAccountRuleEntity(req.Account)
+	//	if err = rulePrice.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+	//		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to search rules")
+	//		return fmt.Errorf("ParseFromTx err: %s", err.Error())
+	//	}
+	//	for _, v := range rulePrice.Rules {
+	//		if v.Price < 0.52 {
+	//			apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
+	//			return nil
+	//		}
+	//	}
+	//}
 	//
 	signKey, signMsg, reqDataStr := req.GetSignInfo()
 	if err := h.RC.Red.Set(signKey, reqDataStr, time.Minute*10).Err(); err != nil {

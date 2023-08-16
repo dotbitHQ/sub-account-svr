@@ -2,11 +2,11 @@ package handle
 
 import (
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
 	"fmt"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -15,8 +15,9 @@ import (
 type EventType string
 
 const (
-	EventTypeOrderPay    EventType = "ORDER.PAY"
-	EventTypeOrderRefund EventType = "ORDER.REFUND"
+	EventTypeOrderPay       EventType = "ORDER.PAY"
+	EventTypeOrderRefund    EventType = "ORDER.REFUND"
+	EventTypePaymentDispute EventType = "PAYMENT.DISPUTE"
 )
 
 type EventInfo struct {
@@ -80,6 +81,11 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId, v.RefundHash); err != nil {
 				log.Error("UpdateRefundStatusToRefunded err: ", err.Error())
 				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdateRefundStatusToRefunded", err.Error())
+			}
+		case EventTypePaymentDispute:
+			if err := h.DbDao.UpdatePayHashStatusToFailByDispute(v.PayHash, v.OrderId); err != nil {
+				log.Error("UpdatePayHashStatusToFailByDispute err: ", err.Error())
+				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "UpdatePayHashStatusToFailByDispute", err.Error())
 			}
 		default:
 			log.Error("EventType invalid:", v.EventType)

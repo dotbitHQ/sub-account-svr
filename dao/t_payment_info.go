@@ -70,3 +70,25 @@ func (d *DbDao) GetRefundStatusRefundingList() (list []tables.PaymentInfo, err e
 		timestamp, tables.PayHashStatusConfirmed, tables.RefundStatusRefunding).Find(&list).Error
 	return
 }
+
+func (d *DbDao) UpdatePayHashStatusToFailByDispute(payHash, orderId string) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND pay_status=?",
+				orderId, tables.PayStatusPaid).
+			Updates(map[string]interface{}{
+				"order_status": tables.OrderStatusFail,
+			}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(tables.PaymentInfo{}).
+			Where("pay_hash=? AND order_id=? AND pay_hash_status=?",
+				payHash, orderId, tables.PayHashStatusConfirmed).
+			Updates(map[string]interface{}{
+				"pay_hash_status": tables.PayHashStatusFailByDispute,
+			}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}

@@ -3,11 +3,11 @@ package handle
 import (
 	"bytes"
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
@@ -140,8 +140,8 @@ func (h *HttpHandle) accountInfoToAccountData(acc tables.TableAccountInfo) Accou
 		ChainType:      acc.ManagerChainType,
 	})
 
-	owner = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.OwnerChainType, ownerHex.AddressNormal)
-	manager = api_code.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, managerHex.AddressNormal)
+	owner = core.FormatChainTypeAddress(config.Cfg.Server.Net, acc.OwnerChainType, ownerHex.AddressNormal)
+	manager = core.FormatChainTypeAddress(config.Cfg.Server.Net, acc.ManagerChainType, managerHex.AddressNormal)
 
 	return AccountData{
 		AccountId:            acc.AccountId,

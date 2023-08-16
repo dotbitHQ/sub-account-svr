@@ -27,9 +27,10 @@ func (m *PaymentInfo) PayHashUnconfirmedMin() float64 {
 type PayHashStatus int
 
 const (
-	PayHashStatusPending   PayHashStatus = 0
-	PayHashStatusConfirmed PayHashStatus = 1
-	PayHashStatusRejected  PayHashStatus = 2
+	PayHashStatusPending       PayHashStatus = 0
+	PayHashStatusConfirmed     PayHashStatus = 1
+	PayHashStatusRejected      PayHashStatus = 2
+	PayHashStatusFailByDispute PayHashStatus = 3
 )
 
 type RefundStatus int

@@ -2,13 +2,13 @@ package handle
 
 import (
 	"das_sub_account/config"
-	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
@@ -73,6 +73,21 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		return err
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+
+	// check price
+	//paymentConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
+	//if err != nil {
+	//	apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get payment config")
+	//	return err
+	//}
+	//if _, ok := paymentConfig.CfgMap[string(tables.TokenIdStripeUSD)]; ok {
+	//	for _, v := range req.List {
+	//		if v.Price < 0.52 {
+	//			apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
+	//			return nil
+	//		}
+	//	}
+	//}
 
 	txParams, whiteListMap, err := h.rulesTxAssemble(RulesTxAssembleParams{
 		Req:                 req,
