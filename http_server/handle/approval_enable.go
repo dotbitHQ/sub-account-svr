@@ -369,7 +369,7 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		}
 	}
 
-	ownerHexAddress, err := req.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, false)
+	ownerHexAddress, err := req.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
@@ -388,7 +388,7 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
+	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
