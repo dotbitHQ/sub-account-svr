@@ -204,7 +204,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 				currentSubAccount.AccountApproval = witness.AccountApproval{}
 			case common.SubActionFullfillApproval:
 				currentSubAccount.Status = common.AccountStatusNormal
-				currentSubAccount.Lock = currentSubAccount.AccountApproval.Params.Transfer.ToLock
+				currentSubAccount.Lock = oldSubAccount.CurrentSubAccountData.AccountApproval.Params.Transfer.ToLock
 				currentSubAccount.AccountApproval = witness.AccountApproval{}
 			}
 			currentSubAccount.Nonce++
