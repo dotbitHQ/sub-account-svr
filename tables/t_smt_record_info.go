@@ -199,8 +199,12 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			switch t.SubAction {
 			case common.SubActionCreateApproval:
 				currentSubAccount.Status = common.AccountStatusOnApproval
-			case common.SubActionRevokeApproval, common.SubActionFullfillApproval:
+			case common.SubActionRevokeApproval:
 				currentSubAccount.Status = common.AccountStatusNormal
+				currentSubAccount.AccountApproval = witness.AccountApproval{}
+			case common.SubActionFullfillApproval:
+				currentSubAccount.Status = common.AccountStatusNormal
+				currentSubAccount.Lock = currentSubAccount.AccountApproval.Params.Transfer.ToLock
 				currentSubAccount.AccountApproval = witness.AccountApproval{}
 			}
 			currentSubAccount.Nonce++
