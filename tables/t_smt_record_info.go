@@ -206,6 +206,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 				currentSubAccount.Status = common.AccountStatusNormal
 				currentSubAccount.Lock = oldSubAccount.CurrentSubAccountData.AccountApproval.Params.Transfer.ToLock
 				currentSubAccount.AccountApproval = witness.AccountApproval{}
+				currentSubAccount.Records = []witness.Record{}
 			}
 			currentSubAccount.Nonce++
 			if t.SignRole != "" {
