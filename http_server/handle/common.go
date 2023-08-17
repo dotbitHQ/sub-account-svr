@@ -38,9 +38,9 @@ type SignInfo struct {
 }
 
 type SignInfoList struct {
-	Action      common.DasAction     `json:"action"`
+	Action      common.DasAction     `json:"action" binding:"required"`
 	SubAction   common.SubAction     `json:"sub_action"`
-	SignKey     string               `json:"sign_key"`
+	SignKey     string               `json:"sign_key" binding:"required"`
 	SignAddress string               `json:"sign_address"`
 	List        []SignInfo           `json:"list,omitempty"`
 	SignList    []txbuilder.SignData `json:"sign_list,omitempty"` // sign list

@@ -55,12 +55,6 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	var resp RespTransactionSend
 	resp.HashList = make([]string, 0)
 
-	// check params
-	if req.Action == "" || len(req.List) == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
-		return nil
-	}
-
 	// check update
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
@@ -306,9 +300,6 @@ func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiRe
 	}
 	h.DasCache.AddCellInputByAction("", sic.BuilderTx.Transaction.Inputs)
 	resp.HashList = append(resp.HashList, hash.Hex())
-	//accountId := common.Bytes2Hex(common.GetAccountIdByAccount(sic.Account))
-
-	// TODO add t_approval_info
 	return nil
 }
 
@@ -515,7 +506,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
 		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
 		dataCache.ListSmtRecord[i].SignAddress = req.SignAddress        //sign addr
-		dataCache.ListSmtRecord[i].Signature = signature                  //sign msg
+		dataCache.ListSmtRecord[i].Signature = signature                //sign msg
 	}
 	if err := h.DbDao.CreateSmtRecordList(dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create smt record info")
