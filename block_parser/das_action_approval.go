@@ -144,7 +144,7 @@ func (b *BlockParser) DasActionDelayApproval(req FuncTransactionHandleReq) (resp
 	}
 	transfer := accountCellBuilder.AccountApproval.Params.Transfer
 
-	approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+	approval, err := b.DbDao.GetAccountApprovalByAccountId(accountCellBuilder.AccountId)
 	if err != nil {
 		resp.Err = fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 		return
@@ -200,7 +200,13 @@ func (b *BlockParser) DasActionRevokeApproval(req FuncTransactionHandleReq) (res
 		}
 	}
 
-	approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
+	if err != nil {
+		resp.Err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
+		return
+	}
+
+	approval, err := b.DbDao.GetAccountApprovalByAccountId(accountCellBuilder.AccountId)
 	if err != nil {
 		resp.Err = fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 		return
@@ -253,7 +259,12 @@ func (b *BlockParser) DasActionFulfillApproval(req FuncTransactionHandleReq) (re
 		}
 	}
 
-	approval, err := b.DbDao.GetAccountApprovalByOutpoint(refOutpoint)
+	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
+	if err != nil {
+		resp.Err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
+		return
+	}
+	approval, err := b.DbDao.GetAccountApprovalByAccountId(accountCellBuilder.AccountId)
 	if err != nil {
 		resp.Err = fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 		return

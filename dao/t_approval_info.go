@@ -19,8 +19,8 @@ func (d *DbDao) UpdateAccountApproval(id uint64, info map[string]interface{}) (e
 	return
 }
 
-func (d *DbDao) GetAccountApprovalByOutpoint(outpoint string) (approval tables.ApprovalInfo, err error) {
-	err = d.db.Where("outpoint=?", outpoint).First(&approval).Error
+func (d *DbDao) GetAccountApprovalByAccountId(accountId string) (approval tables.ApprovalInfo, err error) {
+	err = d.db.Where("account_id=? and status=?", accountId, tables.ApprovalStatusEnable).First(&approval).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
