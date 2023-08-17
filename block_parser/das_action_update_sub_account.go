@@ -160,7 +160,7 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 				Status:           tables.ApprovalStatusEnable,
 			}
 		case common.SubActionDelayApproval:
-			approval, err = b.DbDao.GetAccountApprovalByAccountId(subAccData.AccountId)
+			approval, err = b.DbDao.GetAccountPendingApproval(subAccData.AccountId)
 			if err != nil {
 				return err
 			}
@@ -171,7 +171,7 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 			approval.SealedUntil = transfer.SealedUntil
 			approval.PostponedCount++
 		case common.SubActionRevokeApproval:
-			approval, err = b.DbDao.GetAccountApprovalByAccountId(subAccData.AccountId)
+			approval, err = b.DbDao.GetAccountPendingApproval(subAccData.AccountId)
 			if err != nil {
 				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 			}
@@ -180,7 +180,7 @@ func (b *BlockParser) doApprovalAction(req FuncTransactionHandleReq, tx *gorm.DB
 			}
 			approval.Status = tables.ApprovalStatusRevoke
 		case common.SubActionFullfillApproval:
-			approval, err = b.DbDao.GetAccountApprovalByAccountId(subAccData.AccountId)
+			approval, err = b.DbDao.GetAccountPendingApproval(subAccData.AccountId)
 			if err != nil {
 				return fmt.Errorf("GetAccountApprovalByOutpoint err: %s", err.Error())
 			}
