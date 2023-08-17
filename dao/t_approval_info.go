@@ -7,7 +7,7 @@ import (
 )
 
 func (d *DbDao) CreateAccountApproval(info tables.ApprovalInfo) (err error) {
-	err = d.db.Create(info).Error
+	err = d.db.Create(&info).Error
 	return
 }
 
