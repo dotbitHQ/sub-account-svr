@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -302,6 +303,9 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 	approval, err := h.DbDao.GetAccountPendingApproval(accountId)
 	if err != nil || approval.ID == 0 || approval.Platform != platformHex.AddressHex {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query approval")
+		if err == nil {
+			err = errors.New("")
+		}
 		err = fmt.Errorf("GetAccountApprovalByAccountIdAndPlatform err: %s %s %s", err.Error(), accountId, platformHex.AddressHex)
 		return
 	}
