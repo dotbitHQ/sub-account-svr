@@ -300,7 +300,7 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return
 	}
-	approval, err := h.DbDao.GetAccountPendingApproval(accountId)
+	approval, err := h.DbDao.GetPendingApprovalByAccIdAndPlatform(accountId, platformHex.AddressHex)
 	if err != nil || approval.ID == 0 || approval.Platform != platformHex.AddressHex {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query approval")
 		if err == nil {

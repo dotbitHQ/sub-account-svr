@@ -26,3 +26,11 @@ func (d *DbDao) GetAccountPendingApproval(accountId string) (approval tables.App
 	}
 	return
 }
+
+func (d *DbDao) GetPendingApprovalByAccIdAndPlatform(accountId, platform string) (approval tables.ApprovalInfo, err error) {
+	err = d.db.Where("account_id=? and platform=? and status=?", accountId, platform, tables.ApprovalStatusEnable).Order("id desc").First(&approval).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
