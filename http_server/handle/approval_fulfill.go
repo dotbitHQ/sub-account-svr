@@ -142,14 +142,20 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[accountBuilder.Index][common.HashBytesLen:]...)
 
+	transfer := accountBuilder.AccountApproval.Params.Transfer
+	owner, manager, err := h.DasCore.Daf().ScriptToHex(transfer.ToLock)
+	if err != nil {
+		return err
+	}
+
 	lockArgs, err := h.DasCore.Daf().HexToArgs(core.DasAddressHex{
-		DasAlgorithmId: accInfo.OwnerChainType.ToDasAlgorithmId(true),
-		AddressHex:     accInfo.Owner,
-		ChainType:      accInfo.OwnerChainType,
+		DasAlgorithmId: owner.DasAlgorithmId,
+		AddressHex:     owner.AddressHex,
+		ChainType:      owner.ChainType,
 	}, core.DasAddressHex{
-		DasAlgorithmId: accInfo.ManagerChainType.ToDasAlgorithmId(true),
-		AddressHex:     accInfo.Manager,
-		ChainType:      accInfo.ManagerChainType,
+		DasAlgorithmId: manager.DasAlgorithmId,
+		AddressHex:     manager.AddressHex,
+		ChainType:      manager.ChainType,
 	})
 	if err != nil {
 		return fmt.Errorf("HexToArgs err: %s", err.Error())
@@ -304,8 +310,14 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 	}
 
 	approval, err := h.DbDao.GetAccountPendingApproval(accountId)
-	if err != nil || approval.ID == 0 {
+	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
+		err = fmt.Errorf("GetAccountApprovalByAccountId err: %s %s", err.Error(), accountId)
+		return
+	}
+	if approval.ID == 0 {
+		err = fmt.Errorf("pending approval info not exist: %s", accountId)
+		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, err.Error())
 		err = fmt.Errorf("GetAccountApprovalByAccountId err: %s %s", err.Error(), accountId)
 		return
 	}
