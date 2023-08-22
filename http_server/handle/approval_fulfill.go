@@ -142,33 +142,13 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 	accData = append(accData, res.Transaction.OutputsData[accountBuilder.Index][common.HashBytesLen:]...)
 
-	transfer := accountBuilder.AccountApproval.Params.Transfer
-	owner, manager, err := h.DasCore.Daf().ScriptToHex(transfer.ToLock)
-	if err != nil {
-		return err
-	}
-
-	lockArgs, err := h.DasCore.Daf().HexToArgs(core.DasAddressHex{
-		DasAlgorithmId: owner.DasAlgorithmId,
-		AddressHex:     owner.AddressHex,
-		ChainType:      owner.ChainType,
-	}, core.DasAddressHex{
-		DasAlgorithmId: manager.DasAlgorithmId,
-		AddressHex:     manager.AddressHex,
-		ChainType:      manager.ChainType,
-	})
-	if err != nil {
-		return fmt.Errorf("HexToArgs err: %s", err.Error())
-	}
-
 	contractDas, err := core.GetDasContractInfo(common.DasContractNameDispatchCellType)
 	if err != nil {
 		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
-
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: res.Transaction.Outputs[accountBuilder.Index].Capacity,
-		Lock:     contractDas.ToScript(lockArgs),
+		Lock:     contractDas.ToScript(accountBuilder.AccountApproval.Params.Transfer.ToLock.Args),
 		Type:     contractAcc.ToScript(nil),
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accData)
