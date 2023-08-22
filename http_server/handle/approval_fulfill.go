@@ -312,7 +312,8 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 
 	nowUntil := uint64(now.Unix())
 	if nowUntil < approval.SealedUntil {
-		ownerHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		var ownerHex *core.DasAddressHex
+		ownerHex, err = req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 			err = fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
@@ -323,7 +324,7 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 			return
 		}
 	}
-	
+
 	var txRes *types.TransactionWithStatus
 	if req.isMainAcc {
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
