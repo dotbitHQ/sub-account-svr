@@ -311,14 +311,8 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 	}
 
 	nowUntil := uint64(now.Unix())
-	if nowUntil < approval.ProtectedUntil {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account protected")
-		return
-	}
-
 	if nowUntil < approval.SealedUntil {
-		var ownerHex *core.DasAddressHex
-		ownerHex, err = req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
+		ownerHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 			err = fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
@@ -329,7 +323,7 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 			return
 		}
 	}
-
+	
 	var txRes *types.TransactionWithStatus
 	if req.isMainAcc {
 		accOutPoint := common.String2OutPointStruct(accInfo.Outpoint)
