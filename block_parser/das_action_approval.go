@@ -200,7 +200,7 @@ func (b *BlockParser) DasActionRevokeApproval(req FuncTransactionHandleReq) (res
 		}
 	}
 
-	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
+	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
 	if err != nil {
 		resp.Err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 		return
@@ -259,7 +259,7 @@ func (b *BlockParser) DasActionFulfillApproval(req FuncTransactionHandleReq) (re
 		}
 	}
 
-	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeNew)
+	accountCellBuilder, err := witness.AccountCellDataBuilderFromTx(req.Tx, common.DataTypeOld)
 	if err != nil {
 		resp.Err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 		return
