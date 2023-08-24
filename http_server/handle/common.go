@@ -40,6 +40,7 @@ type SignInfo struct {
 type SignInfoList struct {
 	Action      common.DasAction     `json:"action" binding:"required"`
 	SubAction   common.SubAction     `json:"sub_action"`
+	Is712       bool                 `json:"is_712"`
 	SignKey     string               `json:"sign_key" binding:"required"`
 	SignAddress string               `json:"sign_address"`
 	List        []SignInfo           `json:"list,omitempty"`

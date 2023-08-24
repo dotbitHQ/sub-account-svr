@@ -256,6 +256,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 	if mmJsonObj != nil {
 		signListInfo.SignList = signList
 		signListInfo.MMJson = mmJsonObj
+		signListInfo.Is712 = true
 	} else {
 		signListInfo.List = append(signListInfo.List, SignInfo{signList})
 	}
