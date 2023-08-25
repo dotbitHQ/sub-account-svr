@@ -9,7 +9,7 @@ networks:
 
 services:
   das-database:
-    image: slagga/das-database:latest
+    image: admindid/das-database:latest
     restart: always
     working_dir: /app
     entrypoint: [ "/app/das-database", "--config", "/app/config/config.yaml" ]
@@ -38,30 +38,26 @@ services:
     networks:
       - mynetwork
 
-  mongo:
-    image: mongo:4.2
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - $PWD/mongo-data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=123456
-      - MONGO_INITDB_DATABASE=smt
-    networks:
-      - mynetwork
-
   redis:
-    image: redis:5.0
+    image: redis:7.2.0
     restart: always
     ports:
       - "6379:6379"
     networks:
       - mynetwork
 
+  sub-account-store:
+    image: dotbitteam/sub-account-store:latest
+    restart: always
+    working_dir: /app
+    entrypoint: ["/app/rpc_server", "-d", "data", "-l", "0.0.0.0:9130"]
+    ports:
+      - "9130:9130"
+    networks:
+      - mynetwork
+
   sub-account:
-    image: slagga/sub-account:latest
+    image: admindid/sub-account:latest
     restart: always
     working_dir: /app
     entrypoint: [ "/app/sub-account", "--config", "/app/config/config.yaml" ]
@@ -71,8 +67,9 @@ services:
     volumes:
       - $PWD/config/config.yaml:/app/config/config.yaml
     depends_on:
-      - das-database
-      - mongo
       - redis
+      - mysql
+      - sub-account-store
+      - das-database
     networks:
       - mynetwork

@@ -106,10 +106,6 @@ type CfgServer struct {
 	DB struct {
 		Mysql       DbMysql `json:"mysql" yaml:"mysql"`
 		ParserMysql DbMysql `json:"parser_mysql" yaml:"parser_mysql"`
-		Mongo       struct {
-			Uri         string `json:"uri" yaml:"uri"`
-			SmtDatabase string `json:"smt_database" yaml:"smt_database"`
-		} `json:"mongo" yaml:"mongo"`
 	} `json:"db" yaml:"db"`
 	Cache struct {
 		Redis struct {
