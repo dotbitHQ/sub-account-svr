@@ -33,7 +33,7 @@ type TableSmtRecordInfo struct {
 	EditKey         string           `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
 	EditValue       string           `json:"edit_value" gorm:"type:text;column:edit_value"`
 	SignRole        string           `json:"sign_role" gorm:"column:sign_role;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
-	Signature       string           `json:"signature" gorm:"column:signature;type:text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	Signature       string           `json:"signature" gorm:"column:signature;type:text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT ''"`
 	LoginChainType  common.ChainType `json:"login_chain_type" gorm:"column:login_chain_type"`
 	LoginAddress    string           `json:"login_address" gorm:"column:login_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SignAddress     string           `json:"sign_address" gorm:"column:sign_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
