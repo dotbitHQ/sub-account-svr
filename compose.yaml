@@ -21,6 +21,8 @@ services:
       - mysql
     networks:
       - mynetwork
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   mysql:
     image: mysql/mysql-server:8.0
@@ -53,6 +55,8 @@ services:
     entrypoint: ["/app/rpc_server", "-d", "data", "-l", "0.0.0.0:9130"]
     ports:
       - "9130:9130"
+    volumes:
+      - $PWD/smt-data:/app/data
     networks:
       - mynetwork
 
@@ -73,3 +77,5 @@ services:
       - das-database
     networks:
       - mynetwork
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
