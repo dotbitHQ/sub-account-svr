@@ -295,6 +295,11 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 		return
 	}
 
+	if req.KeyInfo.CoinType != common.CoinTypeEth {
+		err = errors.New(fmt.Sprintf("platform coin_type only can be '%s'", common.CoinTypeEth))
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+		return
+	}
 	platformHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")

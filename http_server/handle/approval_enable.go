@@ -4,6 +4,7 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -381,6 +382,11 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
+	if req.Platform.KeyInfo.CoinType != common.CoinTypeEth {
+		err = errors.New(fmt.Sprintf("platform coin_type only can be '%s'", common.CoinTypeEth))
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+		return
+	}
 	platformLock, _, err = req.Platform.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")

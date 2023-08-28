@@ -1721,7 +1721,7 @@ Please familiarize yourself with the meaning of some common parameters before re
   "platform": {
     "type": "blockchain",
     "key_info": {
-      "coin_type": "60",
+      "coin_type": "60",  // platform coin_type only can be '60'
       "key": "0xe58673b9bF0a57398e0C8A1BDAe01EEB730177C8"
     }
   },
@@ -1949,6 +1949,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "sub_action": "",
     "sign_key": "e6358f9798aea2182329657029e6ff84",
     "sign_address": "",
+    "is_712": true,
     "sign_list": [
       {
         "sign_type": 5,
@@ -2118,7 +2119,7 @@ Please familiarize yourself with the meaning of some common parameters before re
 {
   "type": "blockchain",
   "key_info": {         // platform key_info
-    "coin_type": "60",
+    "coin_type": "60",  // coin_type only can be '60'
     "key": "0xdeeFC10a42cD84c072f2b0e2fA99061a74A0698c"
   },
   "account": "cross15.bit"
@@ -2136,6 +2137,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "sub_action": "",
     "sign_key": "5770c64eb8d45fe84e1578908694db14",
     "sign_address": "",
+    "is_712": false,
     "list": [
       {
         "sign_list": [
@@ -2180,6 +2182,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "sub_action": "",
     "sign_key": "35589b94e1571c946792c595b74e84ab",
     "sign_address": "",
+    "is_712": true,
     "sign_list": [
       {
         "sign_type": 5,
