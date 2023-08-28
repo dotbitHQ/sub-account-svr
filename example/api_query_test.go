@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ApiUrl = "https://test-subaccount-api.did.id/v1"
+	ApiUrl = "https://test-mint-api.topdid.com/v1"
 )
 
 func doReq(url string, req, data interface{}) error {
