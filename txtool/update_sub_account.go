@@ -212,20 +212,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		autoChange += p.CommonFee
 	}
 
-	balanceLiveCells := make([]*indexer.LiveCell, 0)
-	if manualChange == 0 && autoChange == 0 {
-		_, balanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
-			DasLock:      p.BalanceDasLock,
-			DasType:      p.BalanceDasType,
-			NeedCapacity: common.OneCkb,
-		})
-		if err != nil {
-			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
-			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
-			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
-		}
-	}
-
 	// update smt status
 	if err := s.DbDao.UpdateSmtStatus(p.TaskInfo.TaskId, tables.SmtStatusWriting); err != nil {
 		return nil, fmt.Errorf("UpdateSmtStatus err: %s", err.Error())
@@ -348,11 +334,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			PreviousOutput: v.OutPoint,
 		})
 	}
-	for _, v := range balanceLiveCells {
-		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-			PreviousOutput: v.OutPoint,
-		})
-	}
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
@@ -389,10 +370,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			txParams.Outputs = append(txParams.Outputs, splitList[i])
 			txParams.OutputsData = append(txParams.OutputsData, []byte{})
 		}
-	}
-	for _, v := range balanceLiveCells {
-		txParams.Outputs = append(txParams.Outputs, v.Output)
-		txParams.OutputsData = append(txParams.OutputsData, []byte{})
 	}
 
 	// witness
