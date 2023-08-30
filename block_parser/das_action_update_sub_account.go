@@ -55,40 +55,9 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 		return
 	}
 
-	approvalAction := make([]tables.TableSmtRecordInfo, 0)
-	for _, v := range smtRecordList {
-		switch v.SubAction {
-		case common.SubActionCreateApproval, common.SubActionDelayApproval,
-			common.SubActionRevokeApproval, common.SubActionFullfillApproval:
-			approvalAction = append(approvalAction, v)
-		}
-	}
-
 	// add task and smt records
 	if selfTask.TaskId != "" {
-		if err := b.DbDao.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Model(tables.TableTaskInfo{}).Where("task_id=?", selfTask.TaskId).
-				Updates(map[string]interface{}{
-					"task_type":    tables.TaskTypeChain,
-					"smt_status":   tables.SmtStatusNeedToWrite,
-					"tx_status":    tables.TxStatusCommitted,
-					"block_number": req.BlockNumber,
-				}).Error; err != nil {
-				return err
-			}
-			if err := tx.Model(tables.TableSmtRecordInfo{}).
-				Where("task_id=?", selfTask.TaskId).
-				Updates(map[string]interface{}{
-					"record_type": tables.RecordTypeChain,
-					"RecordBN":    req.BlockNumber,
-				}).Error; err != nil {
-				return err
-			}
-			if err := b.doApprovalAction(req, tx, approvalAction); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
+		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber); err != nil {
 			resp.Err = fmt.Errorf("UpdateToChainTask err: %s", err.Error())
 			return
 		}
