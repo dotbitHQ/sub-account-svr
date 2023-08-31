@@ -80,21 +80,26 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 		return nil, nil, fmt.Errorf("contractDas is nil")
 	}
 
-	var currentSubAccount witness.SubAccountData
-	var subAccountNew witness.SubAccountNew
-	subAccountNew.Action = t.SubAction
-	subAccountNew.Version = witness.SubAccountNewVersion3
-	subAccountNew.OldSubAccountVersion = witness.SubAccountVersionLatest
-	subAccountNew.NewSubAccountVersion = witness.SubAccountVersionLatest
+	currentSubAccount := witness.SubAccountData{
+		Version: witness.SubAccountVersionLatest,
+	}
+	subAccountNew := witness.SubAccountNew{
+		Action:               t.SubAction,
+		Version:              witness.SubAccountNewVersion3,
+		OldSubAccountVersion: witness.SubAccountVersionLatest,
+		NewSubAccountVersion: witness.SubAccountVersionLatest,
+	}
 
 	if oldSubAccount != nil {
 		if oldSubAccount.OldSubAccountVersion == 0 &&
 			oldSubAccount.NewSubAccountVersion == 0 {
+			currentSubAccount.Version = witness.SubAccountVersion1
 			subAccountNew.OldSubAccountVersion = witness.SubAccountVersion1
 			subAccountNew.NewSubAccountVersion = witness.SubAccountVersion2
 		}
 		if oldSubAccount.OldSubAccountVersion == witness.SubAccountVersion1 &&
 			oldSubAccount.NewSubAccountVersion == witness.SubAccountVersion2 {
+			currentSubAccount.Version = witness.SubAccountVersion2
 			subAccountNew.OldSubAccountVersion = witness.SubAccountVersion2
 			subAccountNew.NewSubAccountVersion = witness.SubAccountVersion2
 		}
