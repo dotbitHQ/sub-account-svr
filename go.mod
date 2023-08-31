@@ -4,8 +4,9 @@ go 1.16
 
 require (
 	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230811052600-b7bafca0f0cb
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230831075555-7079e0f215fe
 	github.com/fsnotify/fsnotify v1.5.4
+	github.com/getsentry/sentry-go v0.23.0 // indirect
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible

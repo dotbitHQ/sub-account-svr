@@ -138,7 +138,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	if err != nil {
 		return fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
-	builder, err := witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
+	builder, err := witness.AccountCellDataBuilderFromTxByName(res.Transaction, common.DataTypeNew, req.Account)
 	if err != nil {
 		return fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 	}

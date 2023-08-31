@@ -80,7 +80,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	case common.DasActionCreateApproval, common.DasActionDelayApproval,
 		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
 		if err := h.doApproval(req, apiResp, &resp); err != nil {
-			return fmt.Errorf("doActionNormal err: %s", err.Error())
+			return fmt.Errorf("doApproval err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}

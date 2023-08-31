@@ -325,7 +325,7 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return
 		}
-		accountBuilder, err = witness.AccountCellDataBuilderFromTx(txRes.Transaction, common.DataTypeNew)
+		accountBuilder, err = witness.AccountCellDataBuilderFromTxByName(txRes.Transaction, common.DataTypeNew, req.Account)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return

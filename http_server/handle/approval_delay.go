@@ -325,7 +325,7 @@ func (h *HttpHandle) doApprovalDelayCheck(req *ReqApprovalDelay, apiResp *api_co
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return
 		}
-		accountBuilder, err = witness.AccountCellDataBuilderFromTx(res.Transaction, common.DataTypeNew)
+		accountBuilder, err = witness.AccountCellDataBuilderFromTxByName(res.Transaction, common.DataTypeNew, req.Account)
 		if err != nil {
 			err = fmt.Errorf("AccountCellDataBuilderMapFromTx err: %s", err.Error())
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
