@@ -16,14 +16,14 @@ func TestApprovalEnable(t *testing.T) {
 			Type: "blockchain",
 			KeyInfo: core.KeyInfo{
 				CoinType: "60",
-				Key:      "0xe58673b9bF0a57398e0C8A1BDAe01EEB730177C8",
+				Key:      "0xdeeFC10a42cD84c072f2b0e2fA99061a74A0698c",
 			},
 		},
 		Owner: core.ChainTypeAddress{
 			Type: "blockchain",
 			KeyInfo: core.KeyInfo{
 				CoinType: "60",
-				Key:      "0xdeeFC10a42cD84c072f2b0e2fA99061a74A0698c",
+				Key:      "0xe58673b9bF0a57398e0C8A1BDAe01EEB730177C8",
 			},
 		},
 		To: core.ChainTypeAddress{
@@ -33,12 +33,12 @@ func TestApprovalEnable(t *testing.T) {
 				Key:      "0x52045950a5B582E9b426Ad89296c8970c96D09D9",
 			},
 		},
-		Account:        "sub-account-test.bit",
+		Account:        "approval-t1.bit",
 		ProtectedUntil: uint64(time.Now().Add(time.Minute * 10).Unix()),
 		SealedUntil:    uint64(time.Now().Add(time.Hour).Unix()),
 		EvmChainId:     5,
 	}
-	data := handle.RespStatisticalInfo{}
+	data := handle.RespApprovalEnable{}
 	url := fmt.Sprintf("%s/approval/enable", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
@@ -59,7 +59,7 @@ func TestApprovalDelay(t *testing.T) {
 		SealedUntil: uint64(time.Now().Add(time.Hour).Unix()),
 		EvmChainId:  5,
 	}
-	data := handle.RespStatisticalInfo{}
+	data := handle.RespApprovalDelay{}
 	url := fmt.Sprintf("%s/approval/delay", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestApprovalRevoke(t *testing.T) {
 		},
 		Account: "sub-account-test.bit",
 	}
-	data := handle.RespStatisticalInfo{}
+	data := handle.RespApprovalRevoke{}
 	url := fmt.Sprintf("%s/approval/delay", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestApprovalFulfill(t *testing.T) {
 		},
 		Account: "sub-account-test.bit",
 	}
-	data := handle.RespStatisticalInfo{}
+	data := handle.RespApprovalFulfill{}
 	url := fmt.Sprintf("%s/approval/fulfill", ApiUrl)
 	if err := http_api.SendReq(url, &req, &data); err != nil {
 		t.Fatal(err)
