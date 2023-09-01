@@ -32,3 +32,9 @@ func (d *DbDao) DeleteBlockInfo(parserType tables.ParserType, blockNumber uint64
 	return d.db.Where("parser_type=? AND block_number < ?", parserType, blockNumber).
 		Delete(&tables.TableBlockParserInfo{}).Error
 }
+
+func (d *DbDao) GetParserBlockNumber() (info tables.TableBlockParserInfo, err error) {
+	err = d.db.Where("parser_type=?", tables.ParserTypeSubAccount).
+		Order("block_number").Limit(1).Find(&info).Error
+	return
+}
