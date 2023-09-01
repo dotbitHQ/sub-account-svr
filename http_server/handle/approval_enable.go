@@ -49,7 +49,8 @@ func (h *HttpHandle) ApprovalEnable(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
+	reqId := ctx.GetHeader("request_id")
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, reqId, toolib.JsonString(req))
 
 	if err = h.doApprovalEnableEnable(&req, &apiResp); err != nil {
 		log.Error("ApprovalEnable err:", err.Error(), funcName, clientIp, remoteAddrIP)
