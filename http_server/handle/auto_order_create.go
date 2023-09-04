@@ -175,6 +175,11 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		PremiumPercentage: premiumPercentage,
 		PremiumBase:       premiumBase,
 		PremiumAmount:     premiumAmount,
+		MetaData: map[string]string{
+			"account":      req.SubAccount,
+			"algorithm_id": hexAddr.ChainType.ToString(),
+			"address":      req.ChainTypeAddress.KeyInfo.Key,
+		},
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
