@@ -10,7 +10,11 @@ import (
 func getSubAccountWitness(subAccountParamList []*witness.SubAccountNew) ([][]byte, error) {
 	var witnessList [][]byte
 	for _, v := range subAccountParamList {
-		wit, _ := v.GenWitness()
+		log.Infof("getSubAccountWitness version: %d oldSubAccountVersion: %d newSubAccountVersion: %d", v.Version, v.OldSubAccountVersion, v.NewSubAccountVersion)
+		wit, err := v.GenWitness()
+		if err != nil {
+			return nil, err
+		}
 		witnessList = append(witnessList, wit)
 	}
 	return witnessList, nil

@@ -38,11 +38,14 @@ type SignInfo struct {
 }
 
 type SignInfoList struct {
-	Action      common.DasAction `json:"action"`
-	SubAction   common.SubAction `json:"sub_action"`
-	SignKey     string           `json:"sign_key"`
-	SignAddress string           `json:"sign_address"`
-	List        []SignInfo       `json:"list"`
+	Action      common.DasAction     `json:"action" binding:"required"`
+	SubAction   common.SubAction     `json:"sub_action"`
+	Is712       bool                 `json:"is_712"`
+	SignKey     string               `json:"sign_key" binding:"required"`
+	SignAddress string               `json:"sign_address"`
+	List        []SignInfo           `json:"list,omitempty"`
+	SignList    []txbuilder.SignData `json:"sign_list,omitempty"` // sign list
+	MMJson      *common.MMJsonObj    `json:"mm_json,omitempty"`   // 712 mmjson
 }
 
 // =========
@@ -51,6 +54,7 @@ type SignInfoCache struct {
 	ChainType common.ChainType                   `json:"chain_type"`
 	Address   string                             `json:"address"`
 	Action    string                             `json:"action"`
+	SubAction string                             `json:"sub_action"`
 	Account   string                             `json:"account"`
 	Capacity  uint64                             `json:"capacity"`
 	BuilderTx *txbuilder.DasTxBuilderTransaction `json:"builder_tx"`

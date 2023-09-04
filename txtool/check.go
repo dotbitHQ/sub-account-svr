@@ -224,6 +224,10 @@ func (s *SubAccountTxTool) CheckSubAccountLiveCell(contractSubAcc *core.DasContr
 		return nil, fmt.Errorf("GetTaskByOutpointWithParentAccountId err: %s", err.Error())
 	} else if task.Id == 0 {
 		log.Warn("not exist outpoint:", outpoint)
+		if pbn, err := s.DbDao.GetParserBlockNumber(); err == nil && pbn.Id > 0 && pbn.BlockNumber > subAccLiveCells.Objects[0].BlockNumber {
+			log.Warn("GetParserBlockNumber:", pbn.BlockNumber, subAccLiveCells.Objects[0].BlockNumber)
+			return subAccLiveCells.Objects[0], nil
+		}
 		return nil, ErrTaskInProgress
 	}
 	return subAccLiveCells.Objects[0], nil

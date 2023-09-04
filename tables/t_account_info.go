@@ -34,6 +34,7 @@ const (
 	AccountStatusOnSale    AccountStatus = 1
 	AccountStatusOnAuction AccountStatus = 2
 	AccountStatusOnCross   AccountStatus = 3
+	AccountStatusApproval  AccountStatus = 4
 	TableNameAccountInfo                 = "t_account_info"
 )
 

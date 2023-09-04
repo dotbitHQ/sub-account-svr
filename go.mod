@@ -3,25 +3,34 @@ module das_sub_account
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230816015623-b291d5c47f78
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/dotbitHQ/das-lib v1.0.2-0.20230904065907-ec0570546f3d
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.9.0
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogf/gf/v2 v2.3.3
 	github.com/influxdata/influxdb v1.8.3
+	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.27.1 // indirect
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.6
 	github.com/shopspring/decimal v1.3.1
+	github.com/tklauser/go-sysconf v0.3.11 // indirect
+	github.com/ugorji/go v1.2.7 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/urfave/cli/v2 v2.10.2
 	go.mongodb.org/mongo-driver v1.9.1

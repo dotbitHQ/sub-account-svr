@@ -84,7 +84,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	signKey, signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(&paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -98,10 +98,8 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 
 	resp := RespConfigAutoMintUpdate{}
 	resp.Action = action
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: signList,
-	})
+	resp.SignKey = signList.SignKey
+	resp.List = signList.List
 	log.Info("doConfigAutoMintUpdate:", toolib.JsonString(resp))
 
 	apiResp.ApiRespOK(resp)

@@ -75,7 +75,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.subAccountLiveCell.OutputData)
 	log.Warn("Compare root:", parentAccountId, common.Bytes2Hex(currentRoot), common.Bytes2Hex(subDataDetail.SmtRoot))
 	if bytes.Compare(currentRoot, subDataDetail.SmtRoot) != 0 {
-		log.Warn("currentRoot:", currentRoot, "chain_root: ", parentAccountId)
+		log.Warn("currentRoot:", currentRoot, "chain_root: ", common.Bytes2Hex(subDataDetail.SmtRoot))
 		return fmt.Errorf("smt root diff: %s", parentAccountId)
 	}
 

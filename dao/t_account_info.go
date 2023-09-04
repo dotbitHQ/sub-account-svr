@@ -3,6 +3,7 @@ package dao
 import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
+	"errors"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
 	"time"
@@ -10,7 +11,7 @@ import (
 
 func (d *DbDao) GetAccountInfoByAccountId(accountId string) (acc tables.TableAccountInfo, err error) {
 	err = d.parserDb.Where(" account_id=? ", accountId).Find(&acc).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	return

@@ -36,6 +36,10 @@ make sub
 * docker >= 20.10
 * docker-compose >= 2.2.2
 
+#### Compose
+
+copy from das-database `config/config.yaml` and rename to `config/config.database.yaml` and edit it
+
 ```bash
 sudo curl -L "https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
@@ -43,9 +47,10 @@ sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 docker-compose up -d
 ```
 
-_if you already have a mysql installed, just run_
+#### Docker Run
+_if you already have: mysql,redis,das-database,sub-account-store_
 ```bash
-docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server dotbitteam/sub-account-svr:latest
+docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config.yaml --name sub-account-server admindid/sub-account-svr:latest
 ```
 
 ### Others

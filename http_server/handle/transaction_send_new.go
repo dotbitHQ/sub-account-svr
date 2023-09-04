@@ -55,12 +55,6 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	var resp RespTransactionSend
 	resp.HashList = make([]string, 0)
 
-	// check params
-	if req.Action == "" || len(req.List) == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
-		return nil
-	}
-
 	// check update
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
@@ -80,6 +74,13 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
 		if err := h.doActionNormal(req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		if err := h.doApproval(req, apiResp, &resp); err != nil {
+			return fmt.Errorf("doApproval err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
@@ -263,6 +264,45 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 	return nil
 }
 
+func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
+	var sic SignInfoCache
+	txStr, err := h.RC.GetSignTxCache(req.SignKey)
+	if err != nil {
+		if err == redis.Nil {
+			apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+		} else {
+			apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+		}
+		return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+	}
+
+	if err := json.Unmarshal([]byte(txStr), &sic); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+	}
+
+	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
+	if len(req.List) > 0 {
+		if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
+			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
+		}
+	} else {
+		if err := txBuilder.AddSignatureForTx(req.SignList); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
+			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
+		}
+	}
+
+	hash, err := txBuilder.SendTransaction()
+	if err != nil {
+		return doSendTransactionError(err, apiResp)
+	}
+	h.DasCache.AddCellInputByAction("", sic.BuilderTx.Transaction.Inputs)
+	resp.HashList = append(resp.HashList, hash.Hex())
+	return nil
+}
+
 func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
 	var dataCache UpdateSubAccountCache
 	if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
@@ -288,6 +328,13 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 	case common.SubActionEdit:
 		if err := h.doSubActionEdit(dataCache, req, apiResp); err != nil {
 			return fmt.Errorf("doSubActionEdit err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		if err := h.doSubActionApproval(dataCache, req, apiResp); err != nil {
+			return fmt.Errorf("doSubActionApproval err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
@@ -411,11 +458,59 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
 		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
 		dataCache.ListSmtRecord[i].SignAddress = req.SignAddress        //sign addr
-
+		dataCache.ListSmtRecord[i].Signature = signature
 	}
 	if err := h.DbDao.CreateMinSignInfo(*dataCache.MinSignInfo, dataCache.ListSmtRecord); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create mint sign info")
 		return fmt.Errorf("CreateMinSignInfo err:%s", err.Error())
+	}
+	return nil
+}
+
+func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	acc, err := h.DbDao.GetAccountInfoByAccountId(dataCache.AccountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "fail to search account")
+		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	}
+
+	var approvalInfo tables.ApprovalInfo
+	if dataCache.SubAction != common.SubActionCreateApproval {
+		approvalInfo, err = h.DbDao.GetAccountPendingApproval(dataCache.AccountId)
+		if err != nil {
+			return err
+		}
+		if approvalInfo.ID == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalNotExist, "account approval not exist")
+			return fmt.Errorf("account approval not exist")
+		}
+	}
+
+	var signature string
+	if dataCache.SubAction != common.SubActionFullfillApproval ||
+		uint64(time.Now().Unix()) < approvalInfo.SealedUntil {
+
+		addr := acc.Owner
+		if dataCache.SubAction == common.SubActionRevokeApproval {
+			addr = approvalInfo.Platform
+		}
+		signature = req.List[0].SignList[0].SignMsg
+		if signature, err = doSignCheck(dataCache.SignData, signature, addr, addr, apiResp); err != nil {
+			return fmt.Errorf("doSignCheck err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+	}
+
+	for i := range dataCache.ListSmtRecord {
+		dataCache.ListSmtRecord[i].LoginChainType = dataCache.ChainType //login chain_type
+		dataCache.ListSmtRecord[i].LoginAddress = dataCache.Address     //login addr
+		dataCache.ListSmtRecord[i].SignAddress = req.SignAddress        //sign addr
+		dataCache.ListSmtRecord[i].Signature = signature                //sign msg
+	}
+	if err := h.DbDao.CreateSmtRecordList(dataCache.ListSmtRecord); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create smt record info")
+		return fmt.Errorf("CreateSmtRecordList err:%s", err.Error())
 	}
 	return nil
 }

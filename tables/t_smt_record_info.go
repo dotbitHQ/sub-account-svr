@@ -31,7 +31,9 @@ type TableSmtRecordInfo struct {
 	RegisterYears   uint64           `json:"register_years" gorm:"column:register_years;type:int(11) NOT NULL DEFAULT '0' COMMENT ''"`
 	RegisterArgs    string           `json:"register_args" gorm:"column:register_args;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
 	EditKey         string           `json:"edit_key" gorm:"column:edit_key;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
-	Signature       string           `json:"signature" gorm:"column:signature;type:text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT ''"`
+	EditValue       string           `json:"edit_value" gorm:"type:text;column:edit_value"`
+	SignRole        string           `json:"sign_role" gorm:"column:sign_role;type:varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'owner,manager,records'"`
+	Signature       string           `json:"signature" gorm:"column:signature;type:text"`
 	LoginChainType  common.ChainType `json:"login_chain_type" gorm:"column:login_chain_type"`
 	LoginAddress    string           `json:"login_address" gorm:"column:login_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SignAddress     string           `json:"sign_address" gorm:"column:sign_address; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
@@ -73,14 +75,34 @@ func (t *TableSmtRecordInfo) getEditRecords() (records []witness.Record, err err
 	err = json.Unmarshal([]byte(t.EditRecords), &records)
 	return
 }
-func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldSubAccount *witness.SubAccountData, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
-	var currentSubAccount witness.SubAccountData
-	var subAccountNew witness.SubAccountNew
-	subAccountNew.Version = witness.SubAccountNewVersion2
-	subAccountNew.Action = t.SubAction
-
+func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldSubAccount *witness.SubAccountNew, contractDas *core.DasContractInfo, timeCellTimestamp int64) (*witness.SubAccountData, *witness.SubAccountNew, error) {
 	if contractDas == nil {
 		return nil, nil, fmt.Errorf("contractDas is nil")
+	}
+
+	currentSubAccount := witness.SubAccountData{
+		Version: witness.SubAccountVersionLatest,
+	}
+	subAccountNew := witness.SubAccountNew{
+		Action:               t.SubAction,
+		Version:              witness.SubAccountNewVersion3,
+		OldSubAccountVersion: witness.SubAccountVersionLatest,
+		NewSubAccountVersion: witness.SubAccountVersionLatest,
+	}
+
+	if oldSubAccount != nil {
+		if oldSubAccount.OldSubAccountVersion == 0 &&
+			oldSubAccount.NewSubAccountVersion == 0 {
+			currentSubAccount.Version = witness.SubAccountVersion1
+			subAccountNew.OldSubAccountVersion = witness.SubAccountVersion1
+			subAccountNew.NewSubAccountVersion = witness.SubAccountVersion2
+		}
+		if oldSubAccount.OldSubAccountVersion == witness.SubAccountVersion1 &&
+			oldSubAccount.NewSubAccountVersion == witness.SubAccountVersion2 {
+			currentSubAccount.Version = witness.SubAccountVersion2
+			subAccountNew.OldSubAccountVersion = witness.SubAccountVersion2
+			subAccountNew.NewSubAccountVersion = witness.SubAccountVersion2
+		}
 	}
 
 	switch t.Action {
@@ -121,12 +143,12 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			if oldSubAccount == nil {
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
-			currentSubAccount = *oldSubAccount
+			currentSubAccount = *oldSubAccount.CurrentSubAccountData
 			currentSubAccount.Nonce++
 			currentSubAccount.ExpiredAt += uint64(common.OneYearSec) * t.RenewYears
 
 			subAccountNew.EditKey = t.EditKey
-			subAccountNew.SubAccountData = oldSubAccount
+			subAccountNew.SubAccountData = oldSubAccount.CurrentSubAccountData
 			expiredAt := molecule.GoU64ToMoleculeU64(currentSubAccount.ExpiredAt)
 			subAccountNew.EditValue = expiredAt.AsSlice()
 			return &currentSubAccount, &subAccountNew, nil
@@ -134,10 +156,10 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			if oldSubAccount == nil {
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
-			currentSubAccount = *oldSubAccount
+			currentSubAccount = *oldSubAccount.CurrentSubAccountData
 
 			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
-			subAccountNew.SubAccountData = oldSubAccount
+			subAccountNew.SubAccountData = oldSubAccount.CurrentSubAccountData
 			subAccountNew.EditKey = t.EditKey
 			switch t.EditKey {
 			case common.EditKeyOwner:
@@ -170,7 +192,44 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			if oldSubAccount == nil {
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
-			subAccountNew.SubAccountData = oldSubAccount
+			subAccountNew.SubAccountData = oldSubAccount.CurrentSubAccountData
+			return &currentSubAccount, &subAccountNew, nil
+		case common.SubActionCreateApproval, common.SubActionDelayApproval,
+			common.SubActionRevokeApproval, common.SubActionFullfillApproval:
+			if oldSubAccount == nil {
+				return nil, nil, fmt.Errorf("oldSubAccount is nil")
+			}
+			currentSubAccount = *oldSubAccount.CurrentSubAccountData
+			currentSubAccount.Version = witness.SubAccountVersion2
+
+			switch t.SubAction {
+			case common.SubActionCreateApproval:
+				currentSubAccount.Status = common.AccountStatusOnApproval
+			case common.SubActionRevokeApproval:
+				currentSubAccount.Status = common.AccountStatusNormal
+				currentSubAccount.AccountApproval = witness.AccountApproval{}
+			case common.SubActionFullfillApproval:
+				currentSubAccount.Status = common.AccountStatusNormal
+				currentSubAccount.Lock = oldSubAccount.CurrentSubAccountData.AccountApproval.Params.Transfer.ToLock
+				currentSubAccount.AccountApproval = witness.AccountApproval{}
+				currentSubAccount.Records = []witness.Record{}
+			}
+			currentSubAccount.Nonce++
+			if t.SignRole != "" {
+				subAccountNew.SignRole = common.Hex2Bytes(t.SignRole)
+			}
+			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
+			subAccountNew.SignExpiredAt = t.ExpiredAt
+			subAccountNew.SubAccountData = oldSubAccount.CurrentSubAccountData
+			subAccountNew.EditKey = t.EditKey
+			if t.EditValue != "" {
+				subAccountNew.EditValue = common.Hex2Bytes(t.EditValue)
+				accApproval, err := witness.AccountApprovalFromSlice(subAccountNew.EditValue)
+				if err != nil {
+					return nil, nil, err
+				}
+				currentSubAccount.AccountApproval = *accApproval
+			}
 			return &currentSubAccount, &subAccountNew, nil
 		default:
 			return nil, nil, fmt.Errorf("unknow sub-action[%s]", t.SubAction)

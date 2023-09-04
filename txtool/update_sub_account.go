@@ -56,10 +56,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if v.MintSignId == "" {
 			continue
 		}
-		if v.SubAction != common.SubActionCreate &&
-			v.SubAction != common.SubActionRenew {
-			continue
-		}
 
 		if mintSignId := mintSignIdMap[v.SubAction]; mintSignId == "" {
 			mintSignIdMap[v.SubAction] = v.MintSignId
@@ -75,6 +71,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			return nil, fmt.Errorf("GetMinSignInfo err: %s", err.Error())
 		}
 		witnessSignInfo[v.SubAction] = mintSignInfo.GenWitness()
+
 		var listKeyValue []tables.MintSignInfoKeyValue
 		err = json.Unmarshal([]byte(mintSignInfo.KeyValue), &listKeyValue)
 		if err != nil {
@@ -175,6 +172,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		}
 	}
 
+	var err error
 	var manualChange uint64
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
@@ -183,7 +181,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if autoTotalCapacity == 0 {
 			needCapacity += p.CommonFee
 		}
-		var err error
 		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      balanceDasLock,
 			DasType:      balanceDasType,
@@ -202,7 +199,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var autoChange uint64
 	autoBalanceLiveCells := make([]*indexer.LiveCell, 0)
 	if autoTotalCapacity > 0 {
-		var err error
 		autoChange, autoBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
 			DasLock:      p.BalanceDasLock,
 			DasType:      p.BalanceDasType,
@@ -231,13 +227,13 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	for i, v := range p.SmtRecordInfoList {
 		log.Info("BuildUpdateSubAccountTx:", v.TaskId, len(p.SmtRecordInfoList), "-", i)
 
-		var oldSubAccount *witness.SubAccountData
+		var oldSubAccount *witness.SubAccountNew
 		if v.SubAction != common.SubActionCreate {
 			subAccountBuilder, ok := p.SubAccountBuilderMap[v.AccountId]
 			if !ok {
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
-			oldSubAccount = subAccountBuilder.CurrentSubAccountData
+			oldSubAccount = subAccountBuilder
 		}
 
 		timeCellTimestamp := p.BaseInfo.TimeCell.Timestamp()
@@ -245,10 +241,13 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("GetCurrentSubAccountNew err: %s", err.Error())
 		}
-		key := smt.AccountIdToSmtH256(v.AccountId)
-		value := subAccountData.ToH256()
+
+		value, err := subAccountData.ToH256()
+		if err != nil {
+			return nil, err
+		}
 		smtKv = append(smtKv, smt.SmtKv{
-			Key:   key,
+			Key:   smt.AccountIdToSmtH256(v.AccountId),
 			Value: value,
 		})
 		common.GetAccountCharType(accountCharTypeMap, subAccountData.AccountCharSet)
@@ -304,15 +303,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			return nil, fmt.Errorf("tree.Update err: %s", err.Error())
 		}
 		for i := range subAccountList {
-			key := smt.AccountIdToSmtH256(subAccountIdMap[i])
-			if _, ok := smtRes.Proofs[common.Bytes2Hex(key)]; !ok {
+			key := common.Bytes2Hex(smt.AccountIdToSmtH256(subAccountIdMap[i]))
+			pprof, ok := smtRes.Proofs[key]
+			if !ok {
 				return nil, fmt.Errorf("tree.MerkleProof Proof err: %s", smtRes.Proofs)
 			}
-			if _, ok := smtRes.Roots[common.Bytes2Hex(key)]; !ok {
-				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Proofs)
+			newRoot, ok := smtRes.Roots[key]
+			if !ok {
+				return nil, fmt.Errorf("tree.Roof err: %s", smtRes.Roots)
 			}
-			subAccountList[i].Proof = common.Hex2Bytes(smtRes.Proofs[common.Bytes2Hex(key)])
-			subAccountList[i].NewRoot = smtRes.Roots[common.Bytes2Hex(key)]
+			subAccountList[i].Proof = common.Hex2Bytes(pprof)
+			subAccountList[i].NewRoot = newRoot
 		}
 	}
 
@@ -644,7 +645,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 				return nil, fmt.Errorf("CreateAccountInfo err: %s", err.Error())
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
-			value := subAccountData.ToH256()
+			value, err := subAccountData.ToH256()
+			if err != nil {
+				return nil, err
+			}
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
 				Key:   key,
@@ -667,12 +671,15 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 			if !ok {
 				return nil, fmt.Errorf("SubAccountBuilderMap not exist: %s", v.AccountId)
 			}
-			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(s.DasCore, subAccountBuilder.CurrentSubAccountData, p.BaseInfo.ContractDas, 0)
+			subAccountData, subAccountNew, err := p.SmtRecordInfoList[i].GetCurrentSubAccountNew(s.DasCore, subAccountBuilder, p.BaseInfo.ContractDas, 0)
 			if err != nil {
 				return nil, fmt.Errorf("GetCurrentSubAccount err: %s", err.Error())
 			}
 			key := smt.AccountIdToSmtH256(v.AccountId)
-			value := subAccountData.ToH256()
+			value, err := subAccountData.ToH256()
+			if err != nil {
+				return nil, err
+			}
 			var smtKvTemp []smt.SmtKv
 			smtKvTemp = append(smtKvTemp, smt.SmtKv{
 				Key:   key,

@@ -11,7 +11,7 @@ import (
 type TableMintSignInfo struct {
 	Id         uint64           `json:"id" gorm:"column:id; primaryKey; type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '';"`
 	MintSignId string           `json:"mint_sign_id" gorm:"column:mint_sign_id; uniqueIndex:uk_mint_sign_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Signature  string           `json:"signature" gorm:"column:signature; type:text NOT NULL DEFAULT '' COMMENT '';"`
+	Signature  string           `json:"signature" gorm:"column:signature; type:text NOT NULL COMMENT '';"`
 	SignRole   string           `json:"sign_role" gorm:"column:sign_role; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SubAction  common.SubAction `json:"sub_action" gorm:"column:sub_action; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	SmtRoot    string           `json:"smt_root" gorm:"column:smt_root; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
@@ -50,9 +50,20 @@ func (t *TableMintSignInfo) GenWitness() []byte {
 		sams.SignRole = common.Hex2Bytes(common.ParamManager)
 	}
 
-	actionDataType := common.ActionDataTypeSubAccountMintSign
-	if t.SubAction == common.SubActionRenew {
+	actionDataType := ""
+	switch t.SubAction {
+	case common.SubActionCreate:
+		actionDataType = common.ActionDataTypeSubAccountMintSign
+	case common.SubActionRenew:
 		actionDataType = common.ActionDataTypeSubAccountRenewSign
+	case common.SubActionCreateApproval:
+		actionDataType = common.ActionDataTypeSubAccountCreateApprovalSign
+	case common.SubActionDelayApproval:
+		actionDataType = common.ActionDataTypeSubAccountDelayApprovalSign
+	case common.SubActionRevokeApproval:
+		actionDataType = common.ActionDataTypeSubAccountRevokeApprovalSign
+	case common.SubActionFullfillApproval:
+		actionDataType = common.ActionDataTypeSubAccountFulfillApprovalSign
 	}
 	return sams.GenWitnessWithAction(actionDataType)
 }

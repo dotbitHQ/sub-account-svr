@@ -85,6 +85,9 @@ type CfgServer struct {
 			PaymentMinPrice     int64             `json:"payment_min_price" yaml:"payment_min_price"`
 			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
 		} `json:"auto_mint" yaml:"auto_mint"`
+		Approval struct {
+			MaxDelayCount uint8 `json:"max_delay_count" yaml:"max_delay_count"`
+		} `json:"approval" yaml:"approval"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {
@@ -103,10 +106,6 @@ type CfgServer struct {
 	DB struct {
 		Mysql       DbMysql `json:"mysql" yaml:"mysql"`
 		ParserMysql DbMysql `json:"parser_mysql" yaml:"parser_mysql"`
-		Mongo       struct {
-			Uri         string `json:"uri" yaml:"uri"`
-			SmtDatabase string `json:"smt_database" yaml:"smt_database"`
-		} `json:"mongo" yaml:"mongo"`
 	} `json:"db" yaml:"db"`
 	Cache struct {
 		Redis struct {
