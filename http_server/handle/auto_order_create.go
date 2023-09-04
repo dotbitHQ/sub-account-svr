@@ -166,6 +166,11 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 	}
 
+	action := "register"
+	switch req.ActionType {
+	case tables.ActionTypeRenew:
+		action = "renew"
+	}
 	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress:  req.ChainTypeAddress,
 		BusinessId:        unipay.BusinessIdAutoSubAccount,
@@ -179,6 +184,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			"account":      req.SubAccount,
 			"algorithm_id": hexAddr.ChainType.ToString(),
 			"address":      req.ChainTypeAddress.KeyInfo.Key,
+			"action":       action,
 		},
 	})
 	if err != nil {
