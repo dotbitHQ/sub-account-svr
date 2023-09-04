@@ -166,7 +166,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 	}
 
-	action := "register"
+	action := "mint"
 	switch req.ActionType {
 	case tables.ActionTypeRenew:
 		action = "renew"
