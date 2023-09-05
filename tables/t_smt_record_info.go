@@ -104,6 +104,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 			subAccountNew.NewSubAccountVersion = witness.SubAccountVersion2
 		}
 	}
+	currentSubAccount.Version = subAccountNew.OldSubAccountVersion
 
 	switch t.Action {
 	case common.DasActionUpdateSubAccount:
@@ -144,7 +145,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
 			currentSubAccount = *oldSubAccount.CurrentSubAccountData
-			currentSubAccount.Version = witness.SubAccountVersionLatest
+			currentSubAccount.Version = subAccountNew.OldSubAccountVersion
 			currentSubAccount.Nonce++
 			currentSubAccount.ExpiredAt += uint64(common.OneYearSec) * t.RenewYears
 
@@ -158,7 +159,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 				return nil, nil, fmt.Errorf("oldSubAccount is nil")
 			}
 			currentSubAccount = *oldSubAccount.CurrentSubAccountData
-			currentSubAccount.Version = witness.SubAccountVersionLatest
+			currentSubAccount.Version = subAccountNew.OldSubAccountVersion
 
 			subAccountNew.Signature = common.Hex2Bytes(t.Signature)
 			subAccountNew.SubAccountData = oldSubAccount.CurrentSubAccountData
