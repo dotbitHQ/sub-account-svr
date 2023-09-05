@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/bytedance/sonic v1.8.7 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/dotbitHQ/das-lib v1.0.2-0.20230904065907-ec0570546f3d
+	github.com/dotbitHQ/das-lib v1.1.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-ole/go-ole v1.2.6 // indirect
