@@ -83,6 +83,7 @@ func (t *TableSmtRecordInfo) GetCurrentSubAccountNew(dasCore *core.DasCore, oldS
 	currentSubAccount := witness.SubAccountData{
 		Version: witness.SubAccountVersionLatest,
 	}
+	
 	subAccountNew := witness.SubAccountNew{
 		Action:               t.SubAction,
 		Version:              witness.SubAccountNewVersion3,
