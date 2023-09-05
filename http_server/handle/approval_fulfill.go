@@ -302,7 +302,12 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 		return
 	}
 
-	nowUntil := uint64(now.Unix())
+	timeCell, err := h.DasCore.GetTimeCell()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return
+	}
+	nowUntil := uint64(timeCell.Timestamp())
 	if nowUntil < approval.SealedUntil {
 		var ownerHex *core.DasAddressHex
 		ownerHex, err = req.FormatChainTypeAddress(config.Cfg.Server.Net, true)

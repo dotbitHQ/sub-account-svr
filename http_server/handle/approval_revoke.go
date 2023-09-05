@@ -314,7 +314,13 @@ func (h *HttpHandle) doApprovalRevokeCheck(req *ReqApprovalRevoke, apiResp *api_
 		err = fmt.Errorf("GetAccountApprovalByAccountIdAndPlatform err: %s %s %s", err.Error(), accountId, platformHex.AddressHex)
 		return
 	}
-	now := uint64(time.Now().Unix())
+
+	timeCell, err := h.DasCore.GetTimeCell()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return
+	}
+	now := uint64(timeCell.Timestamp())
 	if now < approval.ProtectedUntil {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountApprovalProtected, "account protected")
 		return
