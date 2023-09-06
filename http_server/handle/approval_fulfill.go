@@ -154,9 +154,11 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
 	signList, txHash, err := h.buildTx(&paramBuildTx{
-		txParams: &txParams,
-		action:   common.DasActionFulfillApproval,
-		account:  req.Account,
+		txParams:  &txParams,
+		action:    common.DasActionFulfillApproval,
+		account:   req.Account,
+		address:   accInfo.Owner,
+		chainType: accInfo.OwnerChainType,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
