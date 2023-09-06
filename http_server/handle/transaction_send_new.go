@@ -529,9 +529,17 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		return nil
 	}
 
+	if req.SignAddress == "" {
+		err := fmt.Errorf("sign_address can not be empty when has webauthn sign (sign_type = 8)")
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+		return err
+	}
+
 	txAddr := ""
 	switch req.Action {
-	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
+	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount,
+		common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
 		var sic SignInfoCache
 		txStr, err := h.RC.GetSignTxCache(req.SignKey)
 		if err != nil {
