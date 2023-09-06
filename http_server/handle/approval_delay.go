@@ -184,6 +184,8 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 		action:     common.DasActionDelayApproval,
 		account:    req.Account,
 		evmChainId: req.EvmChainId,
+		address:    accInfo.Owner,
+		chainType:  accInfo.OwnerChainType,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())

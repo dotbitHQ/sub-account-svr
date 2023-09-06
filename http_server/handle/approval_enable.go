@@ -199,6 +199,8 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 		action:     common.DasActionCreateApproval,
 		account:    req.Account,
 		evmChainId: req.EvmChainId,
+		address:    accInfo.Owner,
+		chainType:  accInfo.OwnerChainType,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())

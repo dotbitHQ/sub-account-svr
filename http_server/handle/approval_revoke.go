@@ -162,10 +162,17 @@ func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
+	platformHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, false)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return err
+	}
 	signList, txHash, err := h.buildTx(&paramBuildTx{
-		txParams: &txParams,
-		action:   common.DasActionRevokeApproval,
-		account:  req.Account,
+		txParams:  &txParams,
+		action:    common.DasActionRevokeApproval,
+		account:   req.Account,
+		address:   platformHex.AddressHex,
+		chainType: platformHex.ChainType,
 	})
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
