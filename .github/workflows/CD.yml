@@ -1,9 +1,9 @@
-name: cd
+name: CD
 
 on: 
   workflow_run:
     workflows:
-      - ci
+      - CI
     types:
       - completed
 jobs:
