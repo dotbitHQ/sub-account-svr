@@ -12,7 +12,7 @@ slb:
 	@echo "Build $(SLB_BIN_BINARY_NAME) successfully. You can run ./$(SLB_BIN_BINARY_NAME) now.If you can't see it soon,wait some seconds"
 
 update:
-	go mod tidy -compat=1.17
+	go mod tidy
 
 docker:
 	docker build --network host -t dotbitteam/sub-account-svr:latest .
