@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: 
+      - main
+      - dev
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build
+        run: make
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: sub_account
+          path: ./sub_account
