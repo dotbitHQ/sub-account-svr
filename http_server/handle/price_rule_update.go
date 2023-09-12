@@ -223,13 +223,27 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	)
 
 	// account cell
+	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
+	if err != nil {
+		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
+	}
+	accBuilder, ok := accBuilderMap[parentAccountId]
+	if !ok {
+		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
+	}
+	accWitness, accData, _ := accBuilder.GenWitness(&witness.AccountCellParam{
+		OldIndex: 0,
+		NewIndex: 0,
+		Action:   common.DasActionConfigSubAccount,
+	})
+	accData = append(accData, accountTx.Transaction.OutputsData[accountOutpoint.Index][32:]...)
 	accountCellOutput := accountTx.Transaction.Outputs[accountOutpoint.Index]
 	txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
 		Capacity: accountCellOutput.Capacity,
 		Lock:     accountCellOutput.Lock,
 		Type:     accountCellOutput.Type,
 	})
-	txParams.OutputsData = append(txParams.OutputsData, accountTx.Transaction.OutputsData[accountOutpoint.Index])
+	txParams.OutputsData = append(txParams.OutputsData, accData)
 
 	// sub_account cell
 	subAccountCellOutput := subAccountTx.Transaction.Outputs[subAccountCell.OutPoint.Index]
@@ -364,19 +378,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
 	// witness account cell
-	accBuilderMap, err := witness.AccountIdCellDataBuilderFromTx(accountTx.Transaction, common.DataTypeNew)
-	if err != nil {
-		return nil, nil, fmt.Errorf("AccountIdCellDataBuilderFromTx err: %s", err.Error())
-	}
-	accBuilder, ok := accBuilderMap[parentAccountId]
-	if !ok {
-		return nil, nil, fmt.Errorf("accBuilderMap is nil: %s", parentAccountId)
-	}
-	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
-		OldIndex: 0,
-		NewIndex: 0,
-		Action:   common.DasActionConfigSubAccount,
-	})
+
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
 	// rule witness
