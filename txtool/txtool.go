@@ -43,7 +43,7 @@ type ParamBuildTxs struct {
 }
 
 type ResultBuildTxs struct {
-	IsCustomScript   bool
+	//IsCustomScript   bool
 	DasTxBuilderList []*txbuilder.DasTxBuilder
 }
 
@@ -59,7 +59,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 	subAccountOutpoint := p.SubAccountLiveCell.OutPoint
 
 	// account
-	res.IsCustomScript = s.isCustomScript(p.SubAccountLiveCell.OutputData)
+	//res.IsCustomScript = s.isCustomScript(p.SubAccountLiveCell.OutputData)
 	subAccountCellOutput := p.SubAccountLiveCell.Output
 	subAccountOutputsData := p.SubAccountLiveCell.OutputData
 	// build txs
@@ -72,49 +72,49 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 		case common.DasActionUpdateSubAccount:
 			var resUpdate *ResultBuildUpdateSubAccountTx
 			var err error
-			if res.IsCustomScript {
-				resUpdate, err = s.BuildUpdateSubAccountTxForCustomScript(&ParamBuildUpdateSubAccountTx{
-					TaskInfo:              &p.TaskList[i],
-					Account:               p.Account,
-					AccountOutPoint:       accountOutPoint,
-					SubAccountOutpoint:    subAccountOutpoint,
-					SmtRecordInfoList:     records,
-					Tree:                  p.Tree,
-					BaseInfo:              p.BaseInfo,
-					SubAccountBuilderMap:  p.SubAccountBuilderMap,
-					NewSubAccountPrice:    newSubAccountPrice,
-					RenewSubAccountPrice:  renewSubAccountPrice,
-					BalanceDasLock:        p.BalanceDasLock,
-					BalanceDasType:        p.BalanceDasType,
-					CommonFee:             commonFee,
-					SubAccountCellOutput:  subAccountCellOutput,
-					SubAccountOutputsData: subAccountOutputsData,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("BuildUpdateSubAccountTxForCustomScript err: %s", err.Error())
-				}
-			} else {
-				resUpdate, err = s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
-					TaskInfo:              &p.TaskList[i],
-					Account:               p.Account,
-					AccountOutPoint:       accountOutPoint,
-					SubAccountOutpoint:    subAccountOutpoint,
-					SmtRecordInfoList:     records,
-					Tree:                  p.Tree,
-					BaseInfo:              p.BaseInfo,
-					SubAccountBuilderMap:  p.SubAccountBuilderMap,
-					NewSubAccountPrice:    newSubAccountPrice,
-					RenewSubAccountPrice:  renewSubAccountPrice,
-					BalanceDasLock:        p.BalanceDasLock,
-					BalanceDasType:        p.BalanceDasType,
-					CommonFee:             commonFee,
-					SubAccountCellOutput:  subAccountCellOutput,
-					SubAccountOutputsData: subAccountOutputsData,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("BuildUpdateSubAccountTx err: %s", err.Error())
-				}
+			//if res.IsCustomScript {
+			//	resUpdate, err = s.BuildUpdateSubAccountTxForCustomScript(&ParamBuildUpdateSubAccountTx{
+			//		TaskInfo:              &p.TaskList[i],
+			//		Account:               p.Account,
+			//		AccountOutPoint:       accountOutPoint,
+			//		SubAccountOutpoint:    subAccountOutpoint,
+			//		SmtRecordInfoList:     records,
+			//		Tree:                  p.Tree,
+			//		BaseInfo:              p.BaseInfo,
+			//		SubAccountBuilderMap:  p.SubAccountBuilderMap,
+			//		NewSubAccountPrice:    newSubAccountPrice,
+			//		RenewSubAccountPrice:  renewSubAccountPrice,
+			//		BalanceDasLock:        p.BalanceDasLock,
+			//		BalanceDasType:        p.BalanceDasType,
+			//		CommonFee:             commonFee,
+			//		SubAccountCellOutput:  subAccountCellOutput,
+			//		SubAccountOutputsData: subAccountOutputsData,
+			//	})
+			//	if err != nil {
+			//		return nil, fmt.Errorf("BuildUpdateSubAccountTxForCustomScript err: %s", err.Error())
+			//	}
+			//} else {
+			resUpdate, err = s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
+				TaskInfo:              &p.TaskList[i],
+				Account:               p.Account,
+				AccountOutPoint:       accountOutPoint,
+				SubAccountOutpoint:    subAccountOutpoint,
+				SmtRecordInfoList:     records,
+				Tree:                  p.Tree,
+				BaseInfo:              p.BaseInfo,
+				SubAccountBuilderMap:  p.SubAccountBuilderMap,
+				NewSubAccountPrice:    newSubAccountPrice,
+				RenewSubAccountPrice:  renewSubAccountPrice,
+				BalanceDasLock:        p.BalanceDasLock,
+				BalanceDasType:        p.BalanceDasType,
+				CommonFee:             commonFee,
+				SubAccountCellOutput:  subAccountCellOutput,
+				SubAccountOutputsData: subAccountOutputsData,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("BuildUpdateSubAccountTx err: %s", err.Error())
 			}
+			//	}
 			res.DasTxBuilderList = append(res.DasTxBuilderList, resUpdate.DasTxBuilder)
 		default:
 			return nil, fmt.Errorf("not exist action [%s]", task.Action)

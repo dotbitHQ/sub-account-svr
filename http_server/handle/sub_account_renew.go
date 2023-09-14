@@ -141,10 +141,17 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	}
 
 	totalCapacity := uint64(0)
+	totalRenewYears := uint64(0)
 	for _, v := range req.SubAccountList {
-		totalCapacity += v.RenewYears
+		totalRenewYears += v.RenewYears
 	}
-	totalCapacity = totalCapacity * renewSubAccountPrice
+	//totalCapacity = totalRenewYears * renewSubAccountPrice
+	quoteCell, err := h.DasCore.GetQuoteCell()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get quote cell")
+		return fmt.Errorf("GetQuoteCell err: %s", err.Error())
+	}
+	totalCapacity = config.PriceToCKB(renewSubAccountPrice, quoteCell.Quote(), totalRenewYears)
 
 	_, _, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 		DasCache:          nil,

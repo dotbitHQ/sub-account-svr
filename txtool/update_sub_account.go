@@ -1,7 +1,6 @@
 package txtool
 
 import (
-	"bytes"
 	"das_sub_account/tables"
 	"encoding/json"
 	"errors"
@@ -859,14 +858,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	return &res, nil
 }
 
-func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
-	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
-	customScriptArgs := make([]byte, 32)
-	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
-		return false
-	}
-	return true
-}
+//func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
+//	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
+//	customScriptArgs := make([]byte, 32)
+//	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+//		return false
+//	}
+//	return true
+//}
 
 func (s *SubAccountTxTool) getSubAccountCell(parentAccountId string) (*indexer.LiveCell, error) {
 	baseInfo, err := s.GetBaseInfo()
