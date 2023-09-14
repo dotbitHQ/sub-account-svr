@@ -8,6 +8,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -122,7 +123,6 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, "The main account is valid for less than one year")
 		return nil
 	}
-
 	// get rule price
 	usdAmount, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
 	if err != nil {
@@ -138,6 +138,23 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
 		return nil
 	}
+	// check min price 0.99$
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+	if req.ActionType == tables.ActionTypeRenew {
+		renewSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+		minPrice = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+	}
+	if minPrice.GreaterThan(usdAmount) {
+		apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+		return fmt.Errorf("price not be less than min: %s$", minPrice.String())
+	}
+
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
 	//log.Info("usdAmount:", usdAmount.String(), req.Years)
