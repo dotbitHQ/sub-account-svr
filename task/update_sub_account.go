@@ -7,6 +7,7 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"sync"
 )
 
@@ -35,6 +36,7 @@ func (t *SmtTask) doBatchUpdateSubAccountTask(action common.DasAction) error {
 	for i := 0; i < 10; i++ {
 		wgTask.Add(1)
 		go func() {
+			defer http_api.RecoverPanic()
 			for {
 				select {
 				case parentAccountId, ok := <-chanParentAccountId:

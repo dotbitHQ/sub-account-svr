@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
-	"github.com/scorpiotzh/mylog"
 	"strings"
 	"time"
 )
 
-var log = mylog.NewLogger("tables", mylog.LevelDebug)
+var log = logger.NewLogger("tables", logger.LevelDebug)
 
 type TableSmtRecordInfo struct {
 	Id              uint64           `json:"id" gorm:"column:id;primaryKey;type:bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT ''"`

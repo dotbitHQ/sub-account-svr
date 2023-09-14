@@ -47,15 +47,15 @@ func (h *HttpHandle) TransactionStatus(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
 
 	if err = h.doTransactionStatus(&req, &apiResp); err != nil {
-		log.Error("doTransactionStatus err:", err.Error(), funcName, clientIp)
+		log.Error("doTransactionStatus err:", err.Error(), funcName, clientIp, ctx)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)

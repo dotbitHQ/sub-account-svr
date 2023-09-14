@@ -1,7 +1,6 @@
 package handle
 
 import (
-
 	"encoding/csv"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
@@ -26,7 +25,7 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 		err                    error
 	)
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return

@@ -13,9 +13,9 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
-	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	log               = mylog.NewLogger("main", mylog.LevelDebug)
+	log               = logger.NewLogger("main", logger.LevelDebug)
 	exit              = make(chan struct{})
 	ctxServer, cancel = context.WithCancel(context.Background())
 	wgServer          = sync.WaitGroup{}

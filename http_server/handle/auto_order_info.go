@@ -45,16 +45,16 @@ func (h *HttpHandle) AutoOrderInfo(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
 
 	//time.Sleep(time.Minute * 3)
 	if err = h.doAutoOrderInfo(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp)
+		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp, ctx)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)

@@ -4,12 +4,12 @@ import (
 	"context"
 	"das_sub_account/dao"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/scorpiotzh/mylog"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"sync"
 )
 
 var (
-	log = mylog.NewLogger("unipay", mylog.LevelDebug)
+	log = logger.NewLogger("unipay", logger.LevelDebug)
 )
 
 type ToolUniPay struct {

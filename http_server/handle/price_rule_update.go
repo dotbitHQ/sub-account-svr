@@ -40,15 +40,15 @@ func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
 
 	if err = h.doPriceRuleUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

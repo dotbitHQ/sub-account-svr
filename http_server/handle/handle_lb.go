@@ -21,7 +21,7 @@ func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
 		clientIp, remoteAddrIP = GetClientIp(ctx)
 		apiResp                api_code.ApiResp
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.URL.Path)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.URL.Path, ctx)
 
 	// slb by ip
 	h.doLBProxy(ctx, &apiResp, clientIp)
@@ -31,14 +31,14 @@ func (h *LBHttpHandle) LBProxy(ctx *gin.Context) {
 func (h *LBHttpHandle) doLBProxy(ctx *gin.Context, apiResp *api_code.ApiResp, serverKey string) {
 	server := h.LB.GetServer(serverKey)
 	if server.Url == "" {
-		log.Error("h.LB.GetServer err: server url is nil")
+		log.Error("h.LB.GetServer err: server url is nil", ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "proxy server is nil")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
 	origin := ctx.GetHeader("origin")
-	log.Info("LBProxy:", serverKey, server.Name, server.Url, origin)
+	log.Info("LBProxy:", serverKey, server.Name, server.Url, origin, ctx)
 	u, err := url.Parse(server.Url)
 	if err != nil {
 		log.Errorf("url.Parse err: %s", err.Error())

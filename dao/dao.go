@@ -4,7 +4,8 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
-	"github.com/scorpiotzh/mylog"
+	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/scorpiotzh/toolib"
 	"gorm.io/gorm"
 )
@@ -15,11 +16,11 @@ type DbDao struct {
 }
 
 var (
-	log = mylog.NewLogger("dao", mylog.LevelDebug)
+	log = logger.NewLogger("dao", logger.LevelDebug)
 )
 
 func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, error) {
-	db, err := toolib.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
+	db, err := http_api.NewGormDB(dbMysql.Addr, dbMysql.User, dbMysql.Password, dbMysql.DbName, dbMysql.MaxOpenConn, dbMysql.MaxIdleConn)
 	if err != nil {
 		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
 	}
@@ -56,7 +57,7 @@ func NewGormDB(dbMysql, parserMysql config.DbMysql, autoMigrate bool) (*DbDao, e
 
 	}
 
-	parserDb, err := toolib.NewGormDB(parserMysql.Addr, parserMysql.User, parserMysql.Password, parserMysql.DbName, parserMysql.MaxOpenConn, parserMysql.MaxIdleConn)
+	parserDb, err := http_api.NewGormDB(parserMysql.Addr, parserMysql.User, parserMysql.Password, parserMysql.DbName, parserMysql.MaxOpenConn, parserMysql.MaxIdleConn)
 	if err != nil {
 		return nil, fmt.Errorf("toolib.NewGormDB err: %s", err.Error())
 	}

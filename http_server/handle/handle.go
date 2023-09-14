@@ -12,16 +12,16 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/dascache"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
-	"github.com/scorpiotzh/mylog"
 	"net"
 	"strings"
 )
 
 var (
-	log = mylog.NewLogger("http_handle", mylog.LevelDebug)
+	log = logger.NewLogger("http_handle", logger.LevelDebug)
 )
 
 type HttpHandle struct {

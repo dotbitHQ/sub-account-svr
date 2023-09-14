@@ -3,8 +3,9 @@ module das_sub_account
 go 1.18
 
 require (
-	github.com/dotbitHQ/das-lib v1.1.1-0.20230908084332-05bca73e0fdd
+	github.com/dotbitHQ/das-lib v1.1.1-0.20230914082914-c82fd8ea602c
 	github.com/fsnotify/fsnotify v1.5.4
+	github.com/getsentry/sentry-go v0.24.0
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/gogf/gf/v2 v2.3.3
@@ -12,7 +13,6 @@ require (
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/scorpiotzh/mylog v1.0.10
 	github.com/scorpiotzh/toolib v1.1.6
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.10.2
@@ -34,7 +34,6 @@ require (
 
 require (
 	github.com/Andrew-M-C/go.emoji v1.0.1 // indirect
-	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/btcsuite/btcd v0.23.3 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
@@ -53,7 +52,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
@@ -61,7 +59,6 @@ require (
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -71,6 +68,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/scorpiotzh/mylog v1.0.10 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect

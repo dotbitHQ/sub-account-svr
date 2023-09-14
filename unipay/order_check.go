@@ -5,6 +5,7 @@ import (
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"time"
 )
 
@@ -12,6 +13,7 @@ func (t *ToolUniPay) RunOrderCheck() {
 	tickerOrder := time.NewTicker(time.Minute * 5)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerOrder.C:

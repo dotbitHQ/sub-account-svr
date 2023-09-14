@@ -9,12 +9,13 @@ import (
 	"das_sub_account/txtool"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
-	"github.com/scorpiotzh/mylog"
+	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"sync"
 	"time"
 )
 
-var log = mylog.NewLogger("task", mylog.LevelDebug)
+var log = logger.NewLogger("task", logger.LevelDebug)
 
 type SmtTask struct {
 	Ctx          context.Context
@@ -32,17 +33,18 @@ func (t *SmtTask) RunUpdateSubAccountTaskDistribution() {
 	tickerDistribution := time.NewTicker(time.Minute)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerDistribution.C:
-				log.Info("doUpdateDistribution start ...")
+				log.Debug("doUpdateDistribution start ...")
 				if err := t.doUpdateDistribution(); err != nil {
 					log.Error("doUpdateDistribution err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doUpdateDistribution", err.Error())
 				}
-				log.Info("doUpdateDistribution end ...")
+				log.Debug("doUpdateDistribution end ...")
 			case <-t.Ctx.Done():
-				log.Info("task doUpdateDistribution done")
+				log.Debug("task doUpdateDistribution done")
 				t.Wg.Done()
 				return
 			}
@@ -55,17 +57,18 @@ func (t *SmtTask) RunTaskCheckTx() {
 	tickerCheckTx := time.NewTicker(time.Second * 15)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerCheckTx.C:
-				log.Info("doCheckTx start ...")
+				log.Debug("doCheckTx start ...")
 				if err := t.doCheckTx(); err != nil {
 					log.Error("doCheckTx err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doCheckTx", err.Error())
 				}
-				log.Info("doCheckTx end ...")
+				log.Debug("doCheckTx end ...")
 			case <-t.Ctx.Done():
-				log.Info("task Check Tx done")
+				log.Debug("task Check Tx done")
 				t.Wg.Done()
 				return
 			}
@@ -78,17 +81,18 @@ func (t *SmtTask) RunTaskConfirmOtherTx() {
 	tickerOther := time.NewTicker(time.Second * 7)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerOther.C:
-				log.Info("doConfirmOtherTx start ...")
+				log.Debug("doConfirmOtherTx start ...")
 				if err := t.doConfirmOtherTx(); err != nil {
 					log.Error("doConfirmOtherTx err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmOtherTx", err.Error())
 				}
-				log.Info("doConfirmOtherTx end ...")
+				log.Debug("doConfirmOtherTx end ...")
 			case <-t.Ctx.Done():
-				log.Info("task confirm other tx done")
+				log.Debug("task confirm other tx done")
 				t.Wg.Done()
 				return
 			}
@@ -101,17 +105,18 @@ func (t *SmtTask) RunTaskRollback() {
 	tickerRollback := time.NewTicker(time.Second * 5)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerRollback.C:
-				log.Info("doRollback start ...")
+				log.Debug("doRollback start ...")
 				if err := t.doRollback(); err != nil {
 					log.Error("doRollback err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRollback", err.Error())
 				}
-				log.Info("doRollback end ...")
+				log.Debug("doRollback end ...")
 			case <-t.Ctx.Done():
-				log.Info("task rollback done")
+				log.Debug("task rollback done")
 				t.Wg.Done()
 				return
 			}
@@ -124,17 +129,18 @@ func (t *SmtTask) RunUpdateSubAccountTask() {
 	ticker := time.NewTicker(time.Second * 6)
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-ticker.C:
-				log.Info("RunUpdateSubAccountTask start ...")
+				log.Debug("RunUpdateSubAccountTask start ...")
 				if err := t.doBatchUpdateSubAccountTask(common.DasActionUpdateSubAccount); err != nil {
 					log.Error("RunUpdateSubAccountTask err:", err.Error())
 					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunUpdateSubAccountTask", err.Error())
 				}
-				log.Info("RunUpdateSubAccountTask end ...")
+				log.Debug("RunUpdateSubAccountTask end ...")
 			case <-t.Ctx.Done():
-				log.Info("RunUpdateSubAccountTask done")
+				log.Debug("RunUpdateSubAccountTask done")
 				t.Wg.Done()
 				return
 			}

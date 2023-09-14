@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/parnurzeal/gorequest"
-	"github.com/scorpiotzh/mylog"
 	"net/http"
 	"time"
 )
 
-var log = mylog.NewLogger("api_code", mylog.LevelDebug)
+var log = logger.NewLogger("api_code", logger.LevelDebug)
 
 type ReqPushLog struct {
 	Index   string        `json:"index"`

@@ -4,15 +4,15 @@ import (
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/fsnotify/fsnotify"
-	"github.com/scorpiotzh/mylog"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 )
 
 var (
 	Cfg CfgServer
-	log = mylog.NewLogger("config", mylog.LevelDebug)
+	log = logger.NewLogger("config", logger.LevelDebug)
 )
 
 func InitCfg(configFilePath string) error {
@@ -95,6 +95,7 @@ type CfgServer struct {
 		LarkCreateSubAccountKey     string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
 		DiscordCreateSubAccountKey  string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`
 		LarkParentAccountPaymentKey string `json:"lark_parent_account_payment_key" yaml:"lark_parent_account_payment_key"`
+		SentryDsn                   string `json:"sentry_dsn" yaml:"sentry_dsn"`
 	} `json:"notify" yaml:"notify"`
 	Chain struct {
 		CkbUrl             string `json:"ckb_url" yaml:"ckb_url"`

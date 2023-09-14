@@ -48,14 +48,14 @@ func (h *HttpHandle) SmtSync(ctx *gin.Context) {
 		err                    error
 	)
 	if err := ctx.BindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
 	if err = h.doSmtSync(&req, &apiResp); err != nil {
-		log.Error("doSmtSync err:", err.Error(), funcName, clientIp)
+		log.Error("doSmtSync err:", err.Error(), funcName, clientIp, ctx)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)

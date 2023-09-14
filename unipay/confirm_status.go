@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"time"
 )
 
@@ -17,6 +18,7 @@ func (t *ToolUniPay) RunConfirmStatus() {
 
 	t.Wg.Add(1)
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-tickerSearchStatus.C:

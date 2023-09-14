@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
+	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/go-redis/redis"
-	"github.com/scorpiotzh/mylog"
 )
 
 type RedisCache struct {
@@ -12,5 +12,5 @@ type RedisCache struct {
 }
 
 var (
-	log = mylog.NewLogger("cache", mylog.LevelDebug)
+	log = logger.NewLogger("cache", logger.LevelDebug)
 )

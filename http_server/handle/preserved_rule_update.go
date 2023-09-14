@@ -23,15 +23,15 @@ func (h *HttpHandle) PreservedRuleUpdate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
 
 	if err = h.doPreservedRuleUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp)
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, ctx)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

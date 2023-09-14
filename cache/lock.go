@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/http_api"
 	"time"
 )
 
@@ -41,6 +42,7 @@ func (r *RedisCache) DoLockExpire(ctx context.Context, accountId string) {
 	ticker := time.NewTicker(time.Second * lockTicker)
 	count := 0
 	go func() {
+		defer http_api.RecoverPanic()
 		for {
 			select {
 			case <-ticker.C:
