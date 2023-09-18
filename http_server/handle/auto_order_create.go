@@ -151,7 +151,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		minPrice = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 	}
 	if minPrice.GreaterThan(usdAmount) {
-		apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, "Pricing below minimum")
 		return fmt.Errorf("price not be less than min: %s$", minPrice.String())
 	}
 
