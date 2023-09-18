@@ -62,12 +62,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.SubAccountCommonFee, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.CommonFee().RawData())
 	resp.ManagementTimes = 10000
 
-	//resp.SubAccountNewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
-	//resp.SubAccountRenewSubAccountPrice, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
 	//resp.MintCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	//resp.RenewCostsManually, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
-	resp.SubAccountNewSubAccountPrice = 100000000
-	resp.SubAccountRenewSubAccountPrice = 100000000
 	resp.MintCostsManually = 100000000
 	resp.RenewCostsManually = 100000000
 
@@ -84,6 +80,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	}
 	quote := decimal.NewFromInt(int64(quoteCell.Quote()))
 	resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
+	resp.SubAccountNewSubAccountPrice = config.PriceToCKB(mintPrice, quoteCell.Quote(), 1)
+	resp.SubAccountRenewSubAccountPrice = config.PriceToCKB(renewPrice, quoteCell.Quote(), 1)
 
 	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
 	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
