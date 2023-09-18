@@ -67,8 +67,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.MintCostsManually = 100000000
 	resp.RenewCostsManually = 100000000
 
-	mintPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.CommonFee().RawData())
-	renewPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+	mintPrice, _ := builder.NewSubAccountPrice()
+	renewPrice, _ := builder.RenewSubAccountPrice()
 
 	resp.MintPrice = decimal.NewFromInt(int64(mintPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 	resp.RenewPrice = decimal.NewFromInt(int64(renewPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
