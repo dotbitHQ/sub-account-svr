@@ -16,7 +16,6 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 	"net/http"
 	"time"
 )
@@ -206,11 +205,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	changeCapacity := txBuilder.Transaction.Outputs[latestIndex].Capacity - sizeInBlock - 1000
 	txBuilder.Transaction.Outputs[latestIndex].Capacity = changeCapacity
 
-	hash, err := txBuilder.Transaction.ComputeHash()
+	hash, err := txBuilder.SendTransaction()
 	if err != nil {
-		return "", fmt.Errorf("ComputeHash err: %s", err.Error())
+		return "", fmt.Errorf("SendTransaction err: %s", err.Error())
 	}
-	log.Info("buildServiceProviderWithdraw2Tx:", req.ServiceProviderAddress, req.Account, hash.Hex())
+
 	taskInfo := &tables.TableTaskInfo{
 		TaskType:        tables.TaskTypeChain,
 		ParentAccountId: parentAccountId,
@@ -221,26 +220,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		TxStatus:        tables.TxStatusPending,
 	}
 	taskInfo.InitTaskId()
-	if _, err := txBuilder.SendTransaction(); err != nil {
-		return "", fmt.Errorf("SendTransaction err: %s", err.Error())
-	}
-
-	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(taskInfo).Error; err != nil {
-			return err
-		}
-		if err := tx.Create(&tables.TableSubAccountAutoMintWithdrawHistory{
-			TaskId:            taskInfo.TaskId,
-			ParentAccountId:   parentAccountId,
-			ServiceProviderId: providerId,
-			TxHash:            hash.Hex(),
-			Price:             amount,
-		}).Error; err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		return "", fmt.Errorf("Transaction err: %s", err.Error())
+	if err := h.DbDao.CreateTask(taskInfo); err != nil {
+		log.Error("CreateTask err: ", err.Error(), hash.Hex())
+		return hash.Hex(), nil
 	}
 
 	return hash.Hex(), nil
