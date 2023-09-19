@@ -83,6 +83,7 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/service/provider/withdraw2", h.H.ServiceProviderWithdraw2)
 		internalV1.POST("/internal/recycle/account", h.H.RecycleAccount)
 	}
+	// curl -X POST http://127.0.0.1:8127/v1/service/provider/withdraw2 -d'{"service_provider_address":"","account":"","withdraw":false}'
 }
 
 func respHandle(c *gin.Context, res string, err error) {

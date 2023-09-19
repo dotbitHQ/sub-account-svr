@@ -173,7 +173,7 @@ func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint6
 
 func (d *DbDao) GetSmtRecordManualCKB(parentAccountId string) (total uint64, err error) {
 	err = d.db.Model(&tables.TableSmtRecordInfo{}).
-		Select("sum(round(990000/quote,0)*(register_years+renew_years))").
+		Select("IFNULL(sum(round(990000/quote,0)*(register_years+renew_years)),0)").
 		Where("parent_account_id=? and mint_type in (?) and sub_action in (?) and record_type=? and quote>0",
 			parentAccountId, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual},
 			[]common.DasAction{common.SubActionCreate, common.SubActionRenew}, tables.RecordTypeChain).Scan(&total).Error
