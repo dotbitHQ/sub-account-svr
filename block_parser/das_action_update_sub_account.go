@@ -5,11 +5,13 @@ import (
 	"das_sub_account/lb"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -40,9 +42,26 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 			parentAccountId = common.Bytes2Hex(v.Type.Args)
 		}
 	}
+	// get quote cell
+	env := core.InitEnv(b.DasCore.NetType())
+	var quote uint64
+	for _, v := range req.Tx.CellDeps {
+		cellDepTx, err := b.DasCore.Client().GetTransaction(b.Ctx, v.OutPoint.TxHash)
+		if err != nil {
+			resp.Err = fmt.Errorf("GetTransaction CellDeps err: %s", err.Error())
+			return
+		}
+		cell := cellDepTx.Transaction.Outputs[v.OutPoint.Index]
+		if cell.Type != nil {
+			if common.Bytes2Hex(cell.Type.Args) == "0x00" && env.THQCodeHash == cell.Type.CodeHash.Hex() {
+				quote = binary.BigEndian.Uint64(cellDepTx.Transaction.OutputsData[v.OutPoint.Index][2:])
+				break
+			}
+		}
+	}
 
 	// get task , smt-record
-	taskInfo, smtRecordList, err := b.getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
+	taskInfo, smtRecordList, err := b.getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint, quote)
 	if err != nil {
 		resp.Err = fmt.Errorf("getTaskAndSmtRecordsNew err: %s", err.Error())
 		return
@@ -57,7 +76,7 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 
 	// add task and smt records
 	if selfTask.TaskId != "" {
-		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber); err != nil {
+		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber, quote); err != nil {
 			resp.Err = fmt.Errorf("UpdateToChainTask err: %s", err.Error())
 			return
 		}
@@ -194,7 +213,7 @@ func (b *BlockParser) getOutpoint(req FuncTransactionHandleReq, dasContractName 
 	return refOutpoint, outpoint, nil
 }
 
-func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
+func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string, quote uint64) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
 	svrName := ""
 	if slb != nil {
 		s := slb.GetServer(parentAccountId)
@@ -249,6 +268,7 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 			SubAction:       v.Action,
 			MintSignId:      "",
 			ExpiredAt:       v.SignExpiredAt,
+			Quote:           decimal.NewFromInt(int64(quote)),
 		}
 		switch v.Action {
 		case common.SubActionCreate:

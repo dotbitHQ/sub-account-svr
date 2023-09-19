@@ -179,7 +179,7 @@ func (d *DbDao) CreateChainTask(task *tables.TableTaskInfo, list []tables.TableS
 	})
 }
 
-func (d *DbDao) UpdateToChainTask(taskId string, blockNumber uint64) error {
+func (d *DbDao) UpdateToChainTask(taskId string, blockNumber, quote uint64) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(tables.TableTaskInfo{}).Where("task_id=?", taskId).
 			Updates(map[string]interface{}{
@@ -194,7 +194,8 @@ func (d *DbDao) UpdateToChainTask(taskId string, blockNumber uint64) error {
 			Where("task_id=?", taskId).
 			Updates(map[string]interface{}{
 				"record_type": tables.RecordTypeChain,
-				"RecordBN":    blockNumber,
+				"record_bn":   blockNumber,
+				"quote":       quote,
 			}).Error; err != nil {
 			return err
 		}

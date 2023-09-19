@@ -62,7 +62,7 @@ func (b *BlockParser) DasActionCreateSubAccount(req FuncTransactionHandleReq) (r
 	// add task and smt records
 	if selfTask.TaskId != "" {
 		// maybe rollback
-		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber); err != nil {
+		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber, 0); err != nil {
 			resp.Err = fmt.Errorf("UpdateToChainTask err: %s", err.Error())
 			return
 		}

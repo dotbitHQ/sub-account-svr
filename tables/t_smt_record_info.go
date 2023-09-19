@@ -8,6 +8,7 @@ import (
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/scorpiotzh/mylog"
+	"github.com/shopspring/decimal"
 	"strings"
 	"time"
 )
@@ -44,6 +45,7 @@ type TableSmtRecordInfo struct {
 	SubAction       common.SubAction `json:"sub_action" gorm:"column:sub_action; index:k_action; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	MintSignId      string           `json:"mint_sign_id" gorm:"column:mint_sign_id; index:k_mint_sign_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	ExpiredAt       uint64           `json:"expired_at" gorm:"column:expired_at; type:bigint(20) NOT NULL DEFAULT '0' COMMENT '';"`
+	Quote           decimal.Decimal  `json:"quote" gorm:"column:quote; type:decimal(50,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	CreatedAt       time.Time        `json:"created_at" gorm:"column:created_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT ''"`
 	UpdatedAt       time.Time        `json:"updated_at" gorm:"column:updated_at;type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''"`
 }
