@@ -5,7 +5,6 @@ import (
 	"das_sub_account/lb"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -43,21 +42,10 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 		}
 	}
 	// get quote cell
-	env := core.InitEnv(b.DasCore.NetType())
-	var quote uint64
-	for _, v := range req.Tx.CellDeps {
-		cellDepTx, err := b.DasCore.Client().GetTransaction(b.Ctx, v.OutPoint.TxHash)
-		if err != nil {
-			resp.Err = fmt.Errorf("GetTransaction CellDeps err: %s", err.Error())
-			return
-		}
-		cell := cellDepTx.Transaction.Outputs[v.OutPoint.Index]
-		if cell.Type != nil {
-			if common.Bytes2Hex(cell.Type.Args) == "0x00" && env.THQCodeHash == cell.Type.CodeHash.Hex() {
-				quote = binary.BigEndian.Uint64(cellDepTx.Transaction.OutputsData[v.OutPoint.Index][2:])
-				break
-			}
-		}
+	quote, err := b.DasCore.GetTxQuote(req.Tx)
+	if err != nil {
+		resp.Err = fmt.Errorf("GetTxQuote err: %s", err.Error())
+		return
 	}
 
 	// get task , smt-record
