@@ -15,7 +15,7 @@ update:
 	go mod tidy
 
 docker:
-	docker build --network host -t dotbitteam/sub-account-svr:latest .
+	docker build --network host -t admindid/sub-account-svr:latest .
 
 docker-publish:
-	docker image push dotbitteam/sub-account-svr:latest
+	docker image push admindid/sub-account-svr:latest
