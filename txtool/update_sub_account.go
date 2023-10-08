@@ -1,7 +1,7 @@
 package txtool
 
 import (
-	"bytes"
+	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
 	"errors"
@@ -113,6 +113,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	renewTotalYears := uint64(0)
 	autoTotalCapacity := uint64(0)
 	subAccountPriceMap := make(map[string]uint64)
+	quote := p.BaseInfo.QuoteCell.Quote()
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate &&
 			v.SubAction != common.SubActionRenew {
@@ -151,8 +152,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !hit {
 				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
 			}
-
-			quote := p.BaseInfo.QuoteCell.Quote()
 			yearlyPrice := uint64(subAccountRule.Rules[idx].Price)
 			subAccountPrice := uint64(0)
 			years := uint64(0)
@@ -175,7 +174,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var err error
 	var manualChange uint64
 	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
-	manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
+
+	// min price 0.99$
+	manualCapacity := config.PriceToCKB(p.NewSubAccountPrice, quote, registerTotalYears) + config.PriceToCKB(p.RenewSubAccountPrice, quote, renewTotalYears)
+	//manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
 	if manualCapacity > 0 {
 		needCapacity := manualCapacity
 		if autoTotalCapacity == 0 {
@@ -432,10 +434,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			OutPoint: p.AccountOutPoint,
 			DepType:  types.DepTypeCode,
 		},
+		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.ContractDas.ToCellDep(),
 		p.BaseInfo.ContractAcc.ToCellDep(),
 		p.BaseInfo.ContractSubAcc.ToCellDep(),
-		p.BaseInfo.QuoteCell.ToCellDep(),
 		p.BaseInfo.HeightCell.ToCellDep(),
 		p.BaseInfo.TimeCell.ToCellDep(),
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
@@ -859,14 +861,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTxForCustomScript(p *ParamBuildU
 	return &res, nil
 }
 
-func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
-	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
-	customScriptArgs := make([]byte, 32)
-	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
-		return false
-	}
-	return true
-}
+//func (s *SubAccountTxTool) isCustomScript(data []byte) bool {
+//	subDataDetail := witness.ConvertSubAccountCellOutputData(data)
+//	customScriptArgs := make([]byte, 32)
+//	if len(subDataDetail.CustomScriptArgs) == 0 || bytes.Compare(subDataDetail.CustomScriptArgs, customScriptArgs) == 0 {
+//		return false
+//	}
+//	return true
+//}
 
 func (s *SubAccountTxTool) getSubAccountCell(parentAccountId string) (*indexer.LiveCell, error) {
 	baseInfo, err := s.GetBaseInfo()

@@ -10,6 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -40,9 +41,15 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 			parentAccountId = common.Bytes2Hex(v.Type.Args)
 		}
 	}
+	// get quote cell
+	quote, err := b.DasCore.GetTxQuote(req.Tx)
+	if err != nil {
+		resp.Err = fmt.Errorf("GetTxQuote err: %s", err.Error())
+		return
+	}
 
 	// get task , smt-record
-	taskInfo, smtRecordList, err := b.getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint)
+	taskInfo, smtRecordList, err := b.getTaskAndSmtRecordsNew(b.Slb, &req, parentAccountId, refOutpoint, outpoint, quote)
 	if err != nil {
 		resp.Err = fmt.Errorf("getTaskAndSmtRecordsNew err: %s", err.Error())
 		return
@@ -57,7 +64,7 @@ func (b *BlockParser) DasActionUpdateSubAccount(req FuncTransactionHandleReq) (r
 
 	// add task and smt records
 	if selfTask.TaskId != "" {
-		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber); err != nil {
+		if err := b.DbDao.UpdateToChainTask(selfTask.TaskId, req.BlockNumber, quote); err != nil {
 			resp.Err = fmt.Errorf("UpdateToChainTask err: %s", err.Error())
 			return
 		}
@@ -194,7 +201,7 @@ func (b *BlockParser) getOutpoint(req FuncTransactionHandleReq, dasContractName 
 	return refOutpoint, outpoint, nil
 }
 
-func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
+func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTransactionHandleReq, parentAccountId, refOutpoint, outpoint string, quote uint64) (*tables.TableTaskInfo, []tables.TableSmtRecordInfo, error) {
 	svrName := ""
 	if slb != nil {
 		s := slb.GetServer(parentAccountId)
@@ -249,6 +256,7 @@ func (b *BlockParser) getTaskAndSmtRecordsNew(slb *lb.LoadBalancing, req *FuncTr
 			SubAction:       v.Action,
 			MintSignId:      "",
 			ExpiredAt:       v.SignExpiredAt,
+			Quote:           decimal.NewFromInt(int64(quote)),
 		}
 		switch v.Action {
 		case common.SubActionCreate:

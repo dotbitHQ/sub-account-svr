@@ -145,10 +145,19 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 	}
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(configCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	totalCapacity := uint64(0)
+	totalRegisterYears := uint64(0)
 	for _, v := range req.SubAccountList {
-		totalCapacity += v.RegisterYears
+		totalRegisterYears += v.RegisterYears
 	}
-	totalCapacity = totalCapacity * newSubAccountPrice
+
+	quoteCell, err := h.DasCore.GetQuoteCell()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get quote cell")
+		return fmt.Errorf("GetQuoteCell err: %s", err.Error())
+	}
+	totalCapacity = config.PriceToCKB(newSubAccountPrice, quoteCell.Quote(), totalRegisterYears)
+	//totalCapacity = totalRegisterYears * newSubAccountPrice
+
 	_, _, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 		DasCache:          nil,
 		LockScript:        balanceDasLock,

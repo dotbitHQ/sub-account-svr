@@ -194,9 +194,14 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		total, err := h.DbDao.GetSmtRecordManualMintYears(accountId)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-			return err
+			return fmt.Errorf("GetSmtRecordManualMintYears err: %s", err.Error())
 		}
-		resp.CkbSpending.Total = fmt.Sprintf("%d", total)
+		total2, err := h.DbDao.GetSmtRecordManualCKB(accountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return fmt.Errorf("GetSmtRecordManualCKB err: %s", err.Error())
+		}
+		resp.CkbSpending.Total = fmt.Sprintf("%d", total+total2)
 		return nil
 	})
 

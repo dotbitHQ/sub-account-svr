@@ -272,11 +272,11 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 			return nil, nil, err
 		}
 
-		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
-		if err != nil {
-			params.ApiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil, nil, err
-		}
+		//token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
+		//if err != nil {
+		//	params.ApiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		//	return nil, nil, err
+		//}
 
 		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 		if err != nil {
@@ -296,14 +296,16 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 				}
 
 				if math.Round(v.Price*10000)/10000 != v.Price {
-					err = errors.New("price most be two decimal places")
+					err = errors.New("price most be four decimal places")
 					params.ApiResp.ApiRespErr(api_code.ApiCodePriceMostReserveTwoDecimal, err.Error())
 					return nil, nil, err
 				}
 
-				price := decimal.NewFromInt(int64(newSubAccountPrice)).Mul(token.Price).Div(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
+				// check min price 0.99$
+				price := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+				//price := decimal.NewFromInt(int64(newSubAccountPrice)).Mul(token.Price).Div(decimal.NewFromFloat(math.Pow10(int(token.Decimals))))
 				if price.GreaterThan(decimal.NewFromFloat(v.Price)) {
-					err = fmt.Errorf("price not be less than min: %s$", price)
+					err = fmt.Errorf("price not be less than min: %s$", price.String())
 					params.ApiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, err.Error())
 					return nil, nil, err
 				}

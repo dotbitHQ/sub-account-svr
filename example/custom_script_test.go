@@ -10,6 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"github.com/scorpiotzh/toolib"
 	"testing"
 )
 
@@ -34,6 +35,7 @@ func TestCustomScript(t *testing.T) {
 			5: {1000000, 1000000},
 		},
 	}
+	fmt.Println(toolib.JsonString(&req))
 	var data handle.RespCustomScript
 	if err := doReq(url, req, &data); err != nil {
 		t.Fatal(err)
@@ -125,6 +127,28 @@ func TestCustomScriptPrice(t *testing.T) {
 		dasCkb := (priceCkb / common.PercentRateBase) * uint64(profi)
 		ownerCkb := priceCkb - dasCkb
 		fmt.Println(v.Account, ownerCkb)
+	}
+
+}
+
+func TestPrice(t *testing.T) {
+	dc, err := getNewDasCoreTestnet2()
+	if err != nil {
+		t.Fatal(err)
+	}
+	qCell, err := dc.GetQuoteCell()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(qCell.Quote())
+	quote := uint64(12632)       //0.012632
+	yearlyPrice := uint64(12000) //uint64(990000) //0.99
+	if yearlyPrice < quote {
+		fmt.Println("<", yearlyPrice*common.OneCkb/quote*1)
+		//fmt.Println(">", yearlyPrice/quote*common.OneCkb*1)
+	} else {
+		//fmt.Println("<", yearlyPrice*common.OneCkb/quote*1)
+		fmt.Println(">", yearlyPrice/quote*common.OneCkb*1)
 	}
 
 }

@@ -140,3 +140,14 @@ func GetUnipayAddress(tokenId tables.TokenId) string {
 	}
 	return ""
 }
+
+func PriceToCKB(price, quote, years uint64) (total uint64) {
+	log.Info("PriceToCKB:", price, quote, years)
+	if price > quote {
+		total = price / quote * common.OneCkb * years
+	} else {
+		total = price * common.OneCkb / quote * years
+	}
+	log.Info("PriceToCKB:", price, quote, total)
+	return
+}

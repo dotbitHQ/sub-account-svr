@@ -54,9 +54,9 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/sub/account/edit", api_code.DoMonitorLog("account_edit"), h.H.SubAccountEditNew)                  // edit_sub_account
 		v1.POST("/owner/profit", api_code.DoMonitorLog("owner_profit"), h.H.OwnerProfit)
 		v1.POST("/profit/withdraw", api_code.DoMonitorLog("profit_withdraw"), h.H.ProfitWithdraw)
-		v1.POST("/custom/script/set", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)
-		v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
-		v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
+		//v1.POST("/custom/script/set", api_code.DoMonitorLog("custom_script"), h.H.CustomScript)
+		//v1.POST("/custom/script/info", api_code.DoMonitorLog("custom_script_info"), h.H.CustomScriptInfo)
+		//v1.POST("/custom/script/price", api_code.DoMonitorLog("mint_price"), cacheHandleShort, h.H.CustomScriptPrice)
 		v1.POST("/transaction/send", api_code.DoMonitorLog("tx_send"), h.H.TransactionSendNew)
 		v1.POST("/mint/config/update", api_code.DoMonitorLog("mint_config_update"), h.H.MintConfigUpdate)
 		v1.POST("/config/auto_mint/update", api_code.DoMonitorLog("config_auto_mint_update"), h.H.ConfigAutoMintUpdate)
@@ -79,12 +79,14 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/internal/smt/update", h.H.SmtUpdate)
 		internalV1.POST("/internal/smt/syncTree", h.H.SmtSync)
 
-		internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
+		//internalV1.POST("/internal/sub/account/mint", h.H.InternalSubAccountMintNew)
 		internalV1.POST("/owner/payment/export", h.H.OwnerPaymentExport)
 		internalV1.POST("/unipay/notice", h.H.UniPayNotice)
 		internalV1.POST("/service/provider/withdraw", h.H.ServiceProviderWithdraw)
+		internalV1.POST("/service/provider/withdraw2", h.H.ServiceProviderWithdraw2)
 		internalV1.POST("/internal/recycle/account", h.H.RecycleAccount)
 	}
+	// curl -X POST http://127.0.0.1:8127/v1/service/provider/withdraw2 -d'{"service_provider_address":"","account":"","withdraw":false}'
 }
 
 func respHandle(c *gin.Context, res string, err error) {

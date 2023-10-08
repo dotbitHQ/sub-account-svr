@@ -7,6 +7,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
@@ -119,6 +120,22 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
+	}
+	// check min price 0.99$
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+	minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+	if req.ActionType == tables.ActionTypeRenew {
+		renewSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+		minPrice = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+	}
+	if minPrice.GreaterThan(resp.Price) {
+		apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, "Pricing below minimum")
+		return fmt.Errorf("price not be less than min: %s$", minPrice.String())
 	}
 
 	resp.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage

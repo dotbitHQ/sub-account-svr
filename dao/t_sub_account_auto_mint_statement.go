@@ -33,8 +33,26 @@ func (d *DbDao) GetLatestSubAccountAutoMintStatementByType(providerId string, tx
 	return
 }
 
+func (d *DbDao) GetLatestSubAccountAutoMintStatementByType2(providerId, parentAccountId string, txType tables.SubAccountAutoMintTxType) (info tables.TableSubAccountAutoMintStatement, err error) {
+	err = d.parserDb.Where("service_provider_id=? and parent_account_id=? and tx_type=?",
+		providerId, parentAccountId, txType).Order("id desc").First(&info).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
 func (d *DbDao) FindSubAccountAutoMintStatements(providerId string, txType tables.SubAccountAutoMintTxType, blockNumber uint64) (list []*tables.TableSubAccountAutoMintStatement, err error) {
 	err = d.parserDb.Where("service_provider_id=? and tx_type=? and block_number > ?", providerId, txType, blockNumber).Find(&list).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) FindSubAccountAutoMintStatements2(providerId, parentAccountId string, txType tables.SubAccountAutoMintTxType, blockNumber uint64) (list []*tables.TableSubAccountAutoMintStatement, err error) {
+	err = d.parserDb.Where("service_provider_id=? and parent_account_id=? and tx_type=? and block_number > ?",
+		providerId, parentAccountId, txType, blockNumber).Find(&list).Error
 	if err == gorm.ErrRecordNotFound {
 		err = nil
 	}
