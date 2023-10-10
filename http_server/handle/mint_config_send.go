@@ -83,7 +83,8 @@ func (h *HttpHandle) doMintConfigSend(req *ReqMintConfigSend, apiResp *api_code.
 	signMsg = common.DotBitPrefix + hex.EncodeToString(common.Blake2b([]byte(signMsg)))
 	address := ""
 	signType := res.DasAlgorithmId
-	signature := req.List[0].SignList[0].SignMsg
+	//signature := req.List[0].SignList[0].SignMsg
+	signature := req.SignList[0].SignMsg
 	if signType == common.DasAlgorithmIdWebauthn {
 		signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
 			ChainType:     common.ChainTypeWebauthn,

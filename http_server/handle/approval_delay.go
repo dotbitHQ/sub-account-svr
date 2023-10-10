@@ -278,12 +278,15 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.DasActionDelayApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
+			//List: []SignInfo{
+			//	{
+			//		SignList: []txbuilder.SignData{
+			//			signData,
+			//		},
+			//	},
+			//},
+			SignList: []txbuilder.SignData{
+				signData,
 			},
 		},
 	}

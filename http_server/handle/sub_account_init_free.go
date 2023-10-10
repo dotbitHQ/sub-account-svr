@@ -40,7 +40,7 @@ func (h *HttpHandle) SubAccountInitFree(ctx *gin.Context) {
 
 func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountInit
-	resp.List = make([]SignInfo, 0)
+	//resp.List = make([]SignInfo, 0)
 
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
@@ -125,8 +125,8 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 
 	resp.Action = common.DasActionEnableSubAccount
 	resp.SignKey = signList.SignKey
-	resp.List = signList.List
-
+	//resp.List = signList.List
+	resp.SignList = signList.List[0].SignList
 	apiResp.ApiRespOK(resp)
 	return nil
 }

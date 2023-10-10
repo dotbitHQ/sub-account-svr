@@ -66,7 +66,7 @@ func (h *HttpHandle) CurrencyUpdate(ctx *gin.Context) {
 
 func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.ApiResp) error {
 	var resp RespCurrencyUpdate
-	resp.List = make([]SignInfo, 0)
+	//resp.List = make([]SignInfo, 0)
 
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
@@ -150,13 +150,16 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	}
 	resp.Action = action
 	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: []txbuilder.SignData{{
-			SignType: signType,
-			SignMsg:  signMsg,
-		}},
-	})
-
+	//resp.List = append(resp.List, SignInfo{
+	//	SignList: []txbuilder.SignData{{
+	//		SignType: signType,
+	//		SignMsg:  signMsg,
+	//	}},
+	//})
+	resp.SignList = []txbuilder.SignData{{
+		SignType: signType,
+		SignMsg:  signMsg,
+	}}
 	apiResp.ApiRespOK(resp)
 	return nil
 }

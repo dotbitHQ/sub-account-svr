@@ -272,12 +272,15 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.SubActionRevokeApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
+			//List: []SignInfo{
+			//	{
+			//		SignList: []txbuilder.SignData{
+			//			signData,
+			//		},
+			//	},
+			//},
+			SignList: []txbuilder.SignData{
+				signData,
 			},
 		},
 	}

@@ -113,7 +113,8 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	resp := RespConfigAutoMintUpdate{}
 	resp.Action = action
 	resp.SignKey = signList.SignKey
-	resp.List = signList.List
+	//resp.List = signList.List
+	resp.SignList = signList.List[0].SignList
 	log.Info("doPriceRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {

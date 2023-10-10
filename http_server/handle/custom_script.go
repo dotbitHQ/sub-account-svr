@@ -171,8 +171,8 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 
 	resp.Action = common.DasActionConfigSubAccountCustomScript
 	resp.SignKey = signList.SignKey
-	resp.List = signList.List
-
+	//resp.List = signList.List
+	resp.SignList = signList.List[0].SignList
 	log.Info("doCustomScript:", toolib.JsonString(resp))
 	apiResp.ApiRespOK(resp)
 	return nil

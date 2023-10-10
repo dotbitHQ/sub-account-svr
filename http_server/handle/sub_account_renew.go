@@ -201,12 +201,14 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	resp.Action = common.DasActionUpdateSubAccount
 	resp.SubAction = common.SubActionRenew
 	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: []txbuilder.SignData{
-			signData,
-		},
-	})
-
+	//resp.List = append(resp.List, SignInfo{
+	//	SignList: []txbuilder.SignData{
+	//		signData,
+	//	},
+	//})
+	resp.SignList = []txbuilder.SignData{
+		signData,
+	}
 	apiResp.ApiRespOK(resp)
 	return nil
 }
