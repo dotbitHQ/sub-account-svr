@@ -41,8 +41,7 @@ func (m *Metric) Api() *prometheus.SummaryVec {
 		m.l.Lock()
 		defer m.l.Unlock()
 		m.api = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Subsystem: config.Cfg.Server.Name,
-			Name:      "api",
+			Name: "api",
 		}, []string{"method", "http_status", "err_no", "err_msg"})
 		PromRegister.MustRegister(m.api)
 	}
