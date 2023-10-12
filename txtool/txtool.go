@@ -2,6 +2,7 @@ package txtool
 
 import (
 	"context"
+	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/tables"
 	"fmt"
@@ -15,9 +16,16 @@ import (
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
+	"net"
+	"time"
 )
 
-var log = logger.NewLogger("txtool", logger.LevelDebug)
+var (
+	log          = logger.NewLogger("txtool", logger.LevelDebug)
+	PromRegister = prometheus.NewRegistry()
+)
 
 type SubAccountTxTool struct {
 	Ctx           context.Context
@@ -26,6 +34,7 @@ type SubAccountTxTool struct {
 	DasCache      *dascache.DasCache
 	ServerScript  *types.Script
 	TxBuilderBase *txbuilder.DasTxBuilderBase
+	Pusher        *push.Pusher
 }
 
 type ParamBuildTxs struct {
@@ -45,6 +54,24 @@ type ParamBuildTxs struct {
 type ResultBuildTxs struct {
 	//IsCustomScript   bool
 	DasTxBuilderList []*txbuilder.DasTxBuilder
+}
+
+func (s *SubAccountTxTool) Run() {
+	if s.Pusher != nil {
+		s.Pusher.Gatherer(PromRegister)
+		s.Pusher.Grouping("env", fmt.Sprint(config.Cfg.Server.Net))
+		s.Pusher.Grouping("instance", GetLocalIp("eth0"))
+		s.Pusher.Grouping("srv_name", config.Cfg.Server.Name)
+
+		go func() {
+			ticker := time.NewTicker(time.Second * 5)
+			defer ticker.Stop()
+
+			for range ticker.C {
+				_ = s.Pusher.Push()
+			}
+		}()
+	}
 }
 
 func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*ResultBuildTxs, error) {
@@ -122,4 +149,29 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 	}
 
 	return &res, nil
+}
+
+func GetLocalIp(interfaceName string) string {
+	ief, err := net.InterfaceByName(interfaceName)
+	if err != nil {
+		log.Error("GetLocalIp: ", err)
+		return ""
+	}
+	addrs, err := ief.Addrs()
+	if err != nil {
+		log.Error("GetLocalIp: ", err)
+		return ""
+	}
+
+	var ipv4Addr net.IP
+	for _, addr := range addrs {
+		if ipv4Addr = addr.(*net.IPNet).IP.To4(); ipv4Addr != nil {
+			break
+		}
+	}
+	if ipv4Addr == nil {
+		log.Errorf("GetLocalIp interface %s don't have an ipv4 address", interfaceName)
+		return ""
+	}
+	return ipv4Addr.String()
 }

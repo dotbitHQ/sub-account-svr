@@ -57,6 +57,7 @@ type CfgServer struct {
 		Servers []Server `json:"servers" yaml:"servers"`
 	} `json:"slb" yaml:"slb"`
 	Server struct {
+		Name                   string            `json:"name" yaml:"name"`
 		IsUpdate               bool              `json:"is_update" yaml:"is_update"`
 		Net                    common.DasNetType `json:"net" yaml:"net"`
 		HttpServerAddr         string            `json:"http_server_addr" yaml:"http_server_addr"`
@@ -73,6 +74,7 @@ type CfgServer struct {
 		RefundSwitch           bool              `json:"refund_switch" yaml:"refund_switch"`
 		RecycleSwitch          bool              `json:"recycle_switch" yaml:"recycle_switch"`
 		RecycleLimit           int               `json:"recycle_limit" yaml:"recycle_limit"`
+		PrometheusPushGateway  string            `json:"prometheus_push_gateway" yaml:"prometheus_push_gateway"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
@@ -91,7 +93,6 @@ type CfgServer struct {
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {
-		LarkErrorKey                string `json:"lark_error_key" yaml:"lark_error_key"`
 		LarkCreateSubAccountKey     string `json:"lark_create_sub_account_key" yaml:"lark_create_sub_account_key"`
 		DiscordCreateSubAccountKey  string `json:"discord_create_sub_account_key" yaml:"discord_create_sub_account_key"`
 		LarkParentAccountPaymentKey string `json:"lark_parent_account_payment_key" yaml:"lark_parent_account_payment_key"`

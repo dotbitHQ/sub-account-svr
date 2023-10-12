@@ -20,7 +20,7 @@ func (t *ToolUniPay) RunOrderRefund() {
 				log.Info("doRefund start")
 				if err := t.doRefund(); err != nil {
 					log.Errorf("doRefund err: %s", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRefund", err.Error())
+					notify.SendLarkErrNotify("doRefund", err.Error())
 				}
 				log.Info("doRefund end")
 			case <-t.Ctx.Done():

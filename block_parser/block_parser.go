@@ -191,7 +191,7 @@ func (b *BlockParser) parsingBlockData(block *types.Block) error {
 				})
 				if resp.Err != nil {
 					log.Error("action handle resp:", builder.Action, blockNumber, txHash, resp.Err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "Block Parse", notify.GetLarkTextNotifyStr("TransactionHandle", txHash, resp.Err.Error()))
+					notify.SendLarkErrNotify("Block Parse", notify.GetLarkTextNotifyStr("TransactionHandle", txHash, resp.Err.Error()))
 					return resp.Err
 				}
 			} else {

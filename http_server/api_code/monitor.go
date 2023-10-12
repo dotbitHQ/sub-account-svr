@@ -3,17 +3,28 @@ package api_code
 import (
 	"bytes"
 	"das_sub_account/config"
+	"das_sub_account/txtool"
 	"encoding/json"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/parnurzeal/gorequest"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"time"
 )
 
-var log = logger.NewLogger("api_code", logger.LevelDebug)
+var (
+	log        = logger.NewLogger("api_code", logger.LevelDebug)
+	ApiSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Name: "api",
+	}, []string{"method", "ip", "http_status", "err_no", "err_msg"})
+)
+
+func init() {
+	txtool.PromRegister.MustRegister(ApiSummary)
+}
 
 type ReqPushLog struct {
 	Index   string        `json:"index"`

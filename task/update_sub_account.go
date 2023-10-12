@@ -46,7 +46,7 @@ func (t *SmtTask) doBatchUpdateSubAccountTask(action common.DasAction) error {
 					}
 					if err := t.doUpdateSubAccountTaskDetail(action, parentAccountId, mapTaskList, mapTaskIdList); err != nil {
 						log.Error("doUpdateSubAccountTaskDetail err: %s", err.Error())
-						notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doUpdateSubAccountTaskDetail", err.Error()+parentAccountId)
+						notify.SendLarkErrNotify("doUpdateSubAccountTaskDetail", err.Error()+parentAccountId)
 					}
 				}
 			}

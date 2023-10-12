@@ -1,7 +1,6 @@
 package unipay
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"fmt"
@@ -20,7 +19,7 @@ func (t *ToolUniPay) RunOrderCheck() {
 				log.Info("RunOrderCheck start ...")
 				if err := t.doOrderCheck(); err != nil {
 					log.Error("doOrderCheck err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", err.Error())
+					notify.SendLarkErrNotify("doOrderCheck", err.Error())
 				}
 				log.Info("RunOrderCheck end ...")
 			case <-t.Ctx.Done():
@@ -51,7 +50,7 @@ func (t *ToolUniPay) doOrderCheck() error {
 				if smtRecord.Id == 0 {
 					continue
 				} else if smtRecord.RecordType == tables.RecordTypeClosed {
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", v.OrderId)
+					notify.SendLarkErrNotify("doOrderCheck", v.OrderId)
 				}
 			} else {
 				newStatus := tables.OrderStatusSuccess
@@ -68,7 +67,7 @@ func (t *ToolUniPay) doOrderCheck() error {
 				return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
 			}
 			if acc.Id == 0 {
-				notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRenewOrderCheck", fmt.Sprintf("[%s][%s]", v.OrderId, v.AccountId))
+				notify.SendLarkErrNotify("doRenewOrderCheck", fmt.Sprintf("[%s][%s]", v.OrderId, v.AccountId))
 				continue
 			}
 
@@ -87,7 +86,7 @@ func (t *ToolUniPay) doOrderCheck() error {
 				return fmt.Errorf("UpdateOrderStatusForCheckRenew err: %s[%s]", err.Error(), v.OrderId)
 			}
 		default:
-			notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))
+			notify.SendLarkErrNotify("doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))
 		}
 	}
 	return nil

@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"das_sub_account/cache"
-	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/notify"
 	"das_sub_account/txtool"
@@ -28,7 +27,7 @@ type SmtTask struct {
 	SmtServerUrl string
 }
 
-// task_id='' -> task_id!=''
+// task_id=” -> task_id!=”
 func (t *SmtTask) RunUpdateSubAccountTaskDistribution() {
 	tickerDistribution := time.NewTicker(time.Minute)
 	t.Wg.Add(1)
@@ -40,7 +39,7 @@ func (t *SmtTask) RunUpdateSubAccountTaskDistribution() {
 				log.Debug("doUpdateDistribution start ...")
 				if err := t.doUpdateDistribution(); err != nil {
 					log.Error("doUpdateDistribution err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doUpdateDistribution", err.Error())
+					notify.SendLarkErrNotify("doUpdateDistribution", err.Error())
 				}
 				log.Debug("doUpdateDistribution end ...")
 			case <-t.Ctx.Done():
@@ -64,7 +63,7 @@ func (t *SmtTask) RunTaskCheckTx() {
 				log.Debug("doCheckTx start ...")
 				if err := t.doCheckTx(); err != nil {
 					log.Error("doCheckTx err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doCheckTx", err.Error())
+					notify.SendLarkErrNotify("doCheckTx", err.Error())
 				}
 				log.Debug("doCheckTx end ...")
 			case <-t.Ctx.Done():
@@ -88,7 +87,7 @@ func (t *SmtTask) RunTaskConfirmOtherTx() {
 				log.Debug("doConfirmOtherTx start ...")
 				if err := t.doConfirmOtherTx(); err != nil {
 					log.Error("doConfirmOtherTx err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmOtherTx", err.Error())
+					notify.SendLarkErrNotify("doConfirmOtherTx", err.Error())
 				}
 				log.Debug("doConfirmOtherTx end ...")
 			case <-t.Ctx.Done():
@@ -112,7 +111,7 @@ func (t *SmtTask) RunTaskRollback() {
 				log.Debug("doRollback start ...")
 				if err := t.doRollback(); err != nil {
 					log.Error("doRollback err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doRollback", err.Error())
+					notify.SendLarkErrNotify("doRollback", err.Error())
 				}
 				log.Debug("doRollback end ...")
 			case <-t.Ctx.Done():
@@ -136,7 +135,7 @@ func (t *SmtTask) RunUpdateSubAccountTask() {
 				log.Debug("RunUpdateSubAccountTask start ...")
 				if err := t.doBatchUpdateSubAccountTask(common.DasActionUpdateSubAccount); err != nil {
 					log.Error("RunUpdateSubAccountTask err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "RunUpdateSubAccountTask", err.Error())
+					notify.SendLarkErrNotify("RunUpdateSubAccountTask", err.Error())
 				}
 				log.Debug("RunUpdateSubAccountTask end ...")
 			case <-t.Ctx.Done():

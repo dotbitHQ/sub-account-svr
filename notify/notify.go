@@ -1,17 +1,28 @@
 package notify
 
 import (
+	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/parnurzeal/gorequest"
+	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )
 
-var log = logger.NewLogger("notify", logger.LevelDebug)
+var (
+	log           = logger.NewLogger("notify", logger.LevelDebug)
+	counterNotify = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "notify",
+	}, []string{"title", "text"})
+)
 
 const (
 	LarkNotifyUrl = "https://open.larksuite.com/open-apis/bot/v2/hook/%s"
 )
+
+func init() {
+	txtool.PromRegister.MustRegister(counterNotify)
+}
 
 type MsgContent struct {
 	Tag      string `json:"tag"`
@@ -33,6 +44,13 @@ type MsgData struct {
 
 func SendLarkTextNotify(key, title, text string) {
 	SendLarkTextNotifyWithSvr(key, title, text, true)
+}
+
+func SendLarkErrNotify(title, text string) {
+	if title == "" || text == "" {
+		return
+	}
+	counterNotify.WithLabelValues(title, text).Inc()
 }
 
 func SendLarkTextNotifyWithSvr(key, title, text string, withSvr bool) {

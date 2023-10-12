@@ -1,7 +1,6 @@
 package unipay
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
@@ -25,7 +24,7 @@ func (t *ToolUniPay) RunConfirmStatus() {
 				log.Info("doConfirmStatus start")
 				if err := t.doConfirmStatus(); err != nil {
 					log.Errorf("doConfirmStatus err: %s", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmStatus", err.Error())
+					notify.SendLarkErrNotify("doConfirmStatus", err.Error())
 				}
 				log.Info("doConfirmStatus end")
 			case <-t.Ctx.Done():
@@ -87,7 +86,7 @@ func (t *ToolUniPay) doConfirmStatus() error {
 			min := pending.PayHashUnconfirmedMin()
 			log.Info("PayHashUnconfirmedMin:", pending.OrderId, min)
 			//if min > 10 {
-			//	notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "doConfirmStatus", pending.OrderId)
+			//	notify.SendLarkErrNotify( "doConfirmStatus", pending.OrderId)
 			//}
 			//if min > 60 {
 			//	if err := t.DbDao.UpdateOrderStatusToFailForUnconfirmedPayHash(pending.OrderId, pending.PayHash); err != nil {
@@ -191,7 +190,7 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	}
 	if rowsAffected == 0 {
 		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
-		notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "multiple orders success", orderId)
+		notify.SendLarkErrNotify("multiple orders success", orderId)
 	}
 	return nil
 }

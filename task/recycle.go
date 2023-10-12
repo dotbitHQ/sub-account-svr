@@ -21,7 +21,7 @@ func (t *SmtTask) RunRecycleSubAccount() {
 				log.Info("RunRecycleSubAccount start ...")
 				if err := t.recycleSubAccount(); err != nil {
 					log.Error("recycleSubAccount err:", err.Error())
-					notify.SendLarkTextNotify(config.Cfg.Notify.LarkErrorKey, "recycleSubAccount", err.Error())
+					notify.SendLarkErrNotify("recycleSubAccount", err.Error())
 				}
 				log.Info("RunRecycleSubAccount end ...")
 			case <-t.Ctx.Done():

@@ -24,6 +24,7 @@ import (
 	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/rpc"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/scorpiotzh/toolib"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -129,6 +130,11 @@ func runServer(ctx *cli.Context) error {
 		ServerScript:  serverScript,
 		TxBuilderBase: txBuilderBase,
 	}
+	// prometheus
+	if config.Cfg.Server.PrometheusPushGateway != "" && config.Cfg.Server.Name != "" {
+		txTool.Pusher = push.New(config.Cfg.Server.PrometheusPushGateway, config.Cfg.Server.Name)
+	}
+	txTool.Run()
 	log.Infof("tx tool ok")
 
 	// block parser
