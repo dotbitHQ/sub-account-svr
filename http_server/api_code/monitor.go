@@ -10,21 +10,13 @@ import (
 	"github.com/dotbitHQ/das-lib/http_api/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/parnurzeal/gorequest"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"time"
 )
 
 var (
-	log        = logger.NewLogger("api_code", logger.LevelDebug)
-	ApiSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "api",
-	}, []string{"method", "ip", "http_status", "err_no", "err_msg"})
+	log = logger.NewLogger("api_code", logger.LevelDebug)
 )
-
-func init() {
-	txtool.PromRegister.MustRegister(ApiSummary)
-}
 
 type ReqPushLog struct {
 	Index   string        `json:"index"`
@@ -52,7 +44,7 @@ func PushLog(url string, req ReqPushLog) {
 func DoMonitorLog(method string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		startTime := time.Now()
-		ip := getClientIp(ctx)
+		//ip := getClientIp(ctx)
 
 		blw := &bodyWriter{body: bytes.NewBufferString(""), ResponseWriter: ctx.Writer}
 		ctx.Writer = blw
@@ -78,7 +70,7 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 				resp.ErrNo = http_api.ApiCodeSuccess
 			}
 		}
-		ApiSummary.WithLabelValues(method, ip, fmt.Sprint(statusCode), fmt.Sprint(resp.ErrNo), resp.ErrMsg).Observe(time.Since(startTime).Seconds())
+		txtool.Tools.Metrics.Api().WithLabelValues(method, fmt.Sprint(statusCode), fmt.Sprint(resp.ErrNo), resp.ErrMsg).Observe(time.Since(startTime).Seconds())
 	}
 }
 
