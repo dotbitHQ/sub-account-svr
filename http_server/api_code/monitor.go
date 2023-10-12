@@ -59,32 +59,26 @@ func DoMonitorLog(method string) gin.HandlerFunc {
 		ctx.Next()
 		statusCode := ctx.Writer.Status()
 
+		var resp ApiResp
 		if statusCode == http.StatusOK && blw.body.String() != "" {
-			var resp http_api.ApiResp
-			if err := json.Unmarshal(blw.body.Bytes(), &resp); err == nil {
-				if resp.ErrNo != http_api.ApiCodeSuccess {
-					log.Warn("DoMonitorLog:", method, resp.ErrNo, resp.ErrMsg)
-				}
-				if resp.ErrNo == http_api.ApiCodeSignError {
-					resp.ErrNo = http_api.ApiCodeSuccess
-				}
-				if resp.ErrNo == http_api.ApiCodeAccountExpiringSoon {
-					resp.ErrNo = http_api.ApiCodeSuccess
-				}
-				if resp.ErrNo == http_api.ApiCodeAccountIsExpired {
-					resp.ErrNo = http_api.ApiCodeSuccess
-				}
-				pushLog := ReqPushLog{
-					Index:   config.Cfg.Server.PushLogIndex,
-					Method:  method,
-					Ip:      ip,
-					Latency: time.Since(startTime),
-					ErrMsg:  resp.ErrMsg,
-					ErrNo:   resp.ErrNo,
-				}
-				PushLog(config.Cfg.Server.PushLogUrl, pushLog)
+			if err := json.Unmarshal(blw.body.Bytes(), &resp); err != nil {
+				log.Warn("DoMonitorLog Unmarshal err:", method, err)
+				return
+			}
+			if resp.ErrNo != http_api.ApiCodeSuccess {
+				log.Warn("DoMonitorLog:", method, resp.ErrNo, resp.ErrMsg)
+			}
+			if resp.ErrNo == http_api.ApiCodeSignError {
+				resp.ErrNo = http_api.ApiCodeSuccess
+			}
+			if resp.ErrNo == http_api.ApiCodeAccountExpiringSoon {
+				resp.ErrNo = http_api.ApiCodeSuccess
+			}
+			if resp.ErrNo == http_api.ApiCodeAccountIsExpired {
+				resp.ErrNo = http_api.ApiCodeSuccess
 			}
 		}
+		ApiSummary.WithLabelValues(method, ip, fmt.Sprint(statusCode), fmt.Sprint(resp.ErrNo), resp.ErrMsg).Observe(time.Since(startTime).Seconds())
 	}
 }
 
