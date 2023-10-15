@@ -49,7 +49,7 @@ func (m *Metric) Api() *prometheus.SummaryVec {
 }
 
 func (m *Metric) ErrNotify() *prometheus.CounterVec {
-	if m.api == nil {
+	if m.errNotify == nil {
 		m.l.Lock()
 		defer m.l.Unlock()
 		m.errNotify = prometheus.NewCounterVec(prometheus.CounterOpts{
