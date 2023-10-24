@@ -3,6 +3,7 @@ package handle
 import (
 	"crypto/md5"
 	"das_sub_account/config"
+	"das_sub_account/consts"
 	"das_sub_account/internal"
 	"encoding/hex"
 	"encoding/json"
@@ -29,9 +30,7 @@ type RespCurrencyUpdate struct {
 	SignInfoList
 }
 
-const (
-	ActionCurrencyUpdate string = "Update-Currency"
-)
+const ()
 
 func (r *ReqCurrencyUpdate) GetSignInfo() (signKey, signMsg, reqDataStr string) {
 	reqData, _ := json.Marshal(r)
@@ -82,7 +81,7 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	action := ActionCurrencyUpdate
+	action := consts.ActionCurrencyUpdate
 	if err := h.check(address, req.Account, action, apiResp); err != nil {
 		return err
 	}

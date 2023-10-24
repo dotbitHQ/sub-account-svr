@@ -29,6 +29,10 @@ das:
       bsc_bnb: "#fefce8"
     payment_min_price: 50
     service_fee_ratio: 0.1
+  coupon:
+    encryption_key: ""
+    price_min: 0.99
+    price_max: 500
 origins:
   - ""
 notify:

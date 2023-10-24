@@ -2,6 +2,7 @@ package handle
 
 import (
 	"das_sub_account/config"
+	"das_sub_account/consts"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/sign"
+	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -90,8 +92,14 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
-	case ActionCurrencyUpdate, ActionMintConfigUpdate:
+	case consts.ActionCurrencyUpdate, ActionMintConfigUpdate:
 		if err := h.doActionAutoMint(req, apiResp); err != nil {
+			return fmt.Errorf("doActionNormal err: %s", err.Error())
+		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+			return nil
+		}
+	case consts.ActionCouponCreate:
+		if err := h.doCoupon(req, apiResp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -106,7 +114,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 
 func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	switch req.Action {
-	case ActionCurrencyUpdate:
+	case consts.ActionCurrencyUpdate:
 		var data ReqCurrencyUpdate
 		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 			if err == redis.Nil {
@@ -571,7 +579,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 		}
 		txAddr = dataCache.Address
-	case ActionCurrencyUpdate, ActionMintConfigUpdate:
+	case consts.ActionCurrencyUpdate, ActionMintConfigUpdate:
 		chainTypeAddress := &core.ChainTypeAddress{}
 		txStr, err := h.RC.GetSignTxCache(req.SignKey)
 		if err != nil {
@@ -631,6 +639,69 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 				h.DasCore.AddPkIndexForSignMsg(&req.List[i].SignList[j].SignMsg, idx)
 			}
 		}
+	}
+	return nil
+}
+
+func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+	switch req.Action {
+	case consts.ActionCouponCreate:
+		var data CouponCreateSignCache
+		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
+			if err == redis.Nil {
+				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
+			} else {
+				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
+			}
+			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
+		} else if err = json.Unmarshal([]byte(txStr), &data); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
+			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
+		}
+
+		res, err := data.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
+		}
+
+		couponSmtKv := make([]smt.SmtKv, 0, len(data.CouponCode))
+		for _, v := range data.CouponCode {
+			couponSmtKv = append(couponSmtKv, smt.SmtKv{
+				Key:   smt.Sha256(v),
+				Value: smt.Sha256(v)},
+			)
+		}
+		couponSmt := smt.NewSmtSrv(*h.SmtServerUrl, "")
+		smtOut, err := couponSmt.UpdateSmt(couponSmtKv, smt.SmtOpt{GetRoot: true})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return err
+		}
+		signMsg := fmt.Sprintf("%s%s", common.DotBitPrefix, smtOut.Root.String())
+
+		address := ""
+		signType := req.List[0].SignList[0].SignType
+		signature := req.List[0].SignList[0].SignMsg
+		if signType == common.DasAlgorithmIdWebauthn {
+			address = req.SignAddress
+		} else {
+			address = res.AddressHex
+		}
+		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+			return fmt.Errorf("VerifySignature err: %s", err.Error())
+		}
+		if !verifyRes {
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
+			return nil
+		}
+		// TODO into database
+
+	default:
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "no support action")
+		return nil
 	}
 	return nil
 }
