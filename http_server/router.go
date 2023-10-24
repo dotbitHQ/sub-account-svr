@@ -71,6 +71,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/approval/delay", api_code.DoMonitorLog("approval_delay"), h.H.ApprovalDelay)
 		v1.POST("/approval/revoke", api_code.DoMonitorLog("approval_revoke"), h.H.ApprovalRevoke)
 		v1.POST("/approval/fulfill", api_code.DoMonitorLog("approval_fulfill"), h.H.ApprovalFulfill)
+		v1.POST("/coupon/create", api_code.DoMonitorLog("coupon_create"), h.H.CouponCreate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{
