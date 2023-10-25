@@ -91,6 +91,7 @@ type CfgServer struct {
 			MaxDelayCount uint8 `json:"max_delay_count" yaml:"max_delay_count"`
 		} `json:"approval" yaml:"approval"`
 		Coupon struct {
+			CouponPrice   float64 `json:"coupon_price" yaml:"coupon_price"`
 			EncryptionKey string  `json:"encryption_key" yaml:"encryption_key"`
 			PriceMin      float64 `json:"price_min" yaml:"price_min"`
 			PriceMax      float64 `json:"price_max" yaml:"price_max"`

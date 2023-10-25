@@ -3,13 +3,16 @@ module das_sub_account
 go 1.18
 
 require (
-	github.com/dotbitHQ/das-lib v1.1.1-0.20231009040002-1f163142f334
+	github.com/btcsuite/btcd/btcutil v1.1.3
+	github.com/dotbitHQ/das-lib v1.1.1-0.20231025065714-faedde55269f
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/getsentry/sentry-go v0.24.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/gogf/gf/v2 v2.3.3
+	github.com/google/uuid v1.3.0
 	github.com/influxdata/influxdb v1.8.3
+	github.com/labstack/gommon v0.4.0
 	github.com/nervosnetwork/ckb-sdk-go v0.101.3
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/prometheus/client_golang v1.17.0
@@ -39,7 +42,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.3 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect

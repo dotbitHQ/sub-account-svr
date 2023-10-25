@@ -1,15 +1,19 @@
 package tables
 
 import (
+	"github.com/google/uuid"
+	"strings"
 	"time"
 )
 
 type CouponSetInfo struct {
 	Id            int64     `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`
 	Cid           string    `gorm:"column:cid;default:;NOT NULL"`
+	OrderId       string    `gorm:"column:order_id;default:;NOT NULL"`
 	AccountId     string    `gorm:"column:account_id;default:;NOT NULL"`
-	ManagerAid    int16     `gorm:"column:manager_aid;default:0;NOT NULL"`
-	ManagerSubAid int16     `gorm:"column:manager_sub_aid;default:0;NOT NULL"`
+	Account       string    `gorm:"column:account;default:;NOT NULL"`
+	ManagerAid    int       `gorm:"column:manager_aid;default:0;NOT NULL"`
+	ManagerSubAid int       `gorm:"column:manager_sub_aid;default:0;NOT NULL"`
 	Manager       string    `gorm:"column:manager;default:;NOT NULL"`
 	Root          string    `gorm:"column:root;default:;NOT NULL"`
 	Name          string    `gorm:"column:name;default:;NOT NULL"`
@@ -25,4 +29,9 @@ type CouponSetInfo struct {
 
 func (t *CouponSetInfo) TableName() string {
 	return "t_coupon_set_info"
+}
+
+func (t *CouponSetInfo) InitCid() {
+	uid, _ := uuid.NewUUID()
+	t.Cid = strings.ReplaceAll(uid.String(), "-", "")
 }

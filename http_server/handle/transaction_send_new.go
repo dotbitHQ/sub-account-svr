@@ -646,7 +646,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	switch req.Action {
 	case consts.ActionCouponCreate:
-		var data CouponCreateSignCache
+		var data CouponCreateCache
 		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 			if err == redis.Nil {
 				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
@@ -665,11 +665,30 @@ func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp
 			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 		}
 
-		couponSmtKv := make([]smt.SmtKv, 0, len(data.CouponCode))
-		for _, v := range data.CouponCode {
+		couponSetInfo, err := h.DbDao.GetCouponSetInfo(data.Cid)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to search coupon set")
+			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
+		}
+		if couponSetInfo.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "coupon set not exist")
+			return fmt.Errorf("coupon set not exist")
+		}
+		if couponSetInfo.Signature != "" || couponSetInfo.OrderId != "" {
+			return nil
+		}
+
+		couponInfos, err := h.DbDao.FindCouponByCid(data.Cid)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to search coupon")
+			return fmt.Errorf("FindCouponByCid err: %s", err.Error())
+		}
+
+		couponSmtKv := make([]smt.SmtKv, 0, len(couponInfos))
+		for _, v := range couponInfos {
 			couponSmtKv = append(couponSmtKv, smt.SmtKv{
-				Key:   smt.Sha256(v),
-				Value: smt.Sha256(v)},
+				Key:   smt.Sha256(string(*v.Code)),
+				Value: smt.Sha256(string(*v.Code))},
 			)
 		}
 		couponSmt := smt.NewSmtSrv(*h.SmtServerUrl, "")
@@ -678,6 +697,11 @@ func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}
+		if couponSetInfo.Root != smtOut.Root.String() {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "coupon set root not match")
+			return nil
+		}
+
 		signMsg := fmt.Sprintf("%s%s", common.DotBitPrefix, smtOut.Root.String())
 
 		address := ""
@@ -697,8 +721,11 @@ func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp
 			apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
 			return nil
 		}
-		// TODO into database
-
+		couponSetInfo.Signature = signature
+		if err := h.DbDao.UpdateCouponSetInfo(&couponSetInfo); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to update coupon set")
+			return fmt.Errorf("UpdateCouponSetInfo err: %s", err.Error())
+		}
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "no support action")
 		return nil

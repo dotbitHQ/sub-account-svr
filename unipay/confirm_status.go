@@ -1,6 +1,7 @@
 package unipay
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
@@ -9,6 +10,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -131,66 +133,95 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		return fmt.Errorf("order[%s] not exist", orderId)
 	}
 
-	smtRecord := tables.TableSmtRecordInfo{
-		SvrName:         order.SvrName,
-		AccountId:       order.AccountId,
-		RecordType:      tables.RecordTypeDefault,
-		MintType:        tables.MintTypeAutoMint,
-		OrderID:         order.OrderId,
-		Action:          common.DasActionUpdateSubAccount,
-		ParentAccountId: tables.GetParentAccountId(order.Account),
-		Account:         order.Account,
-		Timestamp:       time.Now().UnixNano() / 1e6,
-	}
-
-	switch order.ActionType {
-	case tables.ActionTypeMint:
-		owner := core.DasAddressHex{
-			DasAlgorithmId: order.AlgorithmId,
-			AddressHex:     order.PayAddress,
-		}
-		args, err := dasCore.Daf().HexToArgs(owner, owner)
-		if err != nil {
-			return fmt.Errorf("HexToArgs err: %s", err.Error())
-		}
-		charsetList, err := dasCore.GetAccountCharSetList(order.Account)
-		if err != nil {
-			return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
-		}
-		content, err := json.Marshal(charsetList)
-		if err != nil {
-			return fmt.Errorf("json Marshal err: %s", err.Error())
-		}
-		smtRecord.RegisterYears = order.Years
-		smtRecord.RegisterArgs = common.Bytes2Hex(args)
-		smtRecord.Content = string(content)
-		smtRecord.SubAction = common.SubActionCreate
-	case tables.ActionTypeRenew:
-		smtRecord.RenewYears = order.Years
-		smtRecord.SubAction = common.SubActionRenew
-		accInfo, err := dbDao.GetAccountInfoByAccountId(order.AccountId)
-		if err != nil {
-			return err
-		}
-		if accInfo.Id == 0 {
-			return fmt.Errorf("account: [%s] no exist", order.Account)
-		}
-		smtRecord.Nonce = accInfo.Nonce + 1
-	}
-
 	paymentInfo := tables.PaymentInfo{
 		PayHash:       payHash,
 		OrderId:       orderId,
 		PayHashStatus: tables.PayHashStatusConfirmed,
 		Timestamp:     time.Now().UnixMilli(),
 	}
-	rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithSmtRecord(paymentInfo, smtRecord)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderPayStatusOkWithSmtRecord err: %s", err.Error())
+
+	if order.ActionType == tables.ActionTypeMint ||
+		order.ActionType == tables.ActionTypeRenew {
+
+		smtRecord := tables.TableSmtRecordInfo{
+			SvrName:         order.SvrName,
+			AccountId:       order.AccountId,
+			RecordType:      tables.RecordTypeDefault,
+			MintType:        tables.MintTypeAutoMint,
+			OrderID:         order.OrderId,
+			Action:          common.DasActionUpdateSubAccount,
+			ParentAccountId: tables.GetParentAccountId(order.Account),
+			Account:         order.Account,
+			Timestamp:       time.Now().UnixNano() / 1e6,
+		}
+
+		switch order.ActionType {
+		case tables.ActionTypeMint:
+			owner := core.DasAddressHex{
+				DasAlgorithmId: order.AlgorithmId,
+				AddressHex:     order.PayAddress,
+			}
+			args, err := dasCore.Daf().HexToArgs(owner, owner)
+			if err != nil {
+				return fmt.Errorf("HexToArgs err: %s", err.Error())
+			}
+			charsetList, err := dasCore.GetAccountCharSetList(order.Account)
+			if err != nil {
+				return fmt.Errorf("GetAccountCharSetList err: %s", err.Error())
+			}
+			content, err := json.Marshal(charsetList)
+			if err != nil {
+				return fmt.Errorf("json Marshal err: %s", err.Error())
+			}
+			smtRecord.RegisterYears = order.Years
+			smtRecord.RegisterArgs = common.Bytes2Hex(args)
+			smtRecord.Content = string(content)
+			smtRecord.SubAction = common.SubActionCreate
+		case tables.ActionTypeRenew:
+			smtRecord.RenewYears = order.Years
+			smtRecord.SubAction = common.SubActionRenew
+			accInfo, err := dbDao.GetAccountInfoByAccountId(order.AccountId)
+			if err != nil {
+				return err
+			}
+			if accInfo.Id == 0 {
+				return fmt.Errorf("account: [%s] no exist", order.Account)
+			}
+			smtRecord.Nonce = accInfo.Nonce + 1
+		}
+		rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithSmtRecord(paymentInfo, smtRecord)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderPayStatusOkWithSmtRecord err: %s", err.Error())
+		}
+		if rowsAffected == 0 {
+			log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
+			notify.SendLarkErrNotify("multiple orders success", orderId)
+		}
 	}
-	if rowsAffected == 0 {
-		log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
-		notify.SendLarkErrNotify("multiple orders success", orderId)
+
+	if order.ActionType == tables.ActionTypeCouponCreate {
+		unpaidSetInfo, err := dbDao.GetCouponSetInfo(order.MetaData.Cid)
+		if err != nil {
+			return err
+		}
+		if unpaidSetInfo.Id == 0 {
+			return fmt.Errorf("unpaidSetInfo not exist")
+		}
+		unpaidSetInfo.OrderId = order.OrderId
+
+		totalCouponPrice := decimal.NewFromInt(int64(unpaidSetInfo.Num)).Mul(decimal.NewFromFloat(config.Cfg.Das.Coupon.CouponPrice))
+		if !totalCouponPrice.Equal(order.USDAmount) {
+			return fmt.Errorf("totalCouponPrice not equal")
+		}
+		rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo, unpaidSetInfo)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderPayStatusOkWithCouponSetInfo err: %s", err.Error())
+		}
+		if rowsAffected == 0 {
+			log.Warnf("doUniPayNotice: %s %d", orderId, rowsAffected)
+			notify.SendLarkErrNotify("multiple orders success", orderId)
+		}
 	}
+
 	return nil
 }

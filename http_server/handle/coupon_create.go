@@ -33,23 +33,22 @@ type ReqCouponCreate struct {
 	Name      string `json:"name" binding:"required"`
 	Note      string `json:"note"`
 	Price     string `json:"price" binding:"required"`
-	Num       int    `json:"num" binding:"min=1"`
+	Num       int    `json:"num" binding:"min=1,max=10000"`
 	ExpiredAt int64  `json:"expired_at" binding:"required"`
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	Signature string `json:"signature" binding:"required"`
 }
 
 type RespCouponCreate struct {
 	SignInfoList
-	CouponCode []string `json:"coupon_code"`
+	Cid        string              `json:"cid"`
+	CouponCode []tables.CouponCode `json:"coupon_code"`
 }
 
-type CouponCreateSignCache struct {
+type CouponCreateCache struct {
 	ReqCouponCreate
-	CouponCode []string `json:"coupon_code"`
+	Cid string `json:"cid"`
 }
 
-func (r *CouponCreateSignCache) GetSignInfo() (signKey, reqDataStr string) {
+func (r *CouponCreateCache) GetSignInfo() (signKey, reqDataStr string) {
 	reqData, _ := json.Marshal(r)
 	reqDataStr = string(reqData)
 	signKey = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%d", reqDataStr, time.Now().UnixNano()))))
@@ -87,22 +86,59 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		return nil
 	}
 
-	resp := &RespCouponCreate{
-		CouponCode: make([]string, 0),
-	}
-	couponCodes := make(map[string]struct{})
+	couponCodes := make(map[tables.CouponCode]struct{})
 	for {
 		h.createCoupon(couponCodes, req)
-		h.DbDao.CouponExists()
-		h.DbDao.FindTokens()
+		exist, err := h.DbDao.CouponExists(couponCodes)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return err
+		}
+		for _, v := range exist {
+			delete(couponCodes, v)
+		}
+		if len(exist) == 0 {
+			break
+		}
 	}
 
+	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	// coupon_set_info
+	couponSetInfo := &tables.CouponSetInfo{
+		AccountId:     accId,
+		ManagerAid:    int(res.DasAlgorithmId),
+		ManagerSubAid: int(res.DasSubAlgorithmId),
+		Manager:       res.AddressHex,
+		Name:          req.Name,
+		Note:          req.Note,
+		Price:         req.Price,
+		Num:           req.Num,
+		ExpiredAt:     req.ExpiredAt,
+	}
+	couponSetInfo.InitCid()
+
 	kvs := make([]smt.SmtKv, 0)
-	for code := range couponCodes {
-		kvs = append(kvs, smt.SmtKv{
-			Key:   smt.Sha256(code),
-			Value: smt.Sha256(code),
+	couponInfos := make([]tables.CouponInfo, 0, len(couponCodes))
+	resp := &RespCouponCreate{
+		Cid:        couponSetInfo.Cid,
+		CouponCode: make([]tables.CouponCode, 0),
+	}
+	for k := range couponCodes {
+		code := k
+		couponInfos = append(couponInfos, tables.CouponInfo{
+			Cid:  couponSetInfo.Cid,
+			Code: &code,
 		})
+		resp.CouponCode = append(resp.CouponCode, code)
+		kvs = append(kvs, smt.SmtKv{
+			Key:   smt.Sha256(string(code)),
+			Value: smt.Sha256(string(code)),
+		})
+	}
+
+	if err := h.DbDao.CreateCoupon(couponSetInfo, couponInfos); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create coupon")
+		return fmt.Errorf("CreateCoupon err:%s", err.Error())
 	}
 
 	tree := smt.NewSmtSrv(*h.SmtServerUrl, "")
@@ -111,14 +147,15 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
 	}
+	couponSetInfo.Root = smtOut.Root.String()
+
 	signMsg := fmt.Sprintf("%s%s", common.DotBitPrefix, smtOut.Root.String())
 
-	signCache := &CouponCreateSignCache{
+	cache := &CouponCreateCache{
 		ReqCouponCreate: *req,
-		CouponCode:      resp.CouponCode,
+		Cid:             couponSetInfo.Cid,
 	}
-
-	signKey, reqDataStr := signCache.GetSignInfo()
+	signKey, reqDataStr := cache.GetSignInfo()
 	if err := h.RC.SetSignTxCache(signKey, reqDataStr); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
 		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
@@ -142,11 +179,6 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 }
 
 func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_code.ApiResp) *core.DasAddressHex {
-	if time.UnixMilli(req.Timestamp).Add(time.Minute * 10).Before(time.Now()) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params timestamp invalid")
-		return nil
-	}
-
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
@@ -193,14 +225,24 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
+
+	unpaidSetInfo, err := h.DbDao.GetUnPaidCouponSetByAccId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return nil
+	}
+	if unpaidSetInfo.Id > 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeCouponUnpaid, "have unpaid coupon order")
+		return nil
+	}
 	return res
 }
 
-func (h *HttpHandle) createCoupon(couponCodes map[string]struct{}, req *ReqCouponCreate) {
+func (h *HttpHandle) createCoupon(couponCodes map[tables.CouponCode]struct{}, req *ReqCouponCreate) {
 	for {
 		md5Res := md5.Sum([]byte(fmt.Sprintf("%s%d%d%s", req.Price, time.Now().UnixNano(), req.ExpiredAt, random.String(8, random.Alphanumeric))))
 		base58Res := base58.Encode([]byte(fmt.Sprintf("%x", md5Res)))
-		code := strings.ToUpper(base58Res[:8])
+		code := tables.CouponCode(strings.ToUpper(base58Res[:8]))
 		if _, ok := couponCodes[code]; ok {
 			continue
 		}

@@ -43,6 +43,9 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/auto/payment/list", api_code.DoMonitorLog("auto_payment_list"), cacheHandleShort, h.H.AutoPaymentList)
 		v1.POST("/auto/order/info", api_code.DoMonitorLog("auto_order_info"), cacheHandleShort, h.H.AutoOrderInfo)
 		v1.POST("/mint/config/get", api_code.DoMonitorLog("mint_config_get"), cacheHandleShort, h.H.MintConfigGet)
+		v1.POST("/coupon/order/info", api_code.DoMonitorLog("coupon_order_info"), h.H.CouponOrderInfo)
+		v1.POST("/coupon/set/list", api_code.DoMonitorLog("coupon_set_list"), cacheHandleShort, h.H.CouponSetList)
+		v1.POST("/coupon/code/list", api_code.DoMonitorLog("coupon_code_list"), cacheHandleShort, h.H.CouponCodeList)
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit)               // enable_sub_account
@@ -72,6 +75,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/approval/revoke", api_code.DoMonitorLog("approval_revoke"), h.H.ApprovalRevoke)
 		v1.POST("/approval/fulfill", api_code.DoMonitorLog("approval_fulfill"), h.H.ApprovalFulfill)
 		v1.POST("/coupon/create", api_code.DoMonitorLog("coupon_create"), h.H.CouponCreate)
+		v1.POST("/coupon/order/create", api_code.DoMonitorLog("coupon_order_create"), h.H.CouponOrderCreate)
 	}
 	internalV1 := h.internalEngine.Group("v1")
 	{
