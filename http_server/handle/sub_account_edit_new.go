@@ -127,7 +127,7 @@ func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 }
 func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountEdit
-	//resp.List = make([]SignInfo, 0)
+	resp.List = make([]SignInfo, 0)
 
 	// check params
 	h.checkReqSubAccountEdit(req, apiResp)
@@ -205,12 +205,12 @@ func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_co
 	resp.Action = common.DasActionUpdateSubAccount
 	resp.SubAction = common.SubActionEdit
 	resp.SignKey = signKey
-	//resp.List = append(resp.List, SignInfo{
-	//	//SignKey: "",
-	//	SignList: []txbuilder.SignData{
-	//		signData,
-	//	},
-	//})
+	resp.List = append(resp.List, SignInfo{
+		//SignKey: "",
+		SignList: []txbuilder.SignData{
+			signData,
+		},
+	})
 	resp.SignList = []txbuilder.SignData{
 		signData,
 	}

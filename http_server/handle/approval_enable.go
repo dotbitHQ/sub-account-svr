@@ -303,13 +303,13 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.DasActionCreateApproval,
 			SignKey:   signKey,
-			//List: []SignInfo{
-			//	{
-			//		SignList: []txbuilder.SignData{
-			//			signData,
-			//		},
-			//	},
-			//},
+			List: []SignInfo{
+				{
+					SignList: []txbuilder.SignData{
+						signData,
+					},
+				},
+			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},

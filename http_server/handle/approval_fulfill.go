@@ -261,13 +261,13 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.SubActionFullfillApproval,
 			SignKey:   signKey,
-			//List: []SignInfo{
-			//	{
-			//		SignList: []txbuilder.SignData{
-			//			signData,
-			//		},
-			//	},
-			//},
+			List: []SignInfo{
+				{
+					SignList: []txbuilder.SignData{
+						signData,
+					},
+				},
+			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},

@@ -126,10 +126,15 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		}
 		_, signMsg, _ := data.GetSignInfo()
 		address := ""
-		//signType := req.List[0].SignList[0].SignType
-		//signature := req.List[0].SignList[0].SignMsg
-		signType := req.SignList[0].SignType
-		signature := req.SignList[0].SignMsg
+		var signType common.DasAlgorithmId
+		var signature string
+		if len(req.List) != 0 {
+			signType = req.List[0].SignList[0].SignType
+			signature = req.List[0].SignList[0].SignMsg
+		} else {
+			signType = req.SignList[0].SignType
+			signature = req.SignList[0].SignMsg
+		}
 		if signType == common.DasAlgorithmIdWebauthn {
 			address = req.SignAddress
 		} else {
@@ -180,10 +185,15 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		}
 		_, signMsg, _ := data.GetSignInfo()
 		address := ""
-		//signType := req.List[0].SignList[0].SignType
-		//signature := req.List[0].SignList[0].SignMsg
-		signType := req.SignList[0].SignType
-		signature := req.SignList[0].SignMsg
+		var signType common.DasAlgorithmId
+		var signature string
+		if len(req.List) != 0 {
+			signType = req.List[0].SignList[0].SignType
+			signature = req.List[0].SignList[0].SignMsg
+		} else {
+			signType = req.SignList[0].SignType
+			signature = req.SignList[0].SignMsg
+		}
 		if signType == common.DasAlgorithmIdWebauthn {
 			address = req.SignAddress
 		} else {
@@ -233,7 +243,13 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 	}
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
-	if err := txBuilder.AddSignatureForTx(req.SignList); err != nil {
+	signList := make([]txbuilder.SignData, 0)
+	if len(req.List) != 0 {
+		signList = req.List[0].SignList
+	} else {
+		signList = req.SignList
+	}
+	if err := txBuilder.AddSignatureForTx(signList); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 	}
@@ -286,8 +302,8 @@ func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiRe
 	}
 
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
-	if len(req.SignList) > 0 {
-		if err := txBuilder.AddSignatureForTx(req.SignList); err != nil {
+	if len(req.List) > 0 {
+		if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
 			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 		}
@@ -369,7 +385,12 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 
 	//signature := req.List[0].SignList[0].SignMsg
 	//signType := req.SignList[0].SignType
-	signature := req.SignList[0].SignMsg
+	signature := ""
+	if len(req.List) != 0 {
+		signature = req.List[0].SignList[0].SignMsg
+	} else {
+		signature = req.SignList[0].SignMsg
+	}
 	address := ""
 	if signData.SignType == common.DasAlgorithmIdWebauthn {
 		address = req.SignAddress
@@ -441,7 +462,13 @@ func (h *HttpHandle) doSubActionCreate(dataCache UpdateSubAccountCache, req *Req
 	}
 
 	//signature := req.List[0].SignList[0].SignMsg
-	signature := req.SignList[0].SignMsg
+	//signature := req.SignList[0].SignMsg
+	signature := ""
+	if len(req.List) != 0 {
+		signature = req.List[0].SignList[0].SignMsg
+	} else {
+		signature = req.SignList[0].SignMsg
+	}
 	address := ""
 	if signData.SignType == common.DasAlgorithmIdWebauthn {
 		address = req.SignAddress
@@ -500,7 +527,13 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 			addr = approvalInfo.Platform
 		}
 		//signature = req.List[0].SignList[0].SignMsg
-		signature = req.SignList[0].SignMsg
+		//signature = req.SignList[0].SignMsg
+		//signature
+		if len(req.List) != 0 {
+			signature = req.List[0].SignList[0].SignMsg
+		} else {
+			signature = req.SignList[0].SignMsg
+		}
 		if signature, err = doSignCheck(dataCache.SignData, signature, addr, addr, apiResp); err != nil {
 			return fmt.Errorf("doSignCheck err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -523,6 +556,15 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 
 func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	hasWebAuthn := false
+
+	for _, signInfo := range req.List {
+		for _, v := range signInfo.SignList {
+			if v.SignType == common.DasAlgorithmIdWebauthn {
+				hasWebAuthn = true
+				break
+			}
+		}
+	}
 	for _, v := range req.SignList {
 		if v.SignType == common.DasAlgorithmIdWebauthn {
 			hasWebAuthn = true
@@ -629,11 +671,22 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		return fmt.Errorf("permission denied")
 	}
 
-	for i, v := range req.SignList {
-		if v.SignType == common.DasAlgorithmIdWebauthn {
-			h.DasCore.AddPkIndexForSignMsg(&req.SignList[i].SignMsg, idx)
+	if len(req.List) != 0 {
+		for i, signList := range req.List {
+			for j, _ := range signList.SignList {
+				if req.List[i].SignList[j].SignType == common.DasAlgorithmIdWebauthn {
+					h.DasCore.AddPkIndexForSignMsg(&req.List[i].SignList[j].SignMsg, idx)
+				}
+			}
+		}
+	} else {
+		for i, v := range req.SignList {
+			if v.SignType == common.DasAlgorithmIdWebauthn {
+				h.DasCore.AddPkIndexForSignMsg(&req.SignList[i].SignMsg, idx)
+			}
 		}
 	}
+
 	return nil
 }
 

@@ -74,7 +74,7 @@ func (h *HttpHandle) MintConfigUpdate(ctx *gin.Context) {
 
 func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_code.ApiResp) error {
 	var resp RespMintConfigUpdate
-	//resp.List = make([]SignInfo, 0)
+	resp.List = make([]SignInfo, 0)
 
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
@@ -121,12 +121,12 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 	}
 	resp.Action = action
 	resp.SignKey = signKey
-	//resp.List = append(resp.List, SignInfo{
-	//	SignList: []txbuilder.SignData{{
-	//		SignType: signType,
-	//		SignMsg:  signMsg,
-	//	}},
-	//})
+	resp.List = append(resp.List, SignInfo{
+		SignList: []txbuilder.SignData{{
+			SignType: signType,
+			SignMsg:  signMsg,
+		}},
+	})
 	resp.SignList = []txbuilder.SignData{{
 		SignType: signType,
 		SignMsg:  signMsg,
