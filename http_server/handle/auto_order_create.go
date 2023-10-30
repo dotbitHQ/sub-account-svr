@@ -18,10 +18,11 @@ import (
 
 type ReqAutoOrderCreate struct {
 	core.ChainTypeAddress
-	ActionType tables.ActionType `json:"action_type"`
+	ActionType tables.ActionType `json:"action_type" binding:"in(0|1)"`
 	SubAccount string            `json:"sub_account"`
 	TokenId    tables.TokenId    `json:"token_id"`
 	Years      uint64            `json:"years"`
+	CouponCode string            `json:"coupon_code"`
 }
 
 type RespAutoOrderCreate struct {
@@ -156,19 +157,48 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
+	// total usd price
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
-	//log.Info("usdAmount:", usdAmount.String(), req.Years)
-	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
-	if amount.Cmp(decimal.Zero) != 1 {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
-		return nil
+
+	// deduct coupons
+	var actualUsdPrice decimal.Decimal
+	var couponInfo tables.CouponInfo
+	if req.CouponCode != "" {
+		couponInfo, err = h.DbDao.GetCouponByCode(req.CouponCode)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return fmt.Errorf("GetCouponSetInfoByCode err: %s", err.Error())
+		}
+		if couponInfo.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon code not exist")
+			return nil
+		}
+		if couponInfo.Status == tables.CouponStatusUsed {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon code has been used")
+			return nil
+		}
+
+		setInfo, err := h.DbDao.GetCouponSetInfo(couponInfo.Cid)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
+		}
+		if setInfo.OrderId == "" {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it order not paid")
+			return nil
+		}
+
+		if setInfo.Price.LessThan(usdAmount) {
+			actualUsdPrice = usdAmount.Sub(setInfo.Price)
+		} else {
+			actualUsdPrice = decimal.Zero
+		}
 	}
+
+	// usd price -> token price
+	amount := actualUsdPrice.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
 	amount = RoundAmount(amount, req.TokenId)
-	//
-	//if req.TokenId == tables.TokenIdStripeUSD && amount.Cmp(decimal.NewFromFloat(0.52)) == -1 {
-	//	apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
-	//	return nil
-	//}
+
 	// create order
 	premiumPercentage := decimal.Zero
 	premiumBase := decimal.Zero
@@ -209,6 +239,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
 	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
+
 	orderInfo := tables.OrderInfo{
 		OrderId:           res.OrderId,
 		ActionType:        req.ActionType,
@@ -221,6 +252,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		TokenId:           string(req.TokenId),
 		Amount:            amount,
 		USDAmount:         usdAmount,
+		CouponCode:        req.CouponCode,
 		PayStatus:         tables.PayStatusUnpaid,
 		OrderStatus:       tables.OrderStatusDefault,
 		Timestamp:         time.Now().UnixMilli(),
@@ -229,6 +261,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		PremiumBase:       premiumBase,
 		PremiumAmount:     premiumAmount,
 	}
+
 	var paymentInfo tables.PaymentInfo
 	if req.TokenId == tables.TokenIdStripeUSD && res.StripePaymentIntentId != "" {
 		paymentInfo = tables.PaymentInfo{
@@ -238,7 +271,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			Timestamp:     time.Now().UnixMilli(),
 		}
 	}
-	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo); err != nil {
+	if err = h.DbDao.CreateOrderInfoWithCoupon(orderInfo, paymentInfo, couponInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}

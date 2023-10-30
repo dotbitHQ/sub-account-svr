@@ -44,6 +44,8 @@ type OrderInfo struct {
 	AlgorithmId       common.DasAlgorithmId `json:"algorithm_id" gorm:"column:algorithm_id; type:smallint(6) NOT NULL DEFAULT '0' COMMENT '3,5-EVM 4-TRON 7-DOGE';"`
 	PayAddress        string                `json:"pay_address" gorm:"column:pay_address; index:idx_pay_address; type:varchar(255) NOT NULL DEFAULT'' COMMENT '';"`
 	TokenId           string                `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	CouponCode        string                `json:"coupon_code" gorm:"column:coupon_code; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	CouponAmount      decimal.Decimal       `json:"coupon_amount" gorm:"column:coupon_amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
 	Amount            decimal.Decimal       `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
 	USDAmount         decimal.Decimal       `json:"usd_amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
 	PayStatus         PayStatus             `json:"pay_status" gorm:"column:pay_status; type:smallint(6) NOT NULL DEFAULT'0' COMMENT '0-unpaid 1-paid';"`
@@ -63,7 +65,7 @@ type MetaData struct {
 	Cid string `json:"cid"`
 }
 
-func (m *OrderInfo) TableName() string {
+func (t *OrderInfo) TableName() string {
 	return "t_order_info"
 }
 

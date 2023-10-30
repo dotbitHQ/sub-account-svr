@@ -16,6 +16,7 @@ import (
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/labstack/gommon/random"
+	"github.com/shopspring/decimal"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -102,6 +103,12 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		}
 	}
 
+	price, err := decimal.NewFromString(req.Price)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+		return nil
+	}
+
 	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	// coupon_set_info
 	couponSetInfo := &tables.CouponSetInfo{
@@ -111,7 +118,7 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		Manager:       res.AddressHex,
 		Name:          req.Name,
 		Note:          req.Note,
-		Price:         req.Price,
+		Price:         price,
 		Num:           req.Num,
 		ExpiredAt:     req.ExpiredAt,
 	}

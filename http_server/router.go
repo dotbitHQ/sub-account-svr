@@ -46,6 +46,7 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/coupon/order/info", api_code.DoMonitorLog("coupon_order_info"), h.H.CouponOrderInfo)
 		v1.POST("/coupon/set/list", api_code.DoMonitorLog("coupon_set_list"), cacheHandleShort, h.H.CouponSetList)
 		v1.POST("/coupon/code/list", api_code.DoMonitorLog("coupon_code_list"), cacheHandleShort, h.H.CouponCodeList)
+		v1.POST("/coupon/info", api_code.DoMonitorLog("coupon_info"), cacheHandleShort, h.H.CouponInfo)
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit)               // enable_sub_account

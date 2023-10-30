@@ -183,6 +183,26 @@ func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.Paymen
 	})
 }
 
+func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tables.PaymentInfo, couponInfo tables.CouponInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&info).Error; err != nil {
+			return err
+		}
+		if paymentInfo.PayHash != "" {
+			if err := tx.Create(&paymentInfo).Error; err != nil {
+				return err
+			}
+		}
+		if couponInfo.Id > 0 {
+			couponInfo.Status = tables.CouponStatusUsed
+			if err := tx.Save(couponInfo).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 type OrderAmountInfo struct {
 	TokenId string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 	Amount  decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`

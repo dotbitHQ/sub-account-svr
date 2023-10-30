@@ -8,20 +8,22 @@ import (
 	"time"
 )
 
+type CouponStatus int
+
 const (
-	CouponStatusNormal = 0
-	CouponStatusUsed   = 1
+	CouponStatusNormal CouponStatus = 0
+	CouponStatusUsed   CouponStatus = 1
 )
 
 type CouponCode string
 
 type CouponInfo struct {
-	Id        uint64      `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`
-	Cid       string      `gorm:"column:cid;default:;NOT NULL"`
-	Code      *CouponCode `gorm:"column:code;default:;NOT NULL"`
-	Status    int         `gorm:"column:status;default:0;NOT NULL"`
-	CreatedAt time.Time   `gorm:"column:created_at;default:CURRENT_TIMESTAMP;NOT NULL"`
-	UpdatedAt time.Time   `gorm:"column:updated_at;default:CURRENT_TIMESTAMP;NOT NULL"`
+	Id        uint64       `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`
+	Cid       string       `gorm:"column:cid;default:;NOT NULL"`
+	Code      *CouponCode  `gorm:"column:code;default:;NOT NULL"`
+	Status    CouponStatus `gorm:"column:status;default:0;NOT NULL"`
+	CreatedAt time.Time    `gorm:"column:created_at;default:CURRENT_TIMESTAMP;NOT NULL"`
+	UpdatedAt time.Time    `gorm:"column:updated_at;default:CURRENT_TIMESTAMP;NOT NULL"`
 }
 
 func (t *CouponInfo) TableName() string {

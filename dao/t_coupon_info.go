@@ -131,3 +131,16 @@ func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) ([]*tables.Co
 	}
 	return res, total, nil
 }
+
+func (d *DbDao) GetCouponByCode(code string) (res tables.CouponInfo, err error) {
+	code, err = encrypt.AesEncrypt(code, config.Cfg.Das.Coupon.EncryptionKey)
+	if err != nil {
+		return
+	}
+	err = d.db.Where("code = ?", code).First(&res).Error
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+		return
+	}
+	return
+}
