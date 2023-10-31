@@ -105,30 +105,13 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		return nil
 	}
 
-	// das lock
-	var signRole string
-	var addressHex *core.DasAddressHex
-	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
-		addressHex = &core.DasAddressHex{}
-		addressHex.DasAlgorithmId = acc.ManagerChainType.ToDasAlgorithmId(true)
-		addressHex.AddressHex = acc.Manager
-		addressHex.ChainType = acc.ManagerChainType
-		signRole = common.ParamManager
-	}
-	if addressHex == nil {
+	if acc.ManagerChainType != req.chainType || !strings.EqualFold(acc.Manager, req.address) {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
 	}
-
-	balanceDasLock, balanceDasType, err := h.DasCore.Daf().HexToScript(*addressHex)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("FormatAddressToDasLockScript err: %s", err.Error())
-	}
-	log.Info("doSubAccountRenew:", balanceDasLock, balanceDasType)
-
 	parentAccountId := acc.AccountId
-	// check balance
+
+	// check manager dp cell have enough amount to pay
 	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "get config cell err")
@@ -139,33 +122,34 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "get config cell err")
 		return fmt.Errorf("RenewSubAccountPrice err: %s", err.Error())
 	}
-
-	totalCapacity := uint64(0)
 	totalRenewYears := uint64(0)
 	for _, v := range req.SubAccountList {
 		totalRenewYears += v.RenewYears
 	}
-	//totalCapacity = totalRenewYears * renewSubAccountPrice
-	quoteCell, err := h.DasCore.GetQuoteCell()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get quote cell")
-		return fmt.Errorf("GetQuoteCell err: %s", err.Error())
-	}
-	totalCapacity = config.PriceToCKB(renewSubAccountPrice, quoteCell.Quote(), totalRenewYears)
+	totalPrice := renewSubAccountPrice * totalRenewYears
 
-	_, _, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          nil,
-		LockScript:        balanceDasLock,
-		CapacityNeed:      totalCapacity,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderAsc,
-	})
+	lock, _, err := req.FormatChainTypeAddressToScript(config.Cfg.Server.Net, true)
 	if err != nil {
-		return doDasBalanceError(err, apiResp)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "FormatChainTypeAddressToScript err")
+		return err
 	}
+	if _, _, err := h.DasCore.GetDpCells(&core.ParamGetDpCells{
+		DasCache:    h.DasCache,
+		LockScript:  lock,
+		AmountNeed:  totalPrice,
+		SearchOrder: indexer.SearchOrderAsc,
+	}); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
+
+	addressHex := &core.DasAddressHex{}
+	addressHex.DasAlgorithmId = acc.ManagerChainType.ToDasAlgorithmId(true)
+	addressHex.AddressHex = acc.Manager
+	addressHex.ChainType = acc.ManagerChainType
 
 	// get renew sign info
-	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(signRole, *addressHex, acc, req, apiResp)
+	listSmtRecord, renewSignInfo, err := h.doRenewSignInfo(common.ParamManager, *addressHex, acc, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doMinSignInfo err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
