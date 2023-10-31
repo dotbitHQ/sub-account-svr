@@ -1,7 +1,6 @@
 package txtool
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
 	"errors"
@@ -43,11 +42,11 @@ type ResultBuildUpdateSubAccountTx struct {
 }
 
 func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccountTx) (*ResultBuildUpdateSubAccountTx, error) {
-	var txParams txbuilder.BuildTransactionParams
+	var dasLock *types.Script
+	var dpType *types.Script
 	var res ResultBuildUpdateSubAccountTx
+	var txParams txbuilder.BuildTransactionParams
 
-	var balanceDasLock *types.Script
-	var balanceDasType *types.Script
 	mintSignIdMap := make(map[string]string)
 	witnessSignInfo := make(map[string][]byte)
 	memKvs := make(map[string][]smt.SmtKv)
@@ -88,7 +87,8 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 				Value: smtValue,
 			})
 		}
-		balanceDasLock, balanceDasType, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+
+		dasLock, _, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
 			DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
 			AddressHex:     mintSignInfo.Address,
 			ChainType:      mintSignInfo.ChainType,
@@ -96,6 +96,11 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
 		}
+		contractDp, err := core.GetDasContractInfo(common.DasContractNameDpCellType)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		}
+		dpType = contractDp.ToScript(nil)
 	}
 
 	signTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
@@ -114,6 +119,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	autoTotalCapacity := uint64(0)
 	subAccountPriceMap := make(map[string]uint64)
 	quote := p.BaseInfo.QuoteCell.Quote()
+
 	for _, v := range p.SmtRecordInfoList {
 		if v.SubAction != common.SubActionCreate &&
 			v.SubAction != common.SubActionRenew {
@@ -172,30 +178,19 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	var err error
-	var manualChange uint64
-	manualBalanceLiveCells := make([]*indexer.LiveCell, 0)
+	var manualTotalAmount uint64
+	var manualTotalCapacity uint64
+	manualDpLiveCells := make([]*indexer.LiveCell, 0)
 
 	// min price 0.99$
-	manualCapacity := config.PriceToCKB(p.NewSubAccountPrice, quote, registerTotalYears) + config.PriceToCKB(p.RenewSubAccountPrice, quote, renewTotalYears)
-	//manualCapacity := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
-	if manualCapacity > 0 {
-		needCapacity := manualCapacity
-		if autoTotalCapacity == 0 {
-			needCapacity += p.CommonFee
-		}
-		manualChange, manualBalanceLiveCells, err = s.GetBalanceCell(&ParamBalance{
-			DasLock:      balanceDasLock,
-			DasType:      balanceDasType,
-			NeedCapacity: needCapacity,
+	manualPrice := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
+	if manualPrice > 0 {
+		manualDpLiveCells, manualTotalAmount, manualTotalCapacity, err = s.DasCore.GetDpCells(&core.ParamGetDpCells{
+			DasCache:    s.DasCache,
+			LockScript:  dasLock,
+			AmountNeed:  manualPrice,
+			SearchOrder: indexer.SearchOrderAsc,
 		})
-		if err != nil {
-			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
-			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
-			return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
-		}
-		if autoTotalCapacity == 0 {
-			manualChange += p.CommonFee
-		}
 	}
 
 	var autoChange uint64
@@ -326,7 +321,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	})
 
 	// get balance cell
-	for _, v := range manualBalanceLiveCells {
+	for _, v := range manualDpLiveCells {
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: v.OutPoint,
 		})
@@ -339,29 +334,97 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
-		Capacity: p.SubAccountCellOutput.Capacity + manualCapacity + autoTotalCapacity,
+		Capacity: p.SubAccountCellOutput.Capacity + autoTotalCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
-	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput) // sub_account
-	// root+profit
+	if autoTotalCapacity == 0 {
+		res.SubAccountCellOutput.Capacity -= p.CommonFee
+	}
+	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput)
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	if len(subAccountList) > 0 {
 		subDataDetail.SmtRoot = subAccountList[len(subAccountList)-1].NewRoot
 	}
-	subDataDetail.DasProfit += manualCapacity + autoTotalCapacity
+	subDataDetail.DasProfit += autoTotalCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
-	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData) // smt root
+	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData)
 
 	// change
-	if manualChange > 0 {
-		txParams.Outputs = append(txParams.Outputs, &types.CellOutput{
-			Capacity: manualChange,
-			Lock:     balanceDasLock,
-			Type:     balanceDasType,
-		})
-		txParams.OutputsData = append(txParams.OutputsData, []byte{})
+	if manualPrice > 0 {
+		var dpChangeCapacity uint64
+		if manualTotalAmount-manualPrice > 0 {
+			dpChange := &types.CellOutput{
+				Lock: dasLock,
+				Type: dpType,
+			}
+			l := molecule.GoU32ToBytes(8)
+			v := molecule.GoU64ToBytes(manualTotalAmount - manualPrice)
+			dpChangeOutputData := append(l, v...)
+
+			dpChangeCapacity = dpChange.OccupiedCapacity(dpChangeOutputData) + common.OneCkb
+			dpChange.Capacity = dpChangeCapacity
+			txParams.Outputs = append(txParams.Outputs, dpChange)
+			txParams.OutputsData = append(txParams.OutputsData, dpChangeOutputData)
+		}
+
+		var recycleWhitelistCell *types.CellOutput
+		recycleWhitelist, err := s.DasCore.GetDPointCapacityRecycleWhitelist()
+		if err != nil {
+			return nil, fmt.Errorf("GetDPointCapacityRecycleWhitelist err: %s", err.Error())
+		}
+
+		for _, script := range recycleWhitelist {
+			recycleWhitelistCell = &types.CellOutput{
+				Lock: script,
+				Type: dpType,
+			}
+			l := molecule.GoU32ToBytes(8)
+			v := molecule.GoU64ToBytes(manualPrice)
+			recycleData := append(l, v...)
+
+			recycleWhitelistCell.Capacity = manualTotalCapacity - dpChangeCapacity
+			txParams.Outputs = append(txParams.Outputs, recycleWhitelistCell)
+			txParams.OutputsData = append(txParams.OutputsData, recycleData)
+			recycleMinCapacity := recycleWhitelistCell.OccupiedCapacity(recycleData) + common.OneCkb
+
+			gapCapacity := recycleMinCapacity - recycleWhitelistCell.Capacity
+			if gapCapacity > 0 || autoChange == 0 {
+				if gapCapacity > 0 {
+					gapCapacity += common.OneCkb
+				} else {
+					gapCapacity = common.OneCkb
+				}
+			}
+
+			if gapCapacity > 0 {
+				gapChange, gapBalanceCells, err := s.GetBalanceCell(&ParamBalance{
+					DasLock:      p.BalanceDasLock,
+					DasType:      p.BalanceDasType,
+					NeedCapacity: gapCapacity,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+				}
+				for _, v := range gapBalanceCells {
+					txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+						PreviousOutput: v.OutPoint,
+					})
+				}
+				if gapChange > 0 {
+					gapChangeCell := &types.CellOutput{
+						Capacity: gapChange,
+						Lock:     p.BalanceDasLock,
+						Type:     p.BalanceDasType,
+					}
+					txParams.Outputs = append(txParams.Outputs, gapChangeCell)
+					txParams.OutputsData = append(txParams.OutputsData, []byte{})
+				}
+			}
+			break
+		}
 	}
+
 	if autoChange > 0 {
 		base := 1000 * common.OneCkb
 		splitList, err := core.SplitOutputCell2(autoChange, base, 10, p.BalanceDasLock, p.BalanceDasType, indexer.SearchOrderAsc)
@@ -406,8 +469,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		return nil, fmt.Errorf("accBuilderMap is nil: %s", p.Account.AccountId)
 	}
 	accWitness, _, _ := accBuilder.GenWitness(&witness.AccountCellParam{
-		OldIndex: 0,
-		Action:   common.DasActionUpdateSubAccount,
+		Action: common.DasActionUpdateSubAccount,
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
@@ -468,7 +530,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	//webauthn
-	keyListMap := make(map[string]bool, 0)
+	keyListMap := make(map[string]bool)
 	for _, v := range p.SmtRecordInfoList {
 		if v.LoginAddress == v.SignAddress || v.LoginChainType != common.ChainTypeWebauthn {
 			continue
