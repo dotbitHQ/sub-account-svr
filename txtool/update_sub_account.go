@@ -42,8 +42,7 @@ type ResultBuildUpdateSubAccountTx struct {
 }
 
 func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccountTx) (*ResultBuildUpdateSubAccountTx, error) {
-	var dasLock *types.Script
-	var dpType *types.Script
+	var managerDasLock *types.Script
 	var res ResultBuildUpdateSubAccountTx
 	var txParams txbuilder.BuildTransactionParams
 
@@ -88,7 +87,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			})
 		}
 
-		dasLock, _, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
+		managerDasLock, _, err = s.DasCore.Daf().HexToScript(core.DasAddressHex{
 			DasAlgorithmId: mintSignInfo.ChainType.ToDasAlgorithmId(true),
 			AddressHex:     mintSignInfo.Address,
 			ChainType:      mintSignInfo.ChainType,
@@ -96,11 +95,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("manager HexToScript err: %s", err.Error())
 		}
-		contractDp, err := core.GetDasContractInfo(common.DasContractNameDpCellType)
-		if err != nil {
-			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
-		}
-		dpType = contractDp.ToScript(nil)
 	}
 
 	signTree := smt.NewSmtSrv(p.Tree.GetSmtUrl(), "")
@@ -180,14 +174,14 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var err error
 	var manualTotalAmount uint64
 	var manualTotalCapacity uint64
-	manualDpLiveCells := make([]*indexer.LiveCell, 0)
+	var manualDpLiveCells []*indexer.LiveCell
 
 	// min price 0.99$
 	manualPrice := p.NewSubAccountPrice*registerTotalYears + p.RenewSubAccountPrice*renewTotalYears
 	if manualPrice > 0 {
 		manualDpLiveCells, manualTotalAmount, manualTotalCapacity, err = s.DasCore.GetDpCells(&core.ParamGetDpCells{
 			DasCache:    s.DasCache,
-			LockScript:  dasLock,
+			LockScript:  managerDasLock,
 			AmountNeed:  manualPrice,
 			SearchOrder: indexer.SearchOrderAsc,
 		})
@@ -338,9 +332,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
-	if autoTotalCapacity == 0 {
-		res.SubAccountCellOutput.Capacity -= p.CommonFee
-	}
 	txParams.Outputs = append(txParams.Outputs, res.SubAccountCellOutput)
 	subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
 	if len(subAccountList) > 0 {
@@ -350,78 +341,81 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData)
 
-	// change
 	if manualPrice > 0 {
-		var dpChangeCapacity uint64
-		if manualTotalAmount-manualPrice > 0 {
-			dpChange := &types.CellOutput{
-				Lock: dasLock,
-				Type: dpType,
-			}
-			l := molecule.GoU32ToBytes(8)
-			v := molecule.GoU64ToBytes(manualTotalAmount - manualPrice)
-			dpChangeOutputData := append(l, v...)
-
-			dpChangeCapacity = dpChange.OccupiedCapacity(dpChangeOutputData) + common.OneCkb
-			dpChange.Capacity = dpChangeCapacity
-			txParams.Outputs = append(txParams.Outputs, dpChange)
-			txParams.OutputsData = append(txParams.OutputsData, dpChangeOutputData)
-		}
-
-		var recycleWhitelistCell *types.CellOutput
-		recycleWhitelist, err := s.DasCore.GetDPointCapacityRecycleWhitelist()
+		dpRecycleWhitelistMap, err := s.DasCore.GetDPointCapacityRecycleWhitelist()
 		if err != nil {
-			return nil, fmt.Errorf("GetDPointCapacityRecycleWhitelist err: %s", err.Error())
+			return nil, fmt.Errorf("GetDPointCapacityRecycleWhitelist err: %s", err)
+		}
+		if len(dpRecycleWhitelistMap) == 0 {
+			return nil, fmt.Errorf("GetDPointCapacityRecycleWhitelist is nil")
+		}
+		var dpRecycleWhitelist *types.Script
+		for k := range dpRecycleWhitelistMap {
+			dpRecycleWhitelist = dpRecycleWhitelistMap[k]
 		}
 
-		for _, script := range recycleWhitelist {
-			recycleWhitelistCell = &types.CellOutput{
-				Lock: script,
-				Type: dpType,
+		dpContract, err := core.GetDasContractInfo(common.DasContractNameDpCellType)
+		if err != nil {
+			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		}
+
+		dpBaseCapacity := types.CellOutput{
+			Lock: managerDasLock,
+			Type: dpContract.ToScript(nil),
+		}.OccupiedCapacity(make([]byte, 12))
+
+		dpOutputCells, dpOutputData, replenishNormal, err := core.SplitDPCell(&core.ParamSplitDPCell{
+			FromLock:           managerDasLock,
+			ToLock:             dpRecycleWhitelist,
+			DPLiveCell:         manualDpLiveCells,
+			DPLiveCellCapacity: manualTotalCapacity,
+			DPTotalAmount:      manualTotalAmount,
+			DPTransferAmount:   manualPrice,
+			DPBaseCapacity:     dpBaseCapacity,
+			DPContract:         dpContract,
+			DPSplitCount:       2,
+			DPSplitAmount:      100,
+			NormalCellLock:     dpRecycleWhitelist,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("SplitDPCell err: %s", err.Error())
+		}
+		txParams.Outputs = append(txParams.Outputs, dpOutputCells...)
+		txParams.OutputsData = append(txParams.OutputsData, dpOutputData...)
+
+		if autoTotalCapacity == 0 || replenishNormal > 0 {
+			needCapacity := replenishNormal
+			if autoTotalCapacity == 0 {
+				needCapacity += p.CommonFee
 			}
-			l := molecule.GoU32ToBytes(8)
-			v := molecule.GoU64ToBytes(manualPrice)
-			recycleData := append(l, v...)
-
-			recycleWhitelistCell.Capacity = manualTotalCapacity - dpChangeCapacity
-			txParams.Outputs = append(txParams.Outputs, recycleWhitelistCell)
-			txParams.OutputsData = append(txParams.OutputsData, recycleData)
-			recycleMinCapacity := recycleWhitelistCell.OccupiedCapacity(recycleData) + common.OneCkb
-
-			gapCapacity := recycleMinCapacity - recycleWhitelistCell.Capacity
-			if gapCapacity > 0 || autoChange == 0 {
-				if gapCapacity > 0 {
-					gapCapacity += common.OneCkb
-				} else {
-					gapCapacity = common.OneCkb
-				}
+			change, replenishNormalCells, err := s.GetBalanceCell(&ParamBalance{
+				DasLock:      p.BalanceDasLock,
+				DasType:      p.BalanceDasType,
+				NeedCapacity: needCapacity,
+			})
+			if err != nil {
+				log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+				_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
+				return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
 			}
+			change += p.CommonFee
 
-			if gapCapacity > 0 {
-				gapChange, gapBalanceCells, err := s.GetBalanceCell(&ParamBalance{
-					DasLock:      p.BalanceDasLock,
-					DasType:      p.BalanceDasType,
-					NeedCapacity: gapCapacity,
+			for idx := range replenishNormalCells {
+				txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+					PreviousOutput: replenishNormalCells[idx].OutPoint,
 				})
+			}
+			if change > 0 {
+				base := 1000 * common.OneCkb
+				splitList, err := core.SplitOutputCell2(change, base, 10, p.BalanceDasLock, p.BalanceDasType, indexer.SearchOrderAsc)
 				if err != nil {
-					return nil, fmt.Errorf("getBalanceCell err: %s", err.Error())
+					return nil, fmt.Errorf("SplitOutputCell2 err: %s", err.Error())
 				}
-				for _, v := range gapBalanceCells {
-					txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-						PreviousOutput: v.OutPoint,
-					})
-				}
-				if gapChange > 0 {
-					gapChangeCell := &types.CellOutput{
-						Capacity: gapChange,
-						Lock:     p.BalanceDasLock,
-						Type:     p.BalanceDasType,
-					}
-					txParams.Outputs = append(txParams.Outputs, gapChangeCell)
+				for i := range splitList {
+					txParams.Outputs = append(txParams.Outputs, splitList[i])
 					txParams.OutputsData = append(txParams.OutputsData, []byte{})
 				}
 			}
-			break
 		}
 	}
 
