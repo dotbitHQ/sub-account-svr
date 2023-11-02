@@ -114,6 +114,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		if err != nil {
 			return "", fmt.Errorf("GetSmtRecordListByTaskId err: %s", err.Error())
 		}
+		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.Years)))
 
 		smtRecordPrice := decimal.Zero
 		for _, v := range smtRecordInfo {
@@ -138,7 +139,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			if order.CouponCode == "" && order.USDAmount.GreaterThan(decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))) {
 				payAmount = priceDecimal.Mul(decimal.NewFromFloat(0.88))
 			} else {
-				payAmount = priceDecimal.Sub(decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), 1))))
+				payAmount = priceDecimal.Sub(minCKB)
 			}
 			amount = amount.Add(payAmount)
 		}
