@@ -687,8 +687,8 @@ func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp
 		couponSmtKv := make([]smt.SmtKv, 0, len(couponInfos))
 		for _, v := range couponInfos {
 			couponSmtKv = append(couponSmtKv, smt.SmtKv{
-				Key:   smt.Sha256(string(*v.Code)),
-				Value: smt.Sha256(string(*v.Code))},
+				Key:   smt.Sha256(v.Code),
+				Value: smt.Sha256(v.Code)},
 			)
 		}
 		couponSmt := smt.NewSmtSrv(*h.SmtServerUrl, "")

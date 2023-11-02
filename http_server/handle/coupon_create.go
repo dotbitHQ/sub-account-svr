@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/consts"
+	"das_sub_account/encrypt"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"encoding/json"
@@ -35,13 +36,14 @@ type ReqCouponCreate struct {
 	Note      string `json:"note"`
 	Price     string `json:"price" binding:"required"`
 	Num       int    `json:"num" binding:"min=1,max=10000"`
+	BeginAt   int64  `json:"begin_at"`
 	ExpiredAt int64  `json:"expired_at" binding:"required"`
 }
 
 type RespCouponCreate struct {
 	SignInfoList
-	Cid        string              `json:"cid"`
-	CouponCode []tables.CouponCode `json:"coupon_code"`
+	Cid        string   `json:"cid"`
+	CouponCode []string `json:"coupon_code"`
 }
 
 type CouponCreateCache struct {
@@ -87,9 +89,11 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		return nil
 	}
 
-	couponCodes := make(map[tables.CouponCode]struct{})
+	couponCodes := make(map[string]struct{})
 	for {
-		h.createCoupon(couponCodes, req)
+		if err := h.createCoupon(couponCodes, req); err != nil {
+			return err
+		}
 		exist, err := h.DbDao.CouponExists(couponCodes)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
@@ -120,6 +124,7 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		Note:          req.Note,
 		Price:         price,
 		Num:           req.Num,
+		BeginAt:       req.BeginAt,
 		ExpiredAt:     req.ExpiredAt,
 	}
 	couponSetInfo.InitCid()
@@ -128,18 +133,25 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 	couponInfos := make([]tables.CouponInfo, 0, len(couponCodes))
 	resp := &RespCouponCreate{
 		Cid:        couponSetInfo.Cid,
-		CouponCode: make([]tables.CouponCode, 0),
+		CouponCode: make([]string, 0),
 	}
 	for k := range couponCodes {
 		code := k
 		couponInfos = append(couponInfos, tables.CouponInfo{
 			Cid:  couponSetInfo.Cid,
-			Code: &code,
+			Code: code,
 		})
-		resp.CouponCode = append(resp.CouponCode, code)
+
+		decCode, err := encrypt.AesDecrypt(code, config.Cfg.Das.Coupon.EncryptionKey)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return err
+		}
+		resp.CouponCode = append(resp.CouponCode, decCode)
+
 		kvs = append(kvs, smt.SmtKv{
-			Key:   smt.Sha256(string(code)),
-			Value: smt.Sha256(string(code)),
+			Key:   smt.Sha256(code),
+			Value: smt.Sha256(code),
 		})
 	}
 
@@ -214,6 +226,11 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
 		return nil
 	}
+	if req.BeginAt >= req.ExpiredAt {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "begin time must less than expired time")
+		return nil
+	}
+
 	if time.UnixMilli(req.ExpiredAt).Before(time.Now()) {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "expired_at invalid")
 		return nil
@@ -245,11 +262,14 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_
 	return res
 }
 
-func (h *HttpHandle) createCoupon(couponCodes map[tables.CouponCode]struct{}, req *ReqCouponCreate) {
+func (h *HttpHandle) createCoupon(couponCodes map[string]struct{}, req *ReqCouponCreate) error {
 	for {
 		md5Res := md5.Sum([]byte(fmt.Sprintf("%s%d%d%s", req.Price, time.Now().UnixNano(), req.ExpiredAt, random.String(8, random.Alphanumeric))))
 		base58Res := base58.Encode([]byte(fmt.Sprintf("%x", md5Res)))
-		code := tables.CouponCode(strings.ToUpper(base58Res[:8]))
+		code, err := encrypt.AesEncrypt(strings.ToUpper(base58Res[:8]), config.Cfg.Das.Coupon.EncryptionKey)
+		if err != nil {
+			return err
+		}
 		if _, ok := couponCodes[code]; ok {
 			continue
 		}
@@ -259,4 +279,5 @@ func (h *HttpHandle) createCoupon(couponCodes map[tables.CouponCode]struct{}, re
 			break
 		}
 	}
+	return nil
 }

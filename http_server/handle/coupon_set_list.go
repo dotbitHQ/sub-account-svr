@@ -97,7 +97,7 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 			Account:   v.Account,
 			Name:      v.Name,
 			Note:      v.Note,
-			Price:     v.Price,
+			Price:     v.Price.String(),
 			Num:       v.Num,
 			ExpiredAt: v.ExpiredAt,
 			CreatedAt: v.CreatedAt.UnixMilli(),

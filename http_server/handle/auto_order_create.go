@@ -188,6 +188,15 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			return nil
 		}
 
+		if setInfo.BeginAt > 0 && time.Now().Before(time.UnixMilli(setInfo.BeginAt)) {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it not open")
+			return nil
+		}
+		if time.Now().After(time.UnixMilli(setInfo.ExpiredAt)) {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it expired")
+			return nil
+		}
+
 		if setInfo.Price.LessThan(usdAmount) {
 			actualUsdPrice = usdAmount.Sub(setInfo.Price)
 		} else {

@@ -27,12 +27,17 @@ type RespDistributionList struct {
 }
 
 type DistributionListElement struct {
-	Time    int64            `json:"time"`
-	Account string           `json:"account"`
-	Years   uint64           `json:"years"`
-	Amount  string           `json:"amount"`
-	Symbol  string           `json:"symbol"`
-	Action  common.SubAction `json:"action"`
+	Time       int64            `json:"time"`
+	Account    string           `json:"account"`
+	Years      uint64           `json:"years"`
+	Amount     string           `json:"amount"`
+	Symbol     string           `json:"symbol"`
+	Action     common.SubAction `json:"action"`
+	CouponInfo struct {
+		Code       string `json:"code"`
+		Amount     string `json:"amount"`
+		FaceAmount string `json:"face_amount"`
+	} `json:"coupon_info"`
 }
 
 func (h *HttpHandle) DistributionList(ctx *gin.Context) {
@@ -135,9 +140,25 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, err.Error())
 						return err
 					}
-					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
 					token := tokens[order.TokenId]
-					amount := order.Amount.Sub(order.PremiumAmount).Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
+
+					if order.CouponCode != "" {
+						couponInfo, err := h.DbDao.GetCouponByCode(order.CouponCode)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+							return err
+						}
+						if couponInfo.Id == 0 {
+							err = fmt.Errorf("coupon_code: %s no exist", order.CouponCode)
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
+						resp.List[idx].CouponInfo.Code = order.CouponCode
+						resp.List[idx].CouponInfo.Amount = order.CouponAmount.DivRound(token.Price, token.Decimals).String()
+						resp.List[idx].CouponInfo.FaceAmount = order.CouponAmount.String()
+					}
+
+					amount := order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
 					resp.List[idx].Amount = amount.String()
 					resp.List[idx].Symbol = token.Symbol
 				}

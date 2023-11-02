@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
@@ -22,8 +23,8 @@ type RespCouponCodeList struct {
 }
 
 type RespCouponCode struct {
-	Code   string `json:"code"`
-	Status int    `json:"status"`
+	Code   string              `json:"code"`
+	Status tables.CouponStatus `json:"status"`
 }
 
 func (h *HttpHandle) CouponCodeList(ctx *gin.Context) {
@@ -94,7 +95,7 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 	}
 	for _, v := range setInfo {
 		resp.List = append(resp.List, RespCouponCode{
-			Code:   string(*v.Code),
+			Code:   v.Code,
 			Status: v.Status,
 		})
 	}

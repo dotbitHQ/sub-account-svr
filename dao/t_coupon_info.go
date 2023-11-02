@@ -8,27 +8,23 @@ import (
 	"gorm.io/gorm"
 )
 
-func (d *DbDao) CouponExists(codes map[tables.CouponCode]struct{}) ([]tables.CouponCode, error) {
+func (d *DbDao) CouponExists(codes map[string]struct{}) ([]string, error) {
 	codeAry := make([]string, 0)
 	for v := range codes {
-		code, err := encrypt.AesEncrypt(string(v), config.Cfg.Das.Coupon.EncryptionKey)
-		if err != nil {
-			return nil, err
-		}
-		codeAry = append(codeAry, code)
+		codeAry = append(codeAry, v)
 	}
 
 	find := make([]*tables.CouponInfo, 0)
 	if err := d.db.Where("code in (?)", codeAry).Find(&find).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []tables.CouponCode{}, nil
+			return []string{}, nil
 		}
 		return nil, err
 	}
 
-	res := make([]tables.CouponCode, 0)
+	res := make([]string, 0)
 	for _, v := range find {
-		res = append(res, *v.Code)
+		res = append(res, v.Code)
 	}
 	return res, nil
 }
@@ -126,6 +122,14 @@ func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) ([]*tables.Co
 
 	if err := db.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&res).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, 0, err
+		}
+	}
+
+	var err error
+	for idx, v := range res {
+		res[idx].Code, err = encrypt.AesDecrypt(v.Code, config.Cfg.Das.Coupon.EncryptionKey)
+		if err != nil {
 			return nil, 0, err
 		}
 	}
