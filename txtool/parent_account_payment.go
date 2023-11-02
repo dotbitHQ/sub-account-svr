@@ -13,13 +13,16 @@ import (
 )
 
 type CsvRecord struct {
-	Account   string
-	AccountId string
-	TokenId   string
-	Decimals  int32
-	Address   string
-	Amount    decimal.Decimal
-	Ids       []uint64
+	Account      string
+	AccountId    string
+	TokenId      string
+	Decimals     int32
+	Address      string
+	Amount       decimal.Decimal
+	OriginAmount decimal.Decimal
+	FeeRate      decimal.Decimal
+	Fee          decimal.Decimal
+	Ids          []uint64
 }
 
 func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, payment bool, endTime time.Time) (map[string]map[string]*CsvRecord, error) {
@@ -62,7 +65,30 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			csvRecord.Ids = make([]uint64, 0)
 			records[v.ParentAccountId][v.TokenId] = csvRecord
 		}
-		csvRecord.Amount = csvRecord.Amount.Add(v.Amount.Sub(v.PremiumAmount))
+		amount := decimal.Zero
+		if v.CouponCode == "" {
+			amount = v.Amount.Sub(v.PremiumAmount)
+			couponMinPrice := decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))
+			if v.USDAmount.GreaterThan(couponMinPrice) {
+				amount = amount.Mul(decimal.NewFromFloat(0.85))
+				csvRecord.FeeRate = decimal.NewFromFloat(0.15)
+				csvRecord.Fee = amount.Mul(decimal.NewFromFloat(0.15))
+			} else {
+				amount = amount.Sub(decimal.NewFromFloat(1.09).Div(token.Price).Mul(decimal.NewFromInt(int64(token.Decimals))))
+				csvRecord.Fee = decimal.NewFromFloat(1.09)
+			}
+		} else {
+			couponSetInfo, err := s.DbDao.GetSetInfoByCoupon(v.CouponCode)
+			if err != nil {
+				return nil, err
+			}
+			if v.USDAmount.GreaterThan(couponSetInfo.Price) {
+				amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.NewFromFloat(0.85)).Div(token.Price).Mul(decimal.NewFromInt(int64(token.Decimals)))
+				csvRecord.FeeRate = decimal.NewFromFloat(0.15)
+				csvRecord.Fee = amount.Mul(decimal.NewFromFloat(0.15))
+			}
+		}
+		csvRecord.Amount = csvRecord.Amount.Add(amount)
 		csvRecord.Ids = append(csvRecord.Ids, v.Id)
 	}
 
@@ -109,34 +135,23 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		}
 	}
 
-	if config.Cfg.Das.AutoMint.ServiceFeeRatio < 0 || config.Cfg.Das.AutoMint.ServiceFeeRatio >= 1 {
-		log.Errorf("service fee ratio: %f invalid", config.Cfg.Das.AutoMint.ServiceFeeRatio)
-		return nil, fmt.Errorf("service fee ratio: %f invalid", config.Cfg.Das.AutoMint.ServiceFeeRatio)
-	}
-
 	if !payment {
-		for parentId, v := range recordsNew {
-			for tokenId, record := range v {
-				amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
-				recordsNew[parentId][tokenId].Amount = amount
-			}
-		}
 		return recordsNew, nil
 	}
 
 	err = s.DbDao.Transaction(func(tx *gorm.DB) error {
 		for parentId, v := range recordsNew {
 			for tokenId, record := range v {
-				amount := record.Amount.Mul(decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio))
-				recordsNew[parentId][tokenId].Amount = amount
+				recordsNew[parentId][tokenId].Amount = record.Amount
 
 				autoPaymentInfo := &tables.AutoPaymentInfo{
 					Account:       record.Account,
 					AccountId:     record.AccountId,
 					TokenId:       record.TokenId,
-					Amount:        amount,
-					OriginAmount:  record.Amount,
-					FeeRate:       decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio),
+					Amount:        record.Amount,
+					OriginAmount:  record.OriginAmount,
+					FeeRate:       record.FeeRate,
+					Fee:           record.Fee,
 					Address:       record.Address,
 					PaymentDate:   time.Now(),
 					PaymentStatus: tables.PaymentStatusSuccess,

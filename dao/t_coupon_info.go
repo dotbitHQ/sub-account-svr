@@ -144,3 +144,17 @@ func (d *DbDao) GetCouponByCode(code string) (res tables.CouponInfo, err error) 
 	}
 	return
 }
+
+func (d *DbDao) GetSetInfoByCoupon(coupon string) (res tables.CouponSetInfo, err error) {
+	code, err := encrypt.AesEncrypt(coupon, config.Cfg.Das.Coupon.EncryptionKey)
+	if err != nil {
+		return
+	}
+
+	couponInfo := &tables.CouponInfo{}
+	if err = d.db.Where("code = ?", code).First(couponInfo).Error; err != nil {
+		return
+	}
+	err = d.db.Where("cid = ?", couponInfo.Cid).First(&res).Error
+	return
+}

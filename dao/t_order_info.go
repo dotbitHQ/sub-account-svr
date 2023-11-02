@@ -22,7 +22,7 @@ func (d *DbDao) FindOrderByPayment(end int64, accountId string) (list []*tables.
 		db = db.Where("parent_account_id=?", accountId)
 	}
 	err = db.Find(&list).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	return

@@ -26,6 +26,7 @@ type AutoPaymentInfo struct {
 	Amount        decimal.Decimal `gorm:"column:amount;type:decimal(60,2) unsigned;comment:付款金额;NOT NULL" json:"amount"`
 	OriginAmount  decimal.Decimal `gorm:"column:origin_amount;type:decimal(60,2) unsigned;comment:原始金额;NOT NULL" json:"origin_amount"`
 	FeeRate       decimal.Decimal `gorm:"column:fee_rate;type:decimal(10,2) unsigned;comment:手续费率;NOT NULL" json:"fee_rate"`
+	Fee           decimal.Decimal `gorm:"column:fee;type:decimal(60,2) unsigned;comment:手续费;NOT NULL" json:"fee"`
 	Address       string          `gorm:"column:address;type:varchar(255);comment:打款地址;NOT NULL" json:"address"`
 	PaymentTx     string          `gorm:"column:payment_tx;type:varchar(255);comment:支付交易可能是交易hash或者PayPal等交易号;NOT NULL" json:"payment_tx"`
 	PaymentDate   time.Time       `gorm:"column:payment_date;type:timestamp;comment:打款日期" json:"payment_date"`
