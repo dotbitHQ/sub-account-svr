@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
@@ -273,6 +274,9 @@ SELECT * FROM %s WHERE parent_account_id=? AND smt_status=?
 func (d *DbDao) GetTaskByOutpointWithParentAccountId(parentAccountId, outpoint string) (task tables.TableTaskInfo, err error) {
 	err = d.db.Where("parent_account_id=? AND outpoint=? AND task_type=? AND smt_status=?",
 		parentAccountId, outpoint, tables.TaskTypeChain, tables.SmtStatusWriteComplete).Find(&task).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }
 

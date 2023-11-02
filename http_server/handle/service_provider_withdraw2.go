@@ -9,6 +9,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -102,19 +103,52 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	minPrice := uint64(990000)
 	amount := decimal.Zero
 	for _, v := range list {
-		log.Info(v.ServiceProviderId, v.Quote, v.Years, v.Price)
-		if v.Quote.Cmp(decimal.Zero) == 0 || v.Years == 0 {
-			amount = amount.Add(v.Price)
-			continue
+		outpoint := common.OutPoint2String(v.TxHash, 0)
+		task, err := h.DbDao.GetTaskByOutpointWithParentAccountId(v.ParentAccountId, outpoint)
+		if err != nil {
+			return "", fmt.Errorf("GetTaskByOutpointWithParentAccountId err: %s", err.Error())
+		} else if task.Id == 0 {
+			return "", fmt.Errorf("GetTaskByOutpointWithParentAccountId err not found: %s", outpoint)
 		}
-		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.Years)))
-		backCKB := v.Price.Sub(minCKB)
-		if backCKB.Cmp(decimal.Zero) == 1 {
-			amount = amount.Add(backCKB)
+		smtRecordInfo, err := h.DbDao.GetChainSmtRecordListByTaskId(task.TaskId)
+		if err != nil {
+			return "", fmt.Errorf("GetSmtRecordListByTaskId err: %s", err.Error())
+		}
+
+		smtRecordPrice := decimal.Zero
+		for _, v := range smtRecordInfo {
+			if v.OrderID == "" {
+				continue
+			}
+			order, err := h.DbDao.GetOrderByOrderID(v.OrderID)
+			if err != nil {
+				return "", err
+			}
+			if order.Id == 0 {
+				return "", fmt.Errorf("order not found: %s", v.OrderID)
+			}
+			price, err := molecule.Bytes2GoU64(common.Hex2Bytes(v.EditValue)[20:])
+			if err != nil {
+				return "", err
+			}
+			priceDecimal := decimal.NewFromInt(int64(price))
+			smtRecordPrice = smtRecordPrice.Add(priceDecimal)
+
+			var payAmount decimal.Decimal
+			if order.CouponCode == "" && order.USDAmount.GreaterThan(decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))) {
+				payAmount = priceDecimal.Mul(decimal.NewFromFloat(0.88))
+			} else {
+				payAmount = priceDecimal.Sub(decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), 1))))
+			}
+			amount = amount.Add(payAmount)
+		}
+		if !smtRecordPrice.Equal(v.Price) {
+			return "", fmt.Errorf("smt data abnormal, smt_record_info price != auto_mint_statements price: %s %s", smtRecordPrice, v.Price)
 		}
 	}
 	log.Info("ServiceProviderWithdraw2:", req.ServiceProviderAddress, req.Account, amount.String())
-	if amount.Cmp(decimal.NewFromInt(int64(common.MinCellOccupiedCkb))) < 1 {
+
+	if amount.LessThanOrEqual(decimal.NewFromInt(int64(common.MinCellOccupiedCkb))) {
 		return "", nil
 	}
 	if !req.Withdraw {
