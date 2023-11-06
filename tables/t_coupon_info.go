@@ -18,8 +18,8 @@ type CouponInfo struct {
 	Cid       string       `gorm:"index:idx_cid;column:cid;default:;NOT NULL"`
 	Code      string       `gorm:"index:idx_code;column:code;default:;NOT NULL"`
 	Status    CouponStatus `gorm:"column:status;default:0;NOT NULL"`
-	CreatedAt time.Time    `gorm:"column:created_at;default:CURRENT_TIMESTAMP;NOT NULL"`
-	UpdatedAt time.Time    `gorm:"column:updated_at;default:CURRENT_TIMESTAMP;NOT NULL"`
+	CreatedAt time.Time    `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
+	UpdatedAt time.Time    `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
 
 func (t *CouponInfo) TableName() string {
