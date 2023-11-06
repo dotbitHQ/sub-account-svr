@@ -96,6 +96,10 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("field 'num' must be: %d", setInfo.Num))
 		return nil
 	}
+	if setInfo.Account != req.Account {
+		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
+		return nil
+	}
 
 	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
 	if err != nil {

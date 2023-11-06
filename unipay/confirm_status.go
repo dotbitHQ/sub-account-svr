@@ -1,7 +1,6 @@
 package unipay
 
 import (
-	"das_sub_account/config"
 	"das_sub_account/dao"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
@@ -10,7 +9,6 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/http_api"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -209,10 +207,6 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		}
 		unpaidSetInfo.OrderId = order.OrderId
 
-		totalCouponPrice := decimal.NewFromInt(int64(unpaidSetInfo.Num)).Mul(decimal.NewFromFloat(config.Cfg.Das.Coupon.CouponPrice))
-		if !totalCouponPrice.Equal(order.USDAmount) {
-			return fmt.Errorf("totalCouponPrice not equal")
-		}
 		rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo, unpaidSetInfo)
 		if err != nil {
 			return fmt.Errorf("UpdateOrderPayStatusOkWithCouponSetInfo err: %s", err.Error())
