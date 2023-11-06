@@ -37,6 +37,13 @@ func (h *HttpHandle) CouponCodeList(ctx *gin.Context) {
 	)
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
 
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+
 	if err = h.doCouponCodeList(&req, &apiResp); err != nil {
 		log.Error("doCouponCodeList err:", err.Error(), funcName, clientIp, ctx)
 	}
