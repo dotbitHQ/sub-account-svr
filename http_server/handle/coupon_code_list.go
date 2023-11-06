@@ -24,8 +24,9 @@ type RespCouponCodeList struct {
 	Account   string           `json:"account" `
 	Name      string           `json:"name"`
 	Note      string           `json:"note"`
-	Price     string           `json:"price" `
-	Num       int              `json:"num" `
+	Price     string           `json:"price"`
+	Num       int              `json:"num"`
+	Status    int              `json:"status"`
 	ExpiredAt int64            `json:"expired_at"`
 	CreatedAt int64            `json:"created_at"`
 	List      []RespCouponCode `json:"list"`
@@ -115,6 +116,7 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 		Note:      setInfo.Note,
 		Price:     setInfo.Price.String(),
 		Num:       setInfo.Num,
+		Status:    setInfo.Status,
 		ExpiredAt: setInfo.ExpiredAt,
 		CreatedAt: setInfo.CreatedAt.UnixMilli(),
 		List:      make([]RespCouponCode, 0),

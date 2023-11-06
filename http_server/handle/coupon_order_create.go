@@ -100,6 +100,10 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
+	if setInfo.Status != tables.CouponSetInfoStatusPending {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon status invalid")
+		return nil
+	}
 
 	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
 	if err != nil {

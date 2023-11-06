@@ -79,7 +79,7 @@ func (d *DbDao) UpdateCouponSetInfo(setInfo *tables.CouponSetInfo) error {
 }
 
 func (d *DbDao) GetUnPaidCouponSetByAccId(accId string) (res tables.CouponSetInfo, err error) {
-	if err = d.db.Where("account_id = ? and order_id = ''", accId).First(&res).Error; err != nil {
+	if err = d.db.Where("account_id = ? and status = ?", accId, tables.CouponSetInfoStatusDefault).First(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = nil
 			return

@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	CouponSetInfoStatusPending = 0
 	CouponSetInfoStatusSuccess = 1
 	CouponSetInfoStatusFailed  = 2
 )
