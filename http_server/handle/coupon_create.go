@@ -198,14 +198,16 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 }
 
 func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_code.ApiResp) *core.DasAddressHex {
+	log.Infof("couponCreateParamsCheck: %+v", *req)
+
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "get account info failed")
 		return nil
 	}
 	if accInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
 		return nil
 	}
 	if accInfo.Status != tables.AccountStatusNormal {
