@@ -18,8 +18,17 @@ type ReqCouponCodeList struct {
 }
 
 type RespCouponCodeList struct {
-	Total int64            `json:"total"`
-	List  []RespCouponCode `json:"list"`
+	Total     int64            `json:"total"`
+	Cid       string           `json:"cid"`
+	OrderId   string           `json:"order_id"`
+	Account   string           `json:"account" `
+	Name      string           `json:"name"`
+	Note      string           `json:"note"`
+	Price     string           `json:"price" `
+	Num       int              `json:"num" `
+	ExpiredAt int64            `json:"expired_at"`
+	CreatedAt int64            `json:"created_at"`
+	List      []RespCouponCode `json:"list"`
 }
 
 type RespCouponCode struct {
@@ -79,28 +88,38 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if (!strings.EqualFold(accInfo.Manager, address) ||
-		accInfo.ManagerAlgorithmId != res.DasAlgorithmId ||
-		accInfo.ManagerSubAid != res.DasSubAlgorithmId) &&
-		(!strings.EqualFold(accInfo.Owner, address) ||
-			accInfo.OwnerAlgorithmId != res.DasAlgorithmId ||
-			accInfo.OwnerSubAid != res.DasSubAlgorithmId) {
+	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
 
+	setInfo, err := h.DbDao.GetCouponSetInfo(req.Cid)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query coupon set info")
+		return nil
+	}
+
 	// get coupon set list
-	setInfo, total, err := h.DbDao.FindCouponCodeList(req.Cid, req.Page, req.PageSize)
+	couponList, total, err := h.DbDao.FindCouponCodeList(req.Cid, req.Page, req.PageSize)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 		return nil
 	}
 
 	resp := &RespCouponCodeList{
-		Total: total,
-		List:  make([]RespCouponCode, 0),
+		Total:     total,
+		Cid:       setInfo.Cid,
+		OrderId:   setInfo.OrderId,
+		Account:   setInfo.Account,
+		Name:      setInfo.Name,
+		Note:      setInfo.Note,
+		Price:     setInfo.Price.String(),
+		Num:       setInfo.Num,
+		ExpiredAt: setInfo.ExpiredAt,
+		CreatedAt: setInfo.CreatedAt.UnixMilli(),
+		List:      make([]RespCouponCode, 0),
 	}
-	for _, v := range setInfo {
+	for _, v := range couponList {
 		resp.List = append(resp.List, RespCouponCode{
 			Code:   v.Code,
 			Status: v.Status,
