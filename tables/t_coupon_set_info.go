@@ -9,13 +9,13 @@ import (
 
 type CouponSetInfo struct {
 	Id            int64           `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`
-	Cid           string          `gorm:"column:cid;default:;NOT NULL"`
-	OrderId       string          `gorm:"column:order_id;default:;NOT NULL"`
-	AccountId     string          `gorm:"column:account_id;default:;NOT NULL"`
+	Cid           string          `gorm:"uniqueIndex:idx_cid;column:cid;default:;NOT NULL"`
+	OrderId       string          `gorm:"index:idx_order_id;column:order_id;default:;NOT NULL"`
+	AccountId     string          `gorm:"index:idx_acc_id;column:account_id;default:;NOT NULL"`
 	Account       string          `gorm:"column:account;default:;NOT NULL"`
 	ManagerAid    int             `gorm:"column:manager_aid;default:0;NOT NULL"`
 	ManagerSubAid int             `gorm:"column:manager_sub_aid;default:0;NOT NULL"`
-	Manager       string          `gorm:"column:manager;default:;NOT NULL"`
+	Manager       string          `gorm:"index:idx_manager;column:manager;default:;NOT NULL"`
 	Root          string          `gorm:"column:root;default:;NOT NULL"`
 	Name          string          `gorm:"column:name;default:;NOT NULL"`
 	Note          string          `gorm:"column:note;default:;NOT NULL"`
