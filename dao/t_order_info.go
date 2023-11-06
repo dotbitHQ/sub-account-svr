@@ -197,7 +197,7 @@ func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tab
 		}
 		if couponInfo.Id > 0 {
 			couponInfo.Status = tables.CouponStatusUsed
-			if err := tx.Save(&couponInfo).Error; err != nil {
+			if err := tx.Where("status = ?", tables.CouponStatusNormal).Save(&couponInfo).Error; err != nil {
 				return err
 			}
 		}

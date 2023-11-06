@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
@@ -58,7 +59,6 @@ func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_code.ApiResp) error {
-	var resp RespAutoOrderCreate
 	// check key info
 	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
@@ -164,6 +164,17 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	var actualUsdPrice decimal.Decimal
 	var couponInfo tables.CouponInfo
 	if req.CouponCode != "" {
+		lockKey := fmt.Sprintf("%x", md5.Sum([]byte(req.CouponCode)))
+		if err := h.RC.Lock(lockKey); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get lock")
+			return fmt.Errorf("RC.Lock err: %s", err.Error())
+		}
+		defer func() {
+			if err := h.RC.UnLock(lockKey); err != nil {
+				log.Error("RC.UnLock err:", err.Error())
+			}
+		}()
+
 		couponInfo, err = h.DbDao.GetCouponByCode(req.CouponCode)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
@@ -284,6 +295,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}
 
+	var resp RespAutoOrderCreate
 	resp.OrderId = res.OrderId
 	resp.Amount = amount
 	resp.PaymentAddress = res.PaymentAddress
