@@ -11,7 +11,7 @@ import (
 
 type ReqCouponSetList struct {
 	core.ChainTypeAddress
-	Account  string `json:"account"`
+	Account  string `json:"account" binding:"required"`
 	Page     int    `json:"page" binding:"gte=1"`
 	PageSize int    `json:"page_size" binding:"gte=1,lte=100"`
 }
@@ -65,7 +65,7 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 		return nil
 	}
 	if accInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
 		return nil
 	}
 
@@ -76,12 +76,7 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if (!strings.EqualFold(accInfo.Manager, address) ||
-		accInfo.ManagerAlgorithmId != res.DasAlgorithmId ||
-		accInfo.ManagerSubAid != res.DasSubAlgorithmId) &&
-		(!strings.EqualFold(accInfo.Owner, address) ||
-			accInfo.OwnerAlgorithmId != res.DasAlgorithmId ||
-			accInfo.OwnerSubAid != res.DasSubAlgorithmId) {
+	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
