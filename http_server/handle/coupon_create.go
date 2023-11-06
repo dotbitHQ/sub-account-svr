@@ -99,6 +99,7 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 	couponCodes := make(map[string]struct{})
 	for {
 		if err := h.createCoupon(couponCodes, req); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return err
 		}
 		exist, err := h.DbDao.CouponExists(couponCodes)
