@@ -1,7 +1,7 @@
 package handle
 
 import (
-	"das_sub_account/tables"
+	"encoding/csv"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -13,41 +13,19 @@ import (
 	"time"
 )
 
-type ReqCouponCodeList struct {
+type ReqCouponDownload struct {
 	core.ChainTypeAddress
 	Account   string `json:"account" binding:"required"`
 	Cid       string `json:"cid" binding:"required"`
 	Timestamp int64  `json:"timestamp" binding:"required"`
 	Signature string `json:"signature" binding:"required"`
-	Page      int    `json:"page" binding:"gte=1"`
-	PageSize  int    `json:"page_size" binding:"gte=1,lte=100"`
 }
 
-type RespCouponCodeList struct {
-	Total     int64            `json:"total"`
-	Cid       string           `json:"cid"`
-	OrderId   string           `json:"order_id"`
-	Account   string           `json:"account" `
-	Name      string           `json:"name"`
-	Note      string           `json:"note"`
-	Price     string           `json:"price"`
-	Num       int              `json:"num"`
-	Status    int              `json:"status"`
-	ExpiredAt int64            `json:"expired_at"`
-	CreatedAt int64            `json:"created_at"`
-	List      []RespCouponCode `json:"list"`
-}
-
-type RespCouponCode struct {
-	Code   string              `json:"code"`
-	Status tables.CouponStatus `json:"status"`
-}
-
-func (h *HttpHandle) CouponCodeList(ctx *gin.Context) {
+func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
 	var (
-		funcName               = "CouponCodeList"
+		funcName               = "CouponDownload"
 		clientIp, remoteAddrIP = GetClientIp(ctx)
-		req                    ReqCouponCodeList
+		req                    ReqCouponDownload
 		apiResp                api_code.ApiResp
 		err                    error
 	)
@@ -60,13 +38,13 @@ func (h *HttpHandle) CouponCodeList(ctx *gin.Context) {
 		return
 	}
 
-	if err = h.doCouponCodeList(&req, &apiResp); err != nil {
-		log.Error("doCouponCodeList err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doCouponDownload(ctx, &req, &apiResp); err != nil {
+		log.Error("doCouponDownload err:", err.Error(), funcName, clientIp, ctx)
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, apiResp *api_code.ApiResp) error {
 	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute)) {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 1 minutes")
 		return nil
@@ -107,39 +85,35 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
 		return nil
 	}
-
 	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
 
-	// get coupon set list
-	couponList, total, err := h.DbDao.FindCouponCodeList(req.Cid, req.Page, req.PageSize)
+	couponList, err := h.DbDao.FindCouponCode(req.Cid)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query coupon code")
 		return nil
 	}
 
-	resp := &RespCouponCodeList{
-		Total:     total,
-		Cid:       setInfo.Cid,
-		OrderId:   setInfo.OrderId,
-		Account:   setInfo.Account,
-		Name:      setInfo.Name,
-		Note:      setInfo.Note,
-		Price:     setInfo.Price.String(),
-		Num:       setInfo.Num,
-		Status:    setInfo.Status,
-		ExpiredAt: setInfo.ExpiredAt,
-		CreatedAt: setInfo.CreatedAt.UnixMilli(),
-		List:      make([]RespCouponCode, 0),
+	if len(couponList) == 0 {
+		return nil
+	}
+
+	items := [][]string{
+		{"Code", "status"},
 	}
 	for _, v := range couponList {
-		resp.List = append(resp.List, RespCouponCode{
-			Code:   v.Code,
-			Status: v.Status,
-		})
+		items = append(items, []string{v.Code, fmt.Sprint(v.Status)})
 	}
-	apiResp.ApiRespOK(resp)
+
+	ctx.Header("Content-Type", "text/csv")
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", req.Cid))
+	wr := csv.NewWriter(ctx.Writer)
+	if err := wr.WriteAll(items); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return nil
+	}
+	wr.Flush()
 	return nil
 }

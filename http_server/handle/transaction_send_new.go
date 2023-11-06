@@ -11,7 +11,6 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/sign"
-	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -94,12 +93,6 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		}
 	case consts.ActionCurrencyUpdate, ActionMintConfigUpdate:
 		if err := h.doActionAutoMint(req, apiResp); err != nil {
-			return fmt.Errorf("doActionNormal err: %s", err.Error())
-		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-			return nil
-		}
-	case consts.ActionCouponCreate:
-		if err := h.doCoupon(req, apiResp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -639,96 +632,6 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 				h.DasCore.AddPkIndexForSignMsg(&req.List[i].SignList[j].SignMsg, idx)
 			}
 		}
-	}
-	return nil
-}
-
-func (h *HttpHandle) doCoupon(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
-	switch req.Action {
-	case consts.ActionCouponCreate:
-		var data CouponCreateCache
-		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
-			if err == redis.Nil {
-				apiResp.ApiRespErr(api_code.ApiCodeTxExpired, "sign key not exist(tx expired)")
-			} else {
-				apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
-			}
-			return fmt.Errorf("GetSignTxCache err: %s", err.Error())
-		} else if err = json.Unmarshal([]byte(txStr), &data); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
-			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
-		}
-
-		res, err := data.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-			return fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
-		}
-
-		couponSetInfo, err := h.DbDao.GetCouponSetInfo(data.Cid)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to search coupon set")
-			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
-		}
-		if couponSetInfo.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "coupon set not exist")
-			return fmt.Errorf("coupon set not exist")
-		}
-		if couponSetInfo.Signature != "" || couponSetInfo.OrderId != "" {
-			return nil
-		}
-
-		couponInfos, err := h.DbDao.FindCouponByCid(data.Cid)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to search coupon")
-			return fmt.Errorf("FindCouponByCid err: %s", err.Error())
-		}
-
-		couponSmtKv := make([]smt.SmtKv, 0, len(couponInfos))
-		for _, v := range couponInfos {
-			couponSmtKv = append(couponSmtKv, smt.SmtKv{
-				Key:   smt.Sha256(v.Code),
-				Value: smt.Sha256(v.Code)},
-			)
-		}
-		couponSmt := smt.NewSmtSrv(*h.SmtServerUrl, "")
-		smtOut, err := couponSmt.UpdateSmt(couponSmtKv, smt.SmtOpt{GetRoot: true})
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return err
-		}
-		if couponSetInfo.Root != smtOut.Root.String() {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "coupon set root not match")
-			return nil
-		}
-
-		signMsg := fmt.Sprintf("%s%s", common.DotBitPrefix, smtOut.Root.String())
-
-		address := ""
-		signType := req.List[0].SignList[0].SignType
-		signature := req.List[0].SignList[0].SignMsg
-		if signType == common.DasAlgorithmIdWebauthn {
-			address = req.SignAddress
-		} else {
-			address = res.AddressHex
-		}
-		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
-			return fmt.Errorf("VerifySignature err: %s", err.Error())
-		}
-		if !verifyRes {
-			apiResp.ApiRespErr(api_code.ApiCodeSignError, "res sign error")
-			return nil
-		}
-		couponSetInfo.Signature = signature
-		if err := h.DbDao.UpdateCouponSetInfo(&couponSetInfo); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to update coupon set")
-			return fmt.Errorf("UpdateCouponSetInfo err: %s", err.Error())
-		}
-	default:
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "no support action")
-		return nil
 	}
 	return nil
 }

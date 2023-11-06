@@ -3,7 +3,6 @@ package handle
 import (
 	"crypto/md5"
 	"das_sub_account/config"
-	"das_sub_account/consts"
 	"das_sub_account/encrypt"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -14,7 +13,6 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/smt"
-	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/labstack/gommon/random"
 	"github.com/shopspring/decimal"
@@ -168,40 +166,6 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create coupon")
 		return fmt.Errorf("CreateCoupon err:%s", err.Error())
 	}
-
-	tree := smt.NewSmtSrv(*h.SmtServerUrl, "")
-	smtOut, err := tree.UpdateSmt(kvs, smt.SmtOpt{GetRoot: true})
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return err
-	}
-	couponSetInfo.Root = smtOut.Root.String()
-
-	signMsg := fmt.Sprintf("%s%s", common.DotBitPrefix, smtOut.Root.String())
-
-	cache := &CouponCreateCache{
-		ReqCouponCreate: *req,
-		Cid:             couponSetInfo.Cid,
-	}
-	signKey, reqDataStr := cache.GetSignInfo()
-	if err := h.RC.SetSignTxCache(signKey, reqDataStr); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeCacheError, "cache err")
-		return fmt.Errorf("SetSignTxCache err: %s", err.Error())
-	}
-
-	signType := res.DasAlgorithmId
-	if signType == common.DasAlgorithmIdEth712 {
-		signType = common.DasAlgorithmIdEth
-	}
-
-	resp.Action = consts.ActionCouponCreate
-	resp.SignKey = signKey
-	resp.List = append(resp.List, SignInfo{
-		SignList: []txbuilder.SignData{{
-			SignType: signType,
-			SignMsg:  signMsg,
-		}},
-	})
 	apiResp.ApiRespOK(resp)
 	return nil
 }

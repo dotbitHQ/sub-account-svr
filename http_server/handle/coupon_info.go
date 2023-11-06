@@ -10,7 +10,8 @@ import (
 
 type ReqCouponInfo struct {
 	core.ChainTypeAddress
-	Code string `json:"code"`
+	Code     string `json:"code" binding:"required"`
+	remoteIp string
 }
 
 type RespCouponInfo struct {
@@ -37,6 +38,7 @@ func (h *HttpHandle) CouponInfo(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
+	req.remoteIp = remoteAddrIP
 
 	if err = h.doCouponInfo(&req, &apiResp); err != nil {
 		log.Error("doCouponInfo err:", err.Error(), funcName, clientIp, ctx)
