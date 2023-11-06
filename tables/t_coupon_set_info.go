@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	CouponSetInfoStatusSuccess = 1
+	CouponSetInfoStatusFailed  = 2
+)
+
 type CouponSetInfo struct {
 	Id            int64           `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`
 	Cid           string          `gorm:"uniqueIndex:idx_cid;column:cid;default:;NOT NULL"`

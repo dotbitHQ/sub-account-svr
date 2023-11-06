@@ -96,7 +96,8 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.Payme
 			Where("order_id=? AND pay_status=?",
 				paymentInfo.OrderId, tables.PayStatusUnpaid).
 			Updates(map[string]interface{}{
-				"pay_status": tables.PayStatusPaid,
+				"pay_status":   tables.PayStatusPaid,
+				"order_status": tables.OrderStatusSuccess,
 			})
 
 		if tmpTx.Error != nil {
@@ -137,6 +138,7 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.Payme
 			Where("cid=?", setInfo.Cid).
 			Updates(map[string]interface{}{
 				"order_id": paymentInfo.OrderId,
+				"status":   tables.CouponSetInfoStatusSuccess,
 			}).Error; err != nil {
 			return err
 		}
