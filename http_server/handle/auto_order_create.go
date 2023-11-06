@@ -173,8 +173,8 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon code not exist")
 			return nil
 		}
-		if couponInfo.Status == tables.CouponStatusUsed {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon code has been used")
+		if couponInfo.Status != tables.CouponStatusNormal {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "coupon code status is not normal")
 			return nil
 		}
 
@@ -183,17 +183,16 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
 		}
-		if setInfo.OrderId == "" {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it order not paid")
+		if setInfo.OrderId == "" || setInfo.Status != tables.CouponSetInfoStatusPaid {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it order not paid")
 			return nil
 		}
-
 		if setInfo.BeginAt > 0 && time.Now().Before(time.UnixMilli(setInfo.BeginAt)) {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it not open")
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it not open")
 			return nil
 		}
 		if time.Now().After(time.UnixMilli(setInfo.ExpiredAt)) {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it expired")
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it expired")
 			return nil
 		}
 

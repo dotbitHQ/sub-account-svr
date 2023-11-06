@@ -138,7 +138,7 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.Payme
 			Where("cid=?", setInfo.Cid).
 			Updates(map[string]interface{}{
 				"order_id": paymentInfo.OrderId,
-				"status":   tables.CouponSetInfoStatusSuccess,
+				"status":   tables.CouponSetInfoStatusPaid,
 			}).Error; err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tab
 		}
 		if couponInfo.Id > 0 {
 			couponInfo.Status = tables.CouponStatusUsed
-			if err := tx.Save(couponInfo).Error; err != nil {
+			if err := tx.Save(&couponInfo).Error; err != nil {
 				return err
 			}
 		}
