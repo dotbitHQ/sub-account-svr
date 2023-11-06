@@ -125,6 +125,7 @@ func (h *HttpHandle) doCouponCreate(req *ReqCouponCreate, apiResp *api_code.ApiR
 	// coupon_set_info
 	couponSetInfo := &tables.CouponSetInfo{
 		AccountId:     accId,
+		Account:       req.Account,
 		ManagerAid:    int(res.DasAlgorithmId),
 		ManagerSubAid: int(res.DasSubAlgorithmId),
 		Manager:       res.AddressHex,
