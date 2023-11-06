@@ -16,6 +16,7 @@ type ReqCouponInfo struct {
 type RespCouponInfo struct {
 	Code      string              `json:"code"`
 	Price     string              `json:"price"`
+	BeginAt   int64               `json:"begin_at"`
 	ExpiredAt int64               `json:"expired_at"`
 	Status    tables.CouponStatus `json:"status"`
 }
@@ -65,8 +66,9 @@ func (h *HttpHandle) doCouponInfo(req *ReqCouponInfo, apiResp *api_code.ApiResp)
 	}
 
 	resp := &RespCouponInfo{
-		Code:      couponInfo.Code,
+		Code:      req.Code,
 		Price:     setInfo.Price.String(),
+		BeginAt:   setInfo.BeginAt,
 		ExpiredAt: setInfo.ExpiredAt,
 		Status:    couponInfo.Status,
 	}
