@@ -19,7 +19,7 @@ type CouponSetInfo struct {
 	Root          string          `gorm:"column:root;default:;NOT NULL"`
 	Name          string          `gorm:"column:name;default:;NOT NULL"`
 	Note          string          `gorm:"column:note;default:;NOT NULL"`
-	Price         decimal.Decimal `gorm:"price:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
+	Price         decimal.Decimal `gorm:"price:amount; type:decimal(50,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	Num           int             `gorm:"column:num;default:0;NOT NULL"`
 	BeginAt       int64           `gorm:"column:begin_at;default:0;NOT NULL"`
 	ExpiredAt     int64           `gorm:"column:expired_at;default:0;NOT NULL"`
