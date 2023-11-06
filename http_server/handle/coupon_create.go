@@ -265,6 +265,9 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponCreate, apiResp *api_
 	}
 	if unpaidSetInfo.Id > 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeCouponUnpaid, "have unpaid coupon order")
+		apiResp.Data = map[string]interface{}{
+			"cid": unpaidSetInfo.Cid,
+		}
 		return nil
 	}
 	return res
