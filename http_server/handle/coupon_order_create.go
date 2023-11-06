@@ -12,13 +12,14 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type ReqCouponOrderCreate struct {
 	core.ChainTypeAddress
-	Account string         `json:"account"`
-	TokenId tables.TokenId `json:"token_id"`
+	Account string         `json:"account" binding:"required"`
+	TokenId tables.TokenId `json:"token_id" binding:"required"`
 	Num     int            `json:"num"`
 	Cid     string         `json:"cid" binding:"required"`
 }
@@ -57,14 +58,27 @@ func (h *HttpHandle) CouponOrderCreate(ctx *gin.Context) {
 
 func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) error {
 	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-
 	// check parent account
-	if _, err := h.checkParentAccount(apiResp, accId); err != nil {
+	accountInfo, err := h.checkParentAccount(apiResp, accId)
+	if err != nil {
 		return err
 	}
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
+
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return nil
+	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
+
+	if !strings.EqualFold(accountInfo.Manager, address) && !strings.EqualFold(accountInfo.Owner, address) {
+		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
+		return nil
+	}
+
 	// check cid
 	setInfo, err := h.DbDao.GetCouponSetInfo(req.Cid)
 	if err != nil {
@@ -119,7 +133,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		return nil
 	}
 
-	res, err := unipay.CreateOrder(unipay.ReqOrderCreate{
+	createOrderRes, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress:  req.ChainTypeAddress,
 		BusinessId:        unipay.BusinessIdAutoSubAccount,
 		Amount:            amount,
@@ -140,10 +154,10 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
-	log.Info("doCouponOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
+	log.Info("doCouponOrderCreate:", createOrderRes.OrderId, createOrderRes.PaymentAddress, createOrderRes.ContractAddress, amount)
 
 	orderInfo := tables.OrderInfo{
-		OrderId:           res.OrderId,
+		OrderId:           createOrderRes.OrderId,
 		ActionType:        tables.ActionTypeCouponCreate,
 		Account:           req.Account,
 		AccountId:         accId,
@@ -165,10 +179,10 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	}
 
 	var paymentInfo tables.PaymentInfo
-	if req.TokenId == tables.TokenIdStripeUSD && res.StripePaymentIntentId != "" {
+	if req.TokenId == tables.TokenIdStripeUSD && createOrderRes.StripePaymentIntentId != "" {
 		paymentInfo = tables.PaymentInfo{
-			PayHash:       res.StripePaymentIntentId,
-			OrderId:       res.OrderId,
+			PayHash:       createOrderRes.StripePaymentIntentId,
+			OrderId:       createOrderRes.OrderId,
 			PayHashStatus: tables.PayHashStatusPending,
 			Timestamp:     time.Now().UnixMilli(),
 		}
@@ -179,11 +193,11 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	}
 
 	var resp RespCouponOrderCreate
-	resp.OrderId = res.OrderId
+	resp.OrderId = createOrderRes.OrderId
 	resp.Amount = amount
-	resp.PaymentAddress = res.PaymentAddress
-	resp.ContractAddress = res.ContractAddress
-	resp.ClientSecret = res.ClientSecret
+	resp.PaymentAddress = createOrderRes.PaymentAddress
+	resp.ContractAddress = createOrderRes.ContractAddress
+	resp.ClientSecret = createOrderRes.ClientSecret
 
 	apiResp.ApiRespOK(resp)
 	return nil

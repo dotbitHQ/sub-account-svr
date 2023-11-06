@@ -4,17 +4,20 @@ import (
 	"das_sub_account/tables"
 	"errors"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 )
 
 type ReqCouponOrderInfo struct {
 	core.ChainTypeAddress
 	OrderId string `json:"order_id" binding:"required"`
+	Account string `json:"account" binding:"required"`
 }
 
 type RespCouponOrderInfo struct {
@@ -50,11 +53,22 @@ func (h *HttpHandle) CouponOrderInfo(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_code.ApiResp) error {
-	var resp RespCouponOrderInfo
-	// check key info
-	_, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("key-info[%s-%s] invalid", req.KeyInfo.CoinType, req.KeyInfo.Key))
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return nil
+	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
+
+	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query account info")
+		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	}
+
+	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
+		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
 
@@ -69,6 +83,13 @@ func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, "order not exist")
 		return nil
 	}
+
+	if order.Account != req.Account {
+		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no order permissions")
+		return nil
+	}
+
+	var resp RespCouponOrderInfo
 	resp.OrderId = req.OrderId
 	resp.TokenId = order.TokenId
 	resp.Amount = order.Amount
