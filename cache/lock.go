@@ -39,8 +39,12 @@ func (r *RedisCache) UnLockWithRedis(accountId string) error {
 	return nil
 }
 
-func (r *RedisCache) Lock(key string) error {
-	ret := r.Red.SetNX(lock+key, 1, time.Second*lockTime)
+func (r *RedisCache) Lock(key string, expirations ...time.Duration) error {
+	expiration := time.Second * lockTime
+	if len(expirations) > 0 {
+		expiration = expirations[0]
+	}
+	ret := r.Red.SetNX(lock+key, 1, expiration)
 	if err := ret.Err(); err != nil {
 		return fmt.Errorf("redis set order nx-->%s", err.Error())
 	}

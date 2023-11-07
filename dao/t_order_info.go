@@ -90,7 +90,7 @@ func (d *DbDao) UpdateOrderPayStatusOkWithSmtRecord(paymentInfo tables.PaymentIn
 	return
 }
 
-func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) (rowsAffected int64, e error) {
+func (d *DbDao) UpdateOrderPayStatusOkWithCoupon(paymentInfo tables.PaymentInfo, setInfo *tables.CouponSetInfo, coupons []tables.CouponInfo) (rowsAffected int64, e error) {
 	e = d.db.Transaction(func(tx *gorm.DB) error {
 		tmpTx := tx.Model(tables.OrderInfo{}).
 			Where("order_id=? AND pay_status=?",
@@ -104,7 +104,7 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.Payme
 			return tmpTx.Error
 		}
 		rowsAffected = tmpTx.RowsAffected
-		log.Info("UpdateOrderPayStatusOkWithCouponSetInfo:", rowsAffected, paymentInfo.OrderId)
+		log.Info("UpdateOrderPayStatusOkWithCoupon:", rowsAffected, paymentInfo.OrderId)
 
 		if err := tx.Clauses(clause.Insert{
 			Modifier: "IGNORE",
@@ -134,12 +134,10 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo tables.Payme
 			return nil
 		}
 
-		if err := tx.Model(tables.CouponSetInfo{}).
-			Where("cid=?", setInfo.Cid).
-			Updates(map[string]interface{}{
-				"order_id": paymentInfo.OrderId,
-				"status":   tables.CouponSetInfoStatusPaid,
-			}).Error; err != nil {
+		if err := tx.Create(setInfo).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&coupons).Error; err != nil {
 			return err
 		}
 		return nil
@@ -302,4 +300,12 @@ func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash st
 		}
 		return nil
 	})
+}
+
+func (d *DbDao) GetPendingOrderByAccIdAndActionType(accountId string, actionType tables.ActionType) (order tables.OrderInfo, err error) {
+	err = d.db.Where("accountId=? and action_type=? and order_status=?", accountId, actionType, tables.OrderStatusDefault).First(&order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
 }

@@ -1,9 +1,14 @@
 package handle
 
 import (
+	"crypto/md5"
+	"das_sub_account/cache"
 	"das_sub_account/config"
+	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -12,16 +17,29 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
+const couponCreateLockKey = "coupon:create:"
+
+var (
+	priceReg = regexp.MustCompile(`^(\d+)(.\d{0,2})?$`)
+)
+
 type ReqCouponOrderCreate struct {
 	core.ChainTypeAddress
-	Account string         `json:"account" binding:"required"`
-	TokenId tables.TokenId `json:"token_id" binding:"required"`
-	Num     int            `json:"num"`
-	Cid     string         `json:"cid" binding:"required"`
+	Account   string         `json:"account" binding:"required"`
+	TokenId   tables.TokenId `json:"token_id" binding:"required"`
+	Num       int            `json:"num" binding:"min=1,max=10000"`
+	Cid       string         `json:"cid" binding:"required"`
+	Name      string         `json:"name" binding:"required"`
+	Note      string         `json:"note"`
+	Price     string         `json:"price" binding:"required"`
+	BeginAt   int64          `json:"begin_at"`
+	ExpiredAt int64          `json:"expired_at" binding:"required"`
 }
 
 type RespCouponOrderCreate struct {
@@ -57,66 +75,37 @@ func (h *HttpHandle) CouponOrderCreate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) error {
-	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	// check parent account
-	accountInfo, err := h.checkParentAccount(apiResp, accId)
-	if err != nil {
-		return err
-	}
-	if apiResp.ErrNo != api_code.ApiCodeSuccess {
+	lockKey := fmt.Sprintf("%x", md5.Sum([]byte(couponCreateLockKey+req.Account)))
+	if err := h.RC.Lock(lockKey); err != nil {
+		if errors.Is(err, cache.ErrDistributedLockPreemption) {
+			apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "request too frequent")
+			return nil
+		}
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to lock")
 		return nil
+	}
+	defer func() {
+		if err := h.RC.UnLock(lockKey); err != nil {
+			log.Error("UnLock err:", err.Error())
+		}
+	}()
+
+	if err := h.checkSystemUpgrade(apiResp); err != nil {
+		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
+	}
+	if ok := internal.IsLatestBlockNumber(config.Cfg.Server.ParserUrl); !ok {
+		apiResp.ApiRespErr(api_code.ApiCodeSyncBlockNumber, "sync block number")
+		return fmt.Errorf("sync block number")
 	}
 
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return nil
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-
-	if !strings.EqualFold(accountInfo.Manager, address) && !strings.EqualFold(accountInfo.Owner, address) {
-		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
-		return nil
-	}
-
-	// check cid
-	setInfo, err := h.DbDao.GetCouponSetInfo(req.Cid)
-	if err != nil {
-		return err
-	}
-	if setInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeCouponCidNotExist, "coupon cid not exist")
-		return nil
-	}
-	if setInfo.OrderId != "" {
-		apiResp.ApiRespErr(api_code.ApiCodeCouponPaid, "coupon is paid, no need to pay twice")
-		return nil
-	}
-	if setInfo.Num != req.Num {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("field 'num' must be: %d", setInfo.Num))
-		return nil
-	}
-	if setInfo.Account != req.Account {
-		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
-		return nil
-	}
-	if setInfo.Status != tables.CouponSetInfoStatusPending {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon status invalid")
-		return nil
-	}
-
-	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
-		return fmt.Errorf("GetTokenById err: %s", err.Error())
-	} else if tokenPrice.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+	res := h.couponCreateParamsCheck(req, apiResp)
+	if apiResp.ErrNo != 0 {
 		return nil
 	}
 
 	usdAmount := decimal.NewFromFloat(config.Cfg.Das.Coupon.CouponPrice).Mul(decimal.NewFromInt(int64(req.Num)))
-	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
-	if amount.Cmp(decimal.Zero) != 1 {
+	amount := usdAmount.Mul(decimal.New(1, res.tokenPrice.Decimals)).Div(res.tokenPrice.Price).Ceil()
+	if amount.LessThanOrEqual(decimal.Zero) {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
 		return nil
 	}
@@ -141,6 +130,19 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		return nil
 	}
 
+	order, err := h.DbDao.GetPendingOrderByAccIdAndActionType(res.accId, tables.ActionTypeCouponCreate)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get pending order")
+		return fmt.Errorf("GetPendingOrderByAccIdAndActionType err: %s", err.Error())
+	}
+	if order.Id > 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "have pending order: "+order.OrderId)
+		apiResp.Data = map[string]interface{}{
+			"order_id": order.OrderId,
+		}
+		return nil
+	}
+
 	createOrderRes, err := unipay.CreateOrder(unipay.ReqOrderCreate{
 		ChainTypeAddress:  req.ChainTypeAddress,
 		BusinessId:        unipay.BusinessIdAutoSubAccount,
@@ -152,10 +154,9 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		PremiumAmount:     premiumAmount,
 		MetaData: map[string]string{
 			"account":      req.Account,
-			"cid":          req.Cid,
 			"algorithm_id": fmt.Sprint(hexAddr.DasAlgorithmId),
 			"address":      hexAddr.AddressHex,
-			"action":       "create",
+			"action":       "coupon_create",
 		},
 	})
 	if err != nil {
@@ -168,7 +169,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		OrderId:           createOrderRes.OrderId,
 		ActionType:        tables.ActionTypeCouponCreate,
 		Account:           req.Account,
-		AccountId:         accId,
+		AccountId:         res.accId,
 		AlgorithmId:       hexAddr.DasAlgorithmId,
 		PayAddress:        hexAddr.AddressHex,
 		TokenId:           string(req.TokenId),
@@ -181,10 +182,9 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		PremiumPercentage: premiumPercentage,
 		PremiumBase:       premiumBase,
 		PremiumAmount:     premiumAmount,
-		MetaData: &tables.MetaData{
-			Cid: req.Cid,
-		},
 	}
+	reqData, _ := json.Marshal(req)
+	orderInfo.MetaData = string(reqData)
 
 	var paymentInfo tables.PaymentInfo
 	if req.TokenId == tables.TokenIdStripeUSD && createOrderRes.StripePaymentIntentId != "" {
@@ -209,4 +209,94 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 
 	apiResp.ApiRespOK(resp)
 	return nil
+}
+
+type checkCreateParamsResp struct {
+	accId      string
+	dasAddr    *core.DasAddressHex
+	tokenPrice tables.TTokenPriceInfo
+}
+
+func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) *checkCreateParamsResp {
+	log.Infof("couponCreateParamsCheck: %+v", *req)
+
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "get account info failed")
+		return nil
+	}
+	if accInfo.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
+		return nil
+	}
+	if accInfo.ParentAccountId != "" {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sub account cannot create coupon")
+		return nil
+	}
+	if accInfo.Status != tables.AccountStatusNormal {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusNotNormal, "account status is not normal")
+		return nil
+	}
+	if accInfo.IsExpired() {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "account expired")
+		return nil
+	}
+	if !priceReg.MatchString(req.Price) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+		return nil
+	}
+	price, _ := strconv.ParseFloat(req.Price, 64)
+	if price < config.Cfg.Das.Coupon.PriceMin || price > config.Cfg.Das.Coupon.PriceMax {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+		return nil
+	}
+	if req.BeginAt >= req.ExpiredAt {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "begin time must less than expired time")
+		return nil
+	}
+
+	if time.UnixMilli(req.ExpiredAt).Before(time.Now()) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "expired_at invalid")
+		return nil
+	}
+
+	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		return nil
+	}
+	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
+
+	if !strings.EqualFold(accInfo.Manager, address) {
+		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
+		return nil
+	}
+
+	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
+		return nil
+	} else if tokenPrice.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+		return nil
+	}
+
+	unpaidSetInfo, err := h.DbDao.GetUnPaidCouponSetByAccId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+		return nil
+	}
+	if unpaidSetInfo.Id > 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeCouponUnpaid, "have unpaid coupon order")
+		apiResp.Data = map[string]interface{}{
+			"cid": unpaidSetInfo.Cid,
+		}
+		return nil
+	}
+	return &checkCreateParamsResp{
+		accId:      accountId,
+		dasAddr:    res,
+		tokenPrice: tokenPrice,
+	}
 }

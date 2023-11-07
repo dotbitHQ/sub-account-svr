@@ -1,14 +1,21 @@
 package unipay
 
 import (
+	"crypto/md5"
+	"das_sub_account/config"
 	"das_sub_account/dao"
+	"das_sub_account/encrypt"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"encoding/json"
 	"fmt"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/labstack/gommon/random"
+	"github.com/shopspring/decimal"
+	"strings"
 	"time"
 )
 
@@ -122,6 +129,19 @@ func (t *ToolUniPay) doConfirmStatus() error {
 	return nil
 }
 
+type ReqCouponOrderCreate struct {
+	core.ChainTypeAddress
+	Account   string         `json:"account" binding:"required"`
+	TokenId   tables.TokenId `json:"token_id" binding:"required"`
+	Num       int            `json:"num" binding:"min=1,max=10000"`
+	Cid       string         `json:"cid" binding:"required"`
+	Name      string         `json:"name" binding:"required"`
+	Note      string         `json:"note"`
+	Price     string         `json:"price" binding:"required"`
+	BeginAt   int64          `json:"begin_at"`
+	ExpiredAt int64          `json:"expired_at" binding:"required"`
+}
+
 func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash string) error {
 	order, err := dbDao.GetOrderByOrderID(orderId)
 	if err != nil {
@@ -198,16 +218,66 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 	}
 
 	if order.ActionType == tables.ActionTypeCouponCreate {
-		unpaidSetInfo, err := dbDao.GetCouponSetInfo(order.MetaData.Cid)
+		req := &ReqCouponOrderCreate{}
+		if err := json.Unmarshal([]byte(order.MetaData), req); err != nil {
+			return err
+		}
+
+		couponCodes := make(map[string]struct{})
+		for {
+			if err := createCoupon(couponCodes, req); err != nil {
+				return err
+			}
+			exist, err := dbDao.CouponExists(couponCodes)
+			if err != nil {
+				return err
+			}
+			for _, v := range exist {
+				delete(couponCodes, v)
+			}
+			if len(exist) == 0 {
+				break
+			}
+		}
+
+		price, err := decimal.NewFromString(req.Price)
 		if err != nil {
 			return err
 		}
-		if unpaidSetInfo.Id == 0 {
-			return fmt.Errorf("unpaidSetInfo not exist")
-		}
-		unpaidSetInfo.OrderId = order.OrderId
 
-		rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithCouponSetInfo(paymentInfo, unpaidSetInfo)
+		res, err := req.ChainTypeAddress.FormatChainTypeAddress(dasCore.NetType(), false)
+		if err != nil {
+			return err
+		}
+
+		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+		couponSetInfo := &tables.CouponSetInfo{
+			AccountId:     accId,
+			OrderId:       orderId,
+			Account:       req.Account,
+			ManagerAid:    int(res.DasAlgorithmId),
+			ManagerSubAid: int(res.DasSubAlgorithmId),
+			Manager:       res.AddressHex,
+			Name:          req.Name,
+			Note:          req.Note,
+			Price:         price,
+			Num:           req.Num,
+			BeginAt:       req.BeginAt,
+			ExpiredAt:     req.ExpiredAt,
+			Status:        tables.CouponSetInfoStatusPaid,
+		}
+		couponSetInfo.InitCid()
+
+		couponInfos := make([]tables.CouponInfo, 0, len(couponCodes))
+		for k := range couponCodes {
+			code := k
+			couponInfos = append(couponInfos, tables.CouponInfo{
+				Cid:  couponSetInfo.Cid,
+				Code: code,
+			})
+		}
+
+		rowsAffected, err := dbDao.UpdateOrderPayStatusOkWithCoupon(paymentInfo, couponSetInfo, couponInfos)
 		if err != nil {
 			return fmt.Errorf("UpdateOrderPayStatusOkWithCouponSetInfo err: %s", err.Error())
 		}
@@ -217,5 +287,25 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 		}
 	}
 
+	return nil
+}
+
+func createCoupon(couponCodes map[string]struct{}, req *ReqCouponOrderCreate) error {
+	for {
+		md5Res := md5.Sum([]byte(fmt.Sprintf("%s%d%d%s", req.Price, time.Now().UnixNano(), req.ExpiredAt, random.String(8, random.Alphanumeric))))
+		base58Res := base58.Encode([]byte(fmt.Sprintf("%x", md5Res)))
+		code, err := encrypt.AesEncrypt(strings.ToUpper(base58Res[:8]), config.Cfg.Das.Coupon.EncryptionKey)
+		if err != nil {
+			return err
+		}
+		if _, ok := couponCodes[code]; ok {
+			continue
+		}
+		couponCodes[code] = struct{}{}
+
+		if len(couponCodes) >= req.Num {
+			break
+		}
+	}
 	return nil
 }

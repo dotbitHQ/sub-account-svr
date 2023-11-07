@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	CouponSetInfoStatusPending = 0
-	CouponSetInfoStatusPaid    = 1
-	CouponSetInfoStatusFailed  = 2
+	CouponSetInfoStatusNormal = 0
+	CouponSetInfoStatusPaid   = 1
+	CouponSetInfoStatusFailed = 2
 )
 
 type CouponSetInfo struct {

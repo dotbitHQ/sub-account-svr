@@ -2,7 +2,6 @@ package handle
 
 import (
 	"das_sub_account/tables"
-	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -26,6 +25,7 @@ type RespCouponOrderInfo struct {
 	Amount      decimal.Decimal `json:"amount"`
 	PayHash     string          `json:"pay_hash"`
 	OrderStatus OrderStatus     `json:"order_status"`
+	Cid         string          `json:"cid"`
 }
 
 func (h *HttpHandle) CouponOrderInfo(ctx *gin.Context) {
@@ -122,12 +122,8 @@ func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_cod
 			return fmt.Errorf("GetCouponSetInfoByOrderId err: %s", err.Error())
 		}
 		if setInfo.Id > 0 {
-			if order.MetaData.Cid != setInfo.Cid {
-				err := errors.New("order cid not match coupon set info cid")
-				apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-				return err
-			}
 			resp.OrderStatus = OrderStatusMintOK
+			resp.Cid = setInfo.Cid
 		}
 	}
 

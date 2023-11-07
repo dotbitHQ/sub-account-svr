@@ -1,9 +1,6 @@
 package tables
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/shopspring/decimal"
 	"strings"
@@ -56,42 +53,13 @@ type OrderInfo struct {
 	PremiumPercentage decimal.Decimal       `json:"premium_percentage" gorm:"column:premium_percentage; type:decimal(20,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	PremiumBase       decimal.Decimal       `json:"premium_base" gorm:"column:premium_base; type:decimal(20,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	PremiumAmount     decimal.Decimal       `json:"premium_amount" gorm:"column:premium_amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
-	MetaData          *MetaData             `json:"meta_data" gorm:"column:meta_data; type:json NOT NULL COMMENT '';"`
+	MetaData          string                `json:"meta_data" gorm:"column:meta_data; type:text NOT NULL COMMENT '';"`
 	CreatedAt         time.Time             `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt         time.Time             `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
 
-type MetaData struct {
-	Cid string `json:"cid"`
-}
-
 func (t *OrderInfo) TableName() string {
 	return "t_order_info"
-}
-
-func (m *MetaData) Scan(value interface{}) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal JSONB value: %s", value)
-	}
-	if len(bytes) == 0 {
-		*m = MetaData{}
-		return nil
-	}
-
-	metaData := MetaData{}
-	if err := json.Unmarshal(bytes, &metaData); err != nil {
-		return err
-	}
-	*m = metaData
-	return nil
-}
-
-func (m *MetaData) Value() (driver.Value, error) {
-	if m == nil {
-		return []byte("{}"), nil
-	}
-	return json.Marshal(m)
 }
 
 func GetEfficientOrderTimestamp() int64 {
