@@ -34,9 +34,12 @@ type DistributionListElement struct {
 	Symbol     string           `json:"symbol"`
 	Action     common.SubAction `json:"action"`
 	CouponInfo struct {
-		Code       string `json:"code"`
-		Amount     string `json:"amount"`
-		FaceAmount string `json:"face_amount"`
+		Cid         string `json:"cid"`
+		OrderAmount string `json:"order_amount"`
+		SetName     string `json:"set_name"`
+		Code        string `json:"code"`
+		CouponPrice string `json:"coupon_price"`
+		UserAmount  string `json:"user_amount"`
 	} `json:"coupon_info"`
 }
 
@@ -141,6 +144,9 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						return err
 					}
 					token := tokens[order.TokenId]
+					amount := order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
+					resp.List[idx].Amount = amount.String()
+					resp.List[idx].Symbol = token.Symbol
 
 					if order.CouponCode != "" {
 						couponInfo, err := h.DbDao.GetCouponByCode(order.CouponCode)
@@ -153,14 +159,28 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 							return err
 						}
-						resp.List[idx].CouponInfo.Code = order.CouponCode
-						resp.List[idx].CouponInfo.Amount = order.CouponAmount.DivRound(token.Price, token.Decimals).String()
-						resp.List[idx].CouponInfo.FaceAmount = order.CouponAmount.String()
-					}
+						couponSetInfo, err := h.DbDao.GetCouponSetInfo(couponInfo.Cid)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+							return err
+						}
+						if couponSetInfo.Id == 0 {
+							err = fmt.Errorf("cid: %s no exist", couponInfo.Cid)
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
 
-					amount := order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
-					resp.List[idx].Amount = amount.String()
-					resp.List[idx].Symbol = token.Symbol
+						resp.List[idx].CouponInfo.Cid = couponInfo.Cid
+						resp.List[idx].CouponInfo.OrderAmount = fmt.Sprintf("$%s", order.USDAmount)
+						resp.List[idx].CouponInfo.SetName = couponSetInfo.Name
+						resp.List[idx].CouponInfo.Code = couponInfo.Code
+						resp.List[idx].CouponInfo.CouponPrice = fmt.Sprintf("-$%s", couponSetInfo.Price)
+						userAmount := decimal.Zero
+						if couponSetInfo.Price.LessThan(order.USDAmount) {
+							userAmount = order.USDAmount.Sub(couponSetInfo.Price)
+						}
+						resp.List[idx].CouponInfo.UserAmount = fmt.Sprintf("$%s", userAmount)
+					}
 				}
 				return nil
 			})

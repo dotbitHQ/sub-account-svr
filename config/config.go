@@ -96,6 +96,7 @@ type CfgServer struct {
 			PriceMin      float64 `json:"price_min" yaml:"price_min"`
 			PriceMax      float64 `json:"price_max" yaml:"price_max"`
 		} `json:"coupon" yaml:"coupon"`
+		JwtKey string `json:"jwt_key" yaml:"jwt_key"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {

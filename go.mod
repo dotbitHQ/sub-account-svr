@@ -4,12 +4,13 @@ go 1.18
 
 require (
 	github.com/btcsuite/btcd/btcutil v1.1.3
-	github.com/dotbitHQ/das-lib v1.1.1-0.20231025065714-faedde55269f
+	github.com/dotbitHQ/das-lib v1.1.1-0.20231107142546-404e760cd8e6
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/getsentry/sentry-go v0.24.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/gogf/gf/v2 v2.3.3
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.3.0
 	github.com/influxdata/influxdb v1.8.3
 	github.com/labstack/gommon v0.4.0

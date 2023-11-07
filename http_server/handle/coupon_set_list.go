@@ -6,7 +6,6 @@ import (
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
 )
 
 type ReqCouponSetList struct {
@@ -23,13 +22,13 @@ type RespCouponSetInfoList struct {
 
 type RespCouponSetInfo struct {
 	Cid       string `json:"cid"`
-	OrderId   string `json:"order_id"`
 	Account   string `json:"account" `
 	Name      string `json:"name"`
 	Note      string `json:"note"`
 	Price     string `json:"price"`
 	Num       int    `json:"num"`
 	Status    int    `json:"status"`
+	BeginAt   int64  `json:"begin_at"`
 	ExpiredAt int64  `json:"expired_at"`
 	CreatedAt int64  `json:"created_at"`
 }
@@ -54,35 +53,11 @@ func (h *HttpHandle) CouponSetList(ctx *gin.Context) {
 	if err = h.doCouponSetList(&req, &apiResp); err != nil {
 		log.Error("doCouponSetList err:", err.Error(), funcName, clientIp, ctx)
 	}
-
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
 func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
-		return nil
-	}
-	if accInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
-		return nil
-	}
-
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return nil
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-
-	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
-		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
-		return nil
-	}
-
-	// get coupon set list
 	setInfo, total, err := h.DbDao.FindCouponSetInfoList(accountId, req.Page, req.PageSize)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
@@ -96,18 +71,17 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 	for _, v := range setInfo {
 		resp.List = append(resp.List, RespCouponSetInfo{
 			Cid:       v.Cid,
-			OrderId:   v.OrderId,
 			Account:   v.Account,
 			Name:      v.Name,
 			Note:      v.Note,
 			Price:     v.Price.String(),
 			Num:       v.Num,
 			Status:    v.Status,
+			BeginAt:   v.BeginAt,
 			ExpiredAt: v.ExpiredAt,
 			CreatedAt: v.CreatedAt.UnixMilli(),
 		})
 	}
-
 	apiResp.ApiRespOK(resp)
 	return nil
 }

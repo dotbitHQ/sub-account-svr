@@ -309,3 +309,11 @@ func (d *DbDao) GetPendingOrderByAccIdAndActionType(accountId string, actionType
 	}
 	return
 }
+
+func (d *DbDao) GetOrderByCoupon(coupon string) (order tables.OrderInfo, err error) {
+	err = d.db.Where("coupon_code=?", coupon).First(&order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}

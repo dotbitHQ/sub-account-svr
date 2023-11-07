@@ -3,22 +3,16 @@ package handle
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
-	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
-	"time"
 )
 
 type ReqCouponDownload struct {
 	core.ChainTypeAddress
-	Account   string `json:"account" binding:"required"`
-	Cid       string `json:"cid" binding:"required"`
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	Signature string `json:"signature" binding:"required"`
+	Account string `json:"account" binding:"required"`
+	Cid     string `json:"cid" binding:"required"`
 }
 
 func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
@@ -45,27 +39,6 @@ func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, apiResp *api_code.ApiResp) error {
-	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute * 5)) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 5 minutes")
-		return nil
-	}
-
-	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return nil
-	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
-
-	signMsg := fmt.Sprintf("%s%s%d", req.Account, req.Cid, req.Timestamp)
-	if ok, err := sign.VerifyPersonalSignature(common.Hex2Bytes(req.Signature), []byte(signMsg), address); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
-		return nil
-	} else if !ok {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "signature invalid")
-		return nil
-	}
-
 	setInfo, err := h.DbDao.GetCouponSetInfo(req.Cid)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query coupon set info")
@@ -85,17 +58,12 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
 		return nil
 	}
-	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
-		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
-		return nil
-	}
 
 	couponList, err := h.DbDao.FindCouponCode(req.Cid)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query coupon code")
 		return nil
 	}
-
 	if len(couponList) == 0 {
 		return nil
 	}

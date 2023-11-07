@@ -79,7 +79,7 @@ func (d *DbDao) UpdateCouponSetInfo(setInfo *tables.CouponSetInfo) error {
 }
 
 func (d *DbDao) GetUnPaidCouponSetByAccId(accId string) (res tables.CouponSetInfo, err error) {
-	if err = d.db.Where("account_id = ? and status = ?", accId, tables.CouponSetInfoStatusNormal).First(&res).Error; err != nil {
+	if err = d.db.Where("account_id = ? and status = ?", accId, tables.CouponSetInfoStatusPending).First(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = nil
 			return
@@ -108,32 +108,34 @@ func (d *DbDao) FindCouponSetInfoList(accId string, page, pageSize int) ([]*tabl
 	return res, total, nil
 }
 
-func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) ([]*tables.CouponInfo, int64, error) {
-	var total int64
-	res := make([]*tables.CouponInfo, 0)
-
+func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) (res []*tables.CouponInfo, total int64, used int64, err error) {
 	db := d.db.Model(&tables.CouponInfo{}).Where("cid = ?", cid)
-	if err := db.Count(&total).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, 0, err
+	if err = db.Count(&total).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = nil
 		}
-		return res, 0, nil
+		return
+	}
+	if err = db.Where("status=?", tables.CouponStatusUsed).Count(&used).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return
+		}
+		err = nil
+	}
+	if err = db.Order("status asc").Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&res).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = nil
+		}
+		return
 	}
 
-	if err := db.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&res).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, 0, err
-		}
-	}
-
-	var err error
 	for idx, v := range res {
 		res[idx].Code, err = encrypt.AesDecrypt(v.Code, config.Cfg.Das.Coupon.EncryptionKey)
 		if err != nil {
-			return nil, 0, err
+			return
 		}
 	}
-	return res, total, nil
+	return
 }
 
 func (d *DbDao) FindCouponCode(cid string) (res []*tables.CouponInfo, err error) {
@@ -176,4 +178,8 @@ func (d *DbDao) GetSetInfoByCoupon(coupon string) (res tables.CouponSetInfo, err
 	}
 	err = d.db.Where("cid = ?", couponInfo.Cid).First(&res).Error
 	return
+}
+
+func (d *DbDao) UpdateCouponInfo(cid string, ids []int64, status int) error {
+	return d.db.Where("cid=? and status!=? and id in(?)", cid, tables.CouponStatusUsed, ids).Updates(map[string]interface{}{"status": status}).Error
 }

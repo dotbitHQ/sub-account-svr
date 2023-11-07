@@ -124,12 +124,6 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 	}
 
-	hexAddr, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, false)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
-		return nil
-	}
-
 	order, err := h.DbDao.GetPendingOrderByAccIdAndActionType(res.accId, tables.ActionTypeCouponCreate)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get pending order")
@@ -140,6 +134,12 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		apiResp.Data = map[string]interface{}{
 			"order_id": order.OrderId,
 		}
+		return nil
+	}
+
+	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), false)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil
 	}
 

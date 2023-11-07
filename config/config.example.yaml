@@ -34,6 +34,7 @@ das:
     encryption_key: ""
     price_min: 0.99
     price_max: 500
+  jwt_key: ""
 origins:
   - ""
 notify:
