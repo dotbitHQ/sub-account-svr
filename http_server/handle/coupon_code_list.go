@@ -33,6 +33,7 @@ type RespCouponCodeList struct {
 	Price     string           `json:"price"`
 	Num       int              `json:"num"`
 	Status    int              `json:"status"`
+	BeginAt   int64            `json:"begin_at"`
 	ExpiredAt int64            `json:"expired_at"`
 	CreatedAt int64            `json:"created_at"`
 	List      []RespCouponCode `json:"list"`
@@ -67,8 +68,8 @@ func (h *HttpHandle) CouponCodeList(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.ApiResp) error {
-	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute)) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 1 minutes")
+	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute * 5)) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 5 minutes")
 		return nil
 	}
 
@@ -108,7 +109,7 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 		return nil
 	}
 
-	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
+	if !strings.EqualFold(accInfo.Manager, address) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
@@ -130,6 +131,7 @@ func (h *HttpHandle) doCouponCodeList(req *ReqCouponCodeList, apiResp *api_code.
 		Price:     setInfo.Price.String(),
 		Num:       setInfo.Num,
 		Status:    setInfo.Status,
+		BeginAt:   setInfo.BeginAt,
 		ExpiredAt: setInfo.ExpiredAt,
 		CreatedAt: setInfo.CreatedAt.UnixMilli(),
 		List:      make([]RespCouponCode, 0),

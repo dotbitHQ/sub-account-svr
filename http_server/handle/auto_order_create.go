@@ -164,7 +164,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	var actualUsdPrice decimal.Decimal
 	var couponInfo tables.CouponInfo
 	if req.CouponCode != "" {
-		lockKey := fmt.Sprintf("%x", md5.Sum([]byte(req.CouponCode)))
+		lockKey := fmt.Sprintf("%x", md5.Sum([]byte("coupon:use:"+req.CouponCode)))
 		if err := h.RC.Lock(lockKey); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get lock")
 			return fmt.Errorf("RC.Lock err: %s", err.Error())

@@ -45,8 +45,8 @@ func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, apiResp *api_code.ApiResp) error {
-	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute)) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 1 minutes")
+	if time.Now().After(time.UnixMilli(req.Timestamp).Add(time.Minute * 5)) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 5 minutes")
 		return nil
 	}
 
@@ -101,7 +101,7 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 	}
 
 	items := [][]string{
-		{"Code", "status"},
+		{"code", "status"},
 	}
 	for _, v := range couponList {
 		items = append(items, []string{v.Code, fmt.Sprint(v.Status)})
