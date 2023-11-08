@@ -36,4 +36,5 @@ const (
 	TokenIdMatic     TokenId = "polygon_matic"
 	TokenIdDoge      TokenId = "doge_doge"
 	TokenIdStripeUSD TokenId = "stripe_usd"
+	TokenIdDp        TokenId = "dp"
 )

@@ -7,9 +7,8 @@ import (
 type CouponStatus int
 
 const (
-	CouponStatusNormal     CouponStatus = 0
-	CouponStatusUsed       CouponStatus = 1
-	CouponStatusDeactivate CouponStatus = 2
+	CouponStatusNormal CouponStatus = 0
+	CouponStatusUsed   CouponStatus = 1
 )
 
 type CouponCode string
