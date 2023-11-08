@@ -22,6 +22,7 @@ func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {
 	var apiResp api_code.ApiResp
 	defer func() {
 		if apiResp.ErrNo != 0 {
+			ctx.JSON(http.StatusOK, apiResp)
 			ctx.Abort()
 		}
 	}()
