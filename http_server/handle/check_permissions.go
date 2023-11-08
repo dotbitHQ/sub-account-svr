@@ -15,7 +15,7 @@ import (
 
 type ReqCheckPermissions struct {
 	core.ChainTypeAddress
-	Account string `json:"account"`
+	Account string `json:"account" binding:"required"`
 }
 
 func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {

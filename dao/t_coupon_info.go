@@ -116,7 +116,7 @@ func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) (res []*table
 		}
 		return
 	}
-	if err = db.Where("status=?", tables.CouponStatusUsed).Count(&used).Error; err != nil {
+	if err = d.db.Model(&tables.CouponInfo{}).Where("cid=? and status=?", cid, tables.CouponStatusUsed).Count(&used).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return
 		}
@@ -128,7 +128,6 @@ func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) (res []*table
 		}
 		return
 	}
-
 	for idx, v := range res {
 		res[idx].Code, err = encrypt.AesDecrypt(v.Code, config.Cfg.Das.Coupon.EncryptionKey)
 		if err != nil {
