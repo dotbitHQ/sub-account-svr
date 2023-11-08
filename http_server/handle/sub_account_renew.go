@@ -133,7 +133,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "FormatChainTypeAddressToScript err")
 		return err
 	}
-	if _, _, err := h.DasCore.GetDpCells(&core.ParamGetDpCells{
+	if _, _, _, err := h.DasCore.GetDpCells(&core.ParamGetDpCells{
 		DasCache:    h.DasCache,
 		LockScript:  lock,
 		AmountNeed:  totalPrice,

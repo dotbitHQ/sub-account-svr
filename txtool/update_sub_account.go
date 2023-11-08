@@ -361,7 +361,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			DPLiveCellCapacity: manualTotalCapacity,
 			DPTotalAmount:      manualTotalAmount,
 			DPTransferAmount:   manualPrice,
-			DPSplitCount:       2,
+			DPSplitCount:       10,
 			DPSplitAmount:      25 * common.UsdRateBase,
 			NormalCellLock:     dpRecycleWhitelist,
 		})
@@ -393,6 +393,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 					PreviousOutput: replenishNormalCells[idx].OutPoint,
 				})
 			}
+
 			if change > 0 {
 				base := 1000 * common.OneCkb
 				splitList, err := core.SplitOutputCell2(change, base, 10, p.BalanceDasLock, p.BalanceDasType, indexer.SearchOrderAsc)
