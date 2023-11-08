@@ -113,7 +113,7 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(config.Cfg.Das.JwtKey)
+	tokenString, err := token.SignedString([]byte(config.Cfg.Das.JwtKey))
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "internal error")
 		return err

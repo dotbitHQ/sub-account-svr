@@ -38,8 +38,8 @@ func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {
 
 	claims := &Claims{}
 	tkn, err := jwt.ParseWithClaims(tokenVal, claims, func(token *jwt.Token) (any, error) {
-		return config.Cfg.Das.JwtKey, nil
-	})
+		return []byte(config.Cfg.Das.JwtKey), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 	if err != nil {
 		if errors.Is(err, jwt.ErrSignatureInvalid) {
 			apiResp.ApiRespErr(api_code.ApiCodeUnauthorized, "unauthorized")
