@@ -354,27 +354,15 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			dpRecycleWhitelist = dpRecycleWhitelistMap[k]
 		}
 
-		dpContract, err := core.GetDasContractInfo(common.DasContractNameDpCellType)
-		if err != nil {
-			return nil, fmt.Errorf("GetDasContractInfo err: %s", err.Error())
-		}
-
-		dpBaseCapacity := types.CellOutput{
-			Lock: managerDasLock,
-			Type: dpContract.ToScript(nil),
-		}.OccupiedCapacity(make([]byte, 12))
-
-		dpOutputCells, dpOutputData, replenishNormal, err := core.SplitDPCell(&core.ParamSplitDPCell{
+		dpOutputCells, dpOutputData, replenishNormal, err := s.DasCore.SplitDPCell(&core.ParamSplitDPCell{
 			FromLock:           managerDasLock,
 			ToLock:             dpRecycleWhitelist,
 			DPLiveCell:         manualDpLiveCells,
 			DPLiveCellCapacity: manualTotalCapacity,
 			DPTotalAmount:      manualTotalAmount,
 			DPTransferAmount:   manualPrice,
-			DPBaseCapacity:     dpBaseCapacity,
-			DPContract:         dpContract,
 			DPSplitCount:       2,
-			DPSplitAmount:      100,
+			DPSplitAmount:      25 * common.UsdRateBase,
 			NormalCellLock:     dpRecycleWhitelist,
 		})
 		if err != nil {
