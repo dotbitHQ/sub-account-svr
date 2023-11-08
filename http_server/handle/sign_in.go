@@ -58,6 +58,13 @@ func (h *HttpHandle) SignIn(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_code.ApiResp) error {
+	now := time.Now()
+	timestamp := time.UnixMilli(req.Timestamp)
+	if now.After(timestamp.Add(time.Minute * 5)) {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 5 minutes")
+		return nil
+	}
+
 	res, err := req.ChainTypeAddress.FormatChainTypeAddress(h.DasCore.NetType(), false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
@@ -93,13 +100,6 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		return nil
 	}
 
-	now := time.Now()
-	timestamp := time.UnixMilli(req.Timestamp)
-	if now.After(timestamp.Add(time.Minute * 5)) {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "timestamp expired, valid for 5 minutes")
-		return nil
-	}
-
 	claims := &Claims{
 		Account:   req.Account,
 		Address:   address,
@@ -119,7 +119,11 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		return err
 	}
 
-	ctx.SetCookie("token", tokenString, int(claims.ExpiresAt.Sub(now).Seconds()), "/", "", false, true)
+	if h.DasCore.NetType() == common.DasNetTypeMainNet {
+		ctx.SetCookie("token", tokenString, int(claims.ExpiresAt.Sub(now).Seconds()), "/", "topdid.com", true, true)
+	} else {
+		ctx.SetCookie("token", tokenString, int(claims.ExpiresAt.Sub(now).Seconds()), "/", "", false, false)
+	}
 	resp := &RespSignIn{}
 	apiResp.ApiRespOK(resp)
 	return nil

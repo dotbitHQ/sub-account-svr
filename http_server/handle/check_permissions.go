@@ -65,29 +65,29 @@ func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {
 	}
 	address := common.FormatAddressPayload(addrHex.AddressPayload, addrHex.DasAlgorithmId)
 
-	if !strings.EqualFold(address, claims.Address) {
+	if !strings.EqualFold(address, claims.Address) ||
+		addrHex.DasAlgorithmId != claims.Aid ||
+		addrHex.DasSubAlgorithmId != claims.SubAid {
 		apiResp.ApiRespErr(api_code.ApiCodeUnauthorized, "unauthorized")
 		return
 	}
 
-	if req.Account != "" {
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-		accInfo, err := h.DbDao.GetAccountInfoByAccountId(accId)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
-			return
-		}
-		if accInfo.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
-			return
-		}
-		if accInfo.IsExpired() {
-			apiResp.ApiRespErr(api_code.ApiCodeParentAccountExpired, "account expired")
-			return
-		}
-		if !strings.EqualFold(address, accInfo.Owner) && !strings.EqualFold(address, accInfo.Manager) {
-			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
-			return
-		}
+	accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
+		return
+	}
+	if accInfo.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account does not exist")
+		return
+	}
+	if accInfo.IsExpired() {
+		apiResp.ApiRespErr(api_code.ApiCodeParentAccountExpired, "account expired")
+		return
+	}
+	if !strings.EqualFold(address, accInfo.Owner) && !strings.EqualFold(address, accInfo.Manager) {
+		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
+		return
 	}
 }
