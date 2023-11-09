@@ -139,7 +139,7 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 	}
 	totalPrice := newSubAccountPrice * totalRegisterYears
 
-	lock, _, err := req.FormatChainTypeAddressToScript(config.Cfg.Server.Net, true)
+	lock, _, err := req.FormatChainTypeAddressToScript(h.DasCore.NetType(), true)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "FormatChainTypeAddressToScript err")
 		return err
