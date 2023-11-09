@@ -300,6 +300,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		PremiumPercentage: premiumPercentage,
 		PremiumBase:       premiumBase,
 		PremiumAmount:     premiumAmount,
+		MetaData:          "",
 	}
 
 	var paymentInfo tables.PaymentInfo
