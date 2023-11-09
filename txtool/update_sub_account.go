@@ -1,6 +1,7 @@
 package txtool
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
 	"errors"
@@ -111,6 +112,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	registerTotalYears := uint64(0)
 	renewTotalYears := uint64(0)
 	autoTotalCapacity := uint64(0)
+	manualCapacity := uint64(0)
 	subAccountPriceMap := make(map[string]uint64)
 	quote := p.BaseInfo.QuoteCell.Quote()
 
@@ -120,13 +122,16 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			continue
 		}
 
+		var yearlyPrice uint64
 		switch v.MintType {
 		case tables.MintTypeDefault, tables.MintTypeManual:
 			switch v.SubAction {
 			case common.SubActionCreate:
 				registerTotalYears += v.RegisterYears
+				yearlyPrice = p.NewSubAccountPrice
 			case common.SubActionRenew:
 				renewTotalYears += v.RenewYears
+				yearlyPrice = p.RenewSubAccountPrice
 			}
 		case tables.MintTypeAutoMint:
 			subAccountCell, err := s.getSubAccountCell(v.ParentAccountId)
@@ -152,22 +157,17 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 			if !hit {
 				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
 			}
-			yearlyPrice := uint64(subAccountRule.Rules[idx].Price)
-			subAccountPrice := uint64(0)
-			years := uint64(0)
-			switch v.SubAction {
-			case common.SubActionCreate:
-				years = v.RegisterYears
-			case common.SubActionRenew:
-				years = v.RenewYears
-			}
-			if yearlyPrice < quote {
-				subAccountPrice = yearlyPrice * common.OneCkb / quote * years
-			} else {
-				subAccountPrice = yearlyPrice / quote * common.OneCkb * years
-			}
-			autoTotalCapacity += subAccountPrice
-			subAccountPriceMap[v.AccountId] = subAccountPrice
+			yearlyPrice = uint64(subAccountRule.Rules[idx].Price)
+		}
+
+		subAccCapacity := config.PriceToCKB(yearlyPrice, quote, v.RegisterYears+v.RegisterYears)
+
+		switch v.MintType {
+		case tables.MintTypeDefault, tables.MintTypeManual:
+			manualCapacity += subAccCapacity
+		case tables.MintTypeAutoMint:
+			autoTotalCapacity += subAccCapacity
+			subAccountPriceMap[v.AccountId] = subAccCapacity
 		}
 	}
 
@@ -328,7 +328,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// outputs
 	res.SubAccountCellOutput = &types.CellOutput{
-		Capacity: p.SubAccountCellOutput.Capacity + autoTotalCapacity,
+		Capacity: p.SubAccountCellOutput.Capacity + manualCapacity + autoTotalCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
 		Type:     p.SubAccountCellOutput.Type,
 	}
@@ -337,7 +337,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if len(subAccountList) > 0 {
 		subDataDetail.SmtRoot = subAccountList[len(subAccountList)-1].NewRoot
 	}
-	subDataDetail.DasProfit += autoTotalCapacity
+	subDataDetail.DasProfit += manualCapacity + autoTotalCapacity
 	res.SubAccountOutputsData = witness.BuildSubAccountCellOutputData(subDataDetail)
 	txParams.OutputsData = append(txParams.OutputsData, res.SubAccountOutputsData)
 
