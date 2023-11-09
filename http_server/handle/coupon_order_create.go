@@ -185,7 +185,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		PremiumAmount:     premiumAmount,
 	}
 	reqData, _ := json.Marshal(req)
-	orderInfo.MetaData = string(reqData)
+	orderInfo.MetaData = tables.MetaData(reqData)
 
 	var paymentInfo tables.PaymentInfo
 	if req.TokenId == tables.TokenIdStripeUSD && createOrderRes.StripePaymentIntentId != "" {
