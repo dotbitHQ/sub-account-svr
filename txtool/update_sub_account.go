@@ -46,11 +46,6 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	var res ResultBuildUpdateSubAccountTx
 	txParams := &txbuilder.BuildTransactionParams{}
 
-	// sub_account input
-	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
-		PreviousOutput: p.SubAccountOutpoint,
-	})
-
 	// get sign_info
 	signInfoResp, err := s.getSignInfo(p)
 	if err != nil {
@@ -74,20 +69,20 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	// cell deps
 	s.cellDeps(txParams, p, updateSmtResp)
 
-	// get balance normal or dp
-	if err := s.getBalance(txParams, p, subAccountPriceResp, signInfoResp); err != nil {
-		return nil, err
-	}
-
 	// get sub_account cell output
-	subAccCellOutputResp, err := s.subAccountCellOutput(txParams, p, signInfoResp, subAccountPriceResp, updateSmtResp)
+	subAccCellOutputResp, err := s.subAccountCellInOutput(txParams, p, signInfoResp, subAccountPriceResp, updateSmtResp)
 	if err != nil {
 		return nil, err
 	}
 	res.SubAccountCellOutput = subAccCellOutputResp.subAccountCellOutput
 	res.SubAccountOutputsData = subAccCellOutputResp.subAccountOutputsData
 
-	// account witness
+	// get balance normal or dp
+	if err := s.getBalance(txParams, p, subAccountPriceResp, signInfoResp); err != nil {
+		return nil, err
+	}
+
+	// account_cell and sub_account price rules witness
 	if err := s.accountWitness(txParams, p); err != nil {
 		return nil, err
 	}
@@ -399,8 +394,12 @@ func (s *SubAccountTxTool) updateSmt(p *ParamBuildUpdateSubAccountTx, signInfo *
 	return resp, nil
 }
 
-func (s *SubAccountTxTool) subAccountCellOutput(txParams *txbuilder.BuildTransactionParams, p *ParamBuildUpdateSubAccountTx, signInfo *SignInfoResp, accountPrice *AccountPriceResp, updateSmtResp *UpdateSmtResp) (*SubAccountCellOutputResp, error) {
+func (s *SubAccountTxTool) subAccountCellInOutput(txParams *txbuilder.BuildTransactionParams, p *ParamBuildUpdateSubAccountTx, signInfo *SignInfoResp, accountPrice *AccountPriceResp, updateSmtResp *UpdateSmtResp) (*SubAccountCellOutputResp, error) {
 	resp := &SubAccountCellOutputResp{}
+
+	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+		PreviousOutput: p.SubAccountOutpoint,
+	})
 	resp.subAccountCellOutput = &types.CellOutput{
 		Capacity: p.SubAccountCellOutput.Capacity + accountPrice.manualTotalCapacity + accountPrice.autoTotalCapacity,
 		Lock:     p.SubAccountCellOutput.Lock,
@@ -449,6 +448,12 @@ func (s *SubAccountTxTool) getBalance(txParams *txbuilder.BuildTransactionParams
 			AmountNeed:  manualPrice,
 			SearchOrder: indexer.SearchOrderAsc,
 		})
+		for _, v := range manualDpLiveCells {
+			txParams.Inputs = append(txParams.Inputs, &types.CellInput{
+				PreviousOutput: v.OutPoint,
+			})
+		}
+
 		var dpRecycleWhitelist *types.Script
 		for k := range dpRecycleWhitelistMap {
 			dpRecycleWhitelist = dpRecycleWhitelistMap[k]
