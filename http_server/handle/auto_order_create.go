@@ -19,7 +19,7 @@ import (
 
 type ReqAutoOrderCreate struct {
 	core.ChainTypeAddress
-	ActionType tables.ActionType `json:"action_type" binding:"in(0|1)"`
+	ActionType tables.ActionType `json:"action_type"`
 	SubAccount string            `json:"sub_account"`
 	TokenId    tables.TokenId    `json:"token_id"`
 	Years      uint64            `json:"years"`
