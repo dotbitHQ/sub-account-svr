@@ -14,6 +14,7 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -129,7 +130,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
 
 	// deduct coupons
-	var actualUsdPrice decimal.Decimal
+	actualUsdPrice := usdAmount
 	var couponInfo tables.CouponInfo
 	if req.CouponCode != "" {
 		lockKey := fmt.Sprintf("%x", md5.Sum([]byte("coupon:use:"+req.CouponCode)))
@@ -266,6 +267,14 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		},
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "600004") {
+			apiResp.ApiRespErr(api_code.ApiCodePaymentMethodDisable, "This payment method is unavailable")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
+		if strings.Contains(err.Error(), "600003") {
+			apiResp.ApiRespErr(api_code.ApiCodeAmountIsTooLow, "Amount must not be lower than 0.52$")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
