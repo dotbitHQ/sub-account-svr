@@ -488,6 +488,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		p.BaseInfo.ConfigCellAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellSubAcc.ToCellDep(),
 		p.BaseInfo.ConfigCellRecordNamespace.ToCellDep(),
+		p.BaseInfo.ConfigCellDPoint.ToCellDep(),
 	)
 	for k := range accountCharTypeMap {
 		switch k {

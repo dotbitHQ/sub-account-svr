@@ -74,15 +74,17 @@ type BaseInfo struct {
 	ConfigCellRecordNamespace *core.DasConfigCellInfo
 	ConfigCellAcc             *core.DasConfigCellInfo
 	ConfigCellBuilder         *witness.ConfigCellDataBuilder
-	ConfigCellEmoji           *core.DasConfigCellInfo
-	ConfigCellDigit           *core.DasConfigCellInfo
-	ConfigCellEn              *core.DasConfigCellInfo
-	ConfigCellJa              *core.DasConfigCellInfo
-	ConfigCellRu              *core.DasConfigCellInfo
-	ConfigCellTr              *core.DasConfigCellInfo
-	ConfigCellVi              *core.DasConfigCellInfo
-	ConfigCellTh              *core.DasConfigCellInfo
-	ConfigCellKo              *core.DasConfigCellInfo
+	ConfigCellDPoint          *core.DasConfigCellInfo
+
+	ConfigCellEmoji *core.DasConfigCellInfo
+	ConfigCellDigit *core.DasConfigCellInfo
+	ConfigCellEn    *core.DasConfigCellInfo
+	ConfigCellJa    *core.DasConfigCellInfo
+	ConfigCellRu    *core.DasConfigCellInfo
+	ConfigCellTr    *core.DasConfigCellInfo
+	ConfigCellVi    *core.DasConfigCellInfo
+	ConfigCellTh    *core.DasConfigCellInfo
+	ConfigCellKo    *core.DasConfigCellInfo
 }
 
 func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
@@ -143,6 +145,10 @@ func (s *SubAccountTxTool) GetBaseInfo() (*BaseInfo, error) {
 	bi.ConfigCellBuilder, err = s.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		return nil, fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
+	bi.ConfigCellDPoint, err = core.GetDasConfigCellInfo(common.ConfigCellTypeArgsDPoint)
+	if err != nil {
+		return nil, fmt.Errorf("ConfigCellDPoint err: %s", err.Error())
 	}
 
 	// char
