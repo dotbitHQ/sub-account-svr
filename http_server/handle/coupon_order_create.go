@@ -115,8 +115,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	premiumBase := decimal.Zero
 	premiumAmount := decimal.Zero
 
-	switch req.TokenId {
-	case tables.TokenIdStripeUSD:
+	if req.TokenId == tables.TokenIdStripeUSD {
 		premiumPercentage = config.Cfg.Stripe.PremiumPercentage
 		premiumBase = config.Cfg.Stripe.PremiumBase
 		premiumAmount = amount
@@ -124,8 +123,6 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		amount = decimal.NewFromInt(amount.Ceil().IntPart())
 		premiumAmount = amount.Sub(premiumAmount)
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
-	case tables.TokenIdDp:
-		amount = usdAmount
 	}
 
 	order, err := h.DbDao.GetPendingOrderByAccIdAndActionType(res.accId, tables.ActionTypeCouponCreate)
@@ -202,6 +199,10 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
+	}
+
+	if req.TokenId == tables.TokenIdDp {
+		amount = usdAmount
 	}
 
 	var resp RespCouponOrderCreate
