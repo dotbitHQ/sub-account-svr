@@ -156,7 +156,10 @@ func (h *HttpHandle) doCurrencyUpdate(req *ReqCurrencyUpdate, apiResp *api_code.
 			SignMsg:  signMsg,
 		}},
 	})
-
+	resp.SignList = []txbuilder.SignData{{
+		SignType: signType,
+		SignMsg:  signMsg,
+	}}
 	apiResp.ApiRespOK(resp)
 	return nil
 }

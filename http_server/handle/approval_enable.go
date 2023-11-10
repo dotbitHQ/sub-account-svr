@@ -310,6 +310,9 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 					},
 				},
 			},
+			SignList: []txbuilder.SignData{
+				signData,
+			},
 		},
 	}
 	apiResp.ApiRespOK(resp)

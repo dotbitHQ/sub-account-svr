@@ -212,7 +212,9 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 			signData,
 		},
 	})
-
+	resp.SignList = []txbuilder.SignData{
+		signData,
+	}
 	apiResp.ApiRespOK(resp)
 	return nil
 }

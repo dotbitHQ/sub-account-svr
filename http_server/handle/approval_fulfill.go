@@ -268,6 +268,9 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 					},
 				},
 			},
+			SignList: []txbuilder.SignData{
+				signData,
+			},
 		},
 	}
 	apiResp.ApiRespOK(resp)

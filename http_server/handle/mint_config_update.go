@@ -127,6 +127,10 @@ func (h *HttpHandle) doMintConfigUpdate(req *ReqMintConfigUpdate, apiResp *api_c
 			SignMsg:  signMsg,
 		}},
 	})
+	resp.SignList = []txbuilder.SignData{{
+		SignType: signType,
+		SignMsg:  signMsg,
+	}}
 
 	apiResp.ApiRespOK(resp)
 	return nil

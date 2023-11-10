@@ -443,14 +443,10 @@ Please familiarize yourself with the meaning of some common parameters before re
   "data": {
     "action": "create_sub_account",
     "sign_key": "",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "from did: 0x123"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "from did: 0x123"
       }
     ]
   }
@@ -511,14 +507,10 @@ Please familiarize yourself with the meaning of some common parameters before re
   "data": {
     "action": "edit_sub_account",
     "sign_key": "",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "from did: 0x123"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "from did: 0x123"
       }
     ]
   }
@@ -535,14 +527,10 @@ Please familiarize yourself with the meaning of some common parameters before re
 {
   "action": "enable_sub_account",
   "sign_key": "",
-  "list": [
+  "sign_list": [
     {
-      "sign_list": [
-        {
-          "sign_type": 3,
-          "sign_msg": "0x123"
-        }
-      ]
+      "sign_type": 3,
+      "sign_msg": "0x123"
     }
   ]
 }
@@ -681,14 +669,10 @@ Please familiarize yourself with the meaning of some common parameters before re
 {
   "action": "config_sub_account_custom_script",
   "sign_key": "",
-  "list": [
+  "sign_list": [
     {
-      "sign_list": [
-        {
-          "sign_type": 3,
-          "sign_msg": "0x123"
-        }
-      ]
+      "sign_type": 3,
+      "sign_msg": "0x123"
     }
   ]
 }
@@ -1042,13 +1026,12 @@ Please familiarize yourself with the meaning of some common parameters before re
     "action":"Update-Mint-Config",
     "sub_action":"",
     "sign_key":"d395abc4037853fd5534f913ae8a6dd5",
-    "list":[
+    "sign_list":[
       {
-        "sign_list":[
-          {
-            "sign_type":3,
-            "sign_msg":"From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"}
-        ]}]}
+        "sign_type":3,
+        "sign_msg":"From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"}
+    ]
+  }
 }
 ```
 
@@ -1266,18 +1249,14 @@ Please familiarize yourself with the meaning of some common parameters before re
     "action": "config_sub_account",
     "sub_action": "",
     "sign_key": "d4f3174152b63f51862d4684b1aba3b3",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "From .bit: c9c151e30e4e071e84c06dd4419ff6da680f510f228c274929fddf5fcbd0e9d3"
-          },
-          {
-            "sign_type": 0,
-            "sign_msg": "0x03f4fa778587a862ff02c5e2f96a95e5d70b7a97a294102477e2c94c6baf5bee"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "From .bit: c9c151e30e4e071e84c06dd4419ff6da680f510f228c274929fddf5fcbd0e9d3"
+      },
+      {
+        "sign_type": 0,
+        "sign_msg": "0x03f4fa778587a862ff02c5e2f96a95e5d70b7a97a294102477e2c94c6baf5bee"
       }
     ]
   }
@@ -1393,14 +1372,10 @@ Please familiarize yourself with the meaning of some common parameters before re
     "action": "Update-Currency",
     "sub_action": "",
     "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
       }
     ]
   }
@@ -1653,14 +1628,10 @@ Please familiarize yourself with the meaning of some common parameters before re
     "action": "enable_sub_account",
     "sub_action": "",
     "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
       }
     ]
   }
@@ -1694,14 +1665,10 @@ Please familiarize yourself with the meaning of some common parameters before re
     "action": "enable_sub_account",
     "sub_action": "",
     "sign_key": "d395abc4037853fd5534f913ae8a6dd5",
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
       }
     ]
   }
@@ -2138,14 +2105,10 @@ Please familiarize yourself with the meaning of some common parameters before re
     "sign_key": "5770c64eb8d45fe84e1578908694db14",
     "sign_address": "",
     "is_712": false,
-    "list": [
+    "sign_list": [
       {
-        "sign_list": [
-          {
-            "sign_type": 3,
-            "sign_msg": "From .bit: 2ac9958d0f3230869b8724be9ba0b87e84bfc6aaa2e8ee06f5f43ab9c0ea0593"
-          }
-        ]
+        "sign_type": 3,
+        "sign_msg": "From .bit: 2ac9958d0f3230869b8724be9ba0b87e84bfc6aaa2e8ee06f5f43ab9c0ea0593"
       }
     ]
   }

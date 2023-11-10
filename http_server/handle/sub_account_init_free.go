@@ -126,7 +126,7 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 	resp.Action = common.DasActionEnableSubAccount
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
-
+	resp.SignList = signList.List[0].SignList
 	apiResp.ApiRespOK(resp)
 	return nil
 }

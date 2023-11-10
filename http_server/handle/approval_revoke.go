@@ -279,6 +279,9 @@ func (h *HttpHandle) doApprovalRevokeSubAccount(req *ReqApprovalRevoke, apiResp 
 					},
 				},
 			},
+			SignList: []txbuilder.SignData{
+				signData,
+			},
 		},
 	}
 	apiResp.ApiRespOK(resp)

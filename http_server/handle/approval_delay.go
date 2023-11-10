@@ -285,6 +285,9 @@ func (h *HttpHandle) doApprovalDelaySubAccount(req *ReqApprovalDelay, apiResp *a
 					},
 				},
 			},
+			SignList: []txbuilder.SignData{
+				signData,
+			},
 		},
 	}
 	apiResp.ApiRespOK(resp)

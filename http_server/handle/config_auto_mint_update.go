@@ -100,6 +100,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	resp.Action = action
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
+	resp.SignList = signList.List[0].SignList
 	log.Info("doConfigAutoMintUpdate:", toolib.JsonString(resp))
 
 	apiResp.ApiRespOK(resp)

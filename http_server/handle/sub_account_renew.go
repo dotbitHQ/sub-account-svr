@@ -206,7 +206,9 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 			signData,
 		},
 	})
-
+	resp.SignList = []txbuilder.SignData{
+		signData,
+	}
 	apiResp.ApiRespOK(resp)
 	return nil
 }
