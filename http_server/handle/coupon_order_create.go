@@ -114,7 +114,9 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	premiumPercentage := decimal.Zero
 	premiumBase := decimal.Zero
 	premiumAmount := decimal.Zero
-	if req.TokenId == tables.TokenIdStripeUSD {
+
+	switch req.TokenId {
+	case tables.TokenIdStripeUSD:
 		premiumPercentage = config.Cfg.Stripe.PremiumPercentage
 		premiumBase = config.Cfg.Stripe.PremiumBase
 		premiumAmount = amount
@@ -122,6 +124,8 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		amount = decimal.NewFromInt(amount.Ceil().IntPart())
 		premiumAmount = amount.Sub(premiumAmount)
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+	case tables.TokenIdDp:
+		amount = usdAmount
 	}
 
 	order, err := h.DbDao.GetPendingOrderByAccIdAndActionType(res.accId, tables.ActionTypeCouponCreate)
