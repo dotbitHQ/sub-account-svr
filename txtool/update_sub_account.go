@@ -12,6 +12,7 @@ import (
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/nervosnetwork/ckb-sdk-go/address"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
@@ -434,13 +435,6 @@ func (s *SubAccountTxTool) subAccountCellInOutput(txParams *txbuilder.BuildTrans
 func (s *SubAccountTxTool) getBalance(txParams *txbuilder.BuildTransactionParams, p *ParamBuildUpdateSubAccountTx, accountPrice *AccountPriceResp, signInfoResp *SignInfoResp) error {
 	manualPrice := p.NewSubAccountPrice*accountPrice.registerTotalYears + p.RenewSubAccountPrice*accountPrice.renewTotalYears
 	if manualPrice > 0 {
-		dpRecycleWhitelistMap, err := s.DasCore.GetDPointCapacityRecycleWhitelist()
-		if err != nil {
-			return fmt.Errorf("GetDPointCapacityRecycleWhitelist err: %s", err)
-		}
-		if len(dpRecycleWhitelistMap) == 0 {
-			return fmt.Errorf("GetDPointCapacityRecycleWhitelist is nil")
-		}
 		// manager payment dp
 		manualDpLiveCells, manualTotalAmount, manualTotalCapacity, err := s.DasCore.GetDpCells(&core.ParamGetDpCells{
 			DasCache:    s.DasCache,
@@ -454,21 +448,26 @@ func (s *SubAccountTxTool) getBalance(txParams *txbuilder.BuildTransactionParams
 			})
 		}
 
-		var dpRecycleWhitelist *types.Script
-		for k := range dpRecycleWhitelistMap {
-			dpRecycleWhitelist = dpRecycleWhitelistMap[k]
+		transferWhiteList, err := address.Parse(config.Cfg.Das.Dp.TransferWhiteList)
+		if err != nil {
+			return fmt.Errorf("parse dp recycle whitelist err: %s", err.Error())
 		}
+		capacityWhitelist, err := address.Parse(config.Cfg.Das.Dp.CapacityWhitelist)
+		if err != nil {
+			return fmt.Errorf("parse dp capacity whitelist err: %s", err.Error())
+		}
+
 		// split dp
 		dpOutputCells, dpOutputData, replenishNormal, err := s.DasCore.SplitDPCell(&core.ParamSplitDPCell{
 			FromLock:           signInfoResp.managerDasLock,
-			ToLock:             dpRecycleWhitelist,
+			ToLock:             transferWhiteList.Script,
 			DPLiveCell:         manualDpLiveCells,
 			DPLiveCellCapacity: manualTotalCapacity,
 			DPTotalAmount:      manualTotalAmount,
 			DPTransferAmount:   manualPrice,
 			DPSplitCount:       10,
 			DPSplitAmount:      25 * common.UsdRateBase,
-			NormalCellLock:     dpRecycleWhitelist,
+			NormalCellLock:     capacityWhitelist.Script,
 		})
 		if err != nil {
 			return fmt.Errorf("SplitDPCell err: %s", err.Error())

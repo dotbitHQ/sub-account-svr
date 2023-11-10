@@ -90,6 +90,10 @@ type CfgServer struct {
 		Approval struct {
 			MaxDelayCount uint8 `json:"max_delay_count" yaml:"max_delay_count"`
 		} `json:"approval" yaml:"approval"`
+		Dp struct {
+			TransferWhiteList string `json:"transfer_white_list" yaml:"transfer_white_list"`
+			CapacityWhitelist string `json:"capacity_whitelist" yaml:"capacity_whitelist"`
+		} `json:"dp" yaml:"dp"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {
