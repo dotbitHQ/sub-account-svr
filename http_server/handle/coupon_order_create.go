@@ -130,7 +130,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		return fmt.Errorf("GetPendingOrderByAccIdAndActionType err: %s", err.Error())
 	}
 	if order.Id > 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "have pending order: "+order.OrderId)
+		apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "have pending order")
 		apiResp.Data = map[string]interface{}{
 			"order_id": order.OrderId,
 		}

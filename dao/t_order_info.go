@@ -303,7 +303,7 @@ func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash st
 }
 
 func (d *DbDao) GetPendingOrderByAccIdAndActionType(accountId string, actionType tables.ActionType) (order tables.OrderInfo, err error) {
-	err = d.db.Where("accountId=? and action_type=? and order_status=?", accountId, actionType, tables.OrderStatusDefault).First(&order).Error
+	err = d.db.Where("account_id=? and action_type=? and order_status=?", accountId, actionType, tables.OrderStatusDefault).First(&order).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
