@@ -53,7 +53,7 @@ type OrderInfo struct {
 	PremiumPercentage decimal.Decimal       `json:"premium_percentage" gorm:"column:premium_percentage; type:decimal(20,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	PremiumBase       decimal.Decimal       `json:"premium_base" gorm:"column:premium_base; type:decimal(20,10) NOT NULL DEFAULT '0' COMMENT '';"`
 	PremiumAmount     decimal.Decimal       `json:"premium_amount" gorm:"column:premium_amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
-	MetaData          string                `json:"meta_data" gorm:"column:meta_data; type:text NOT NULL COMMENT '';"`
+	MetaData          string                `json:"meta_data" gorm:"column:meta_data;type:text NOT NULL COMMENT 'order meta_data'"`
 	CreatedAt         time.Time             `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt         time.Time             `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
