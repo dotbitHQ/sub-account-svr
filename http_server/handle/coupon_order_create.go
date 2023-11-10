@@ -35,7 +35,6 @@ type ReqCouponOrderCreate struct {
 	Account   string         `json:"account" binding:"required"`
 	TokenId   tables.TokenId `json:"token_id" binding:"required"`
 	Num       int            `json:"num" binding:"min=1,max=10000"`
-	Cid       string         `json:"cid" binding:"required"`
 	Name      string         `json:"name" binding:"required"`
 	Note      string         `json:"note"`
 	Price     string         `json:"price" binding:"required"`
