@@ -7,6 +7,7 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/molecule"
+	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
@@ -41,7 +42,7 @@ func (h *HttpHandle) SubAccountInitFree(ctx *gin.Context) {
 func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountInit
 	resp.List = make([]SignInfo, 0)
-
+	resp.SignList = make([]txbuilder.SignData, 0)
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
