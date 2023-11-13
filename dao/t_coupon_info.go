@@ -182,3 +182,23 @@ func (d *DbDao) GetSetInfoByCoupon(coupon string) (res tables.CouponSetInfo, err
 func (d *DbDao) UpdateCouponInfo(cid string, ids []int64, status int) error {
 	return d.db.Where("cid=? and status!=? and id in(?)", cid, tables.CouponStatusUsed, ids).Updates(map[string]interface{}{"status": status}).Error
 }
+
+func (d *DbDao) GetCouponNum(status ...tables.CouponStatus) (num int64, err error) {
+	if len(status) > 0 {
+		err = d.db.Model(&tables.CouponInfo{}).Where("status=?", status[0]).Count(&num).Error
+	} else {
+		err = d.db.Model(&tables.CouponInfo{}).Count(&num).Error
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetCouponAccount() (num int64, err error) {
+	err = d.db.Model(&tables.CouponSetInfo{}).Distinct("account_id").Where("status=?", tables.CouponSetInfoStatusPaid).Count(&num).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
