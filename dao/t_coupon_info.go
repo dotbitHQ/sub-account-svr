@@ -63,6 +63,25 @@ func (d *DbDao) GetCouponSetInfoByOrderId(orderId string) (res tables.CouponSetI
 	return
 }
 
+func (d *DbDao) GetCouponSetInfoByCode(code string) (res tables.CouponSetInfo, err error) {
+	code, err = encrypt.AesEncrypt(code, config.Cfg.Das.Coupon.EncryptionKey)
+	if err != nil {
+		return
+	}
+	var couponInfo tables.CouponInfo
+	err = d.db.Where("code = ?", code).First(&couponInfo).Error
+	if err != nil {
+		return
+	}
+	if err = d.db.Where("cid = ?", couponInfo.Cid).First(&res).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = nil
+			return
+		}
+	}
+	return
+}
+
 func (d *DbDao) FindCouponByCid(cid string) ([]*tables.CouponInfo, error) {
 	res := make([]*tables.CouponInfo, 0)
 	if err := d.db.Where("cid = ?", cid).Find(&res).Error; err != nil {

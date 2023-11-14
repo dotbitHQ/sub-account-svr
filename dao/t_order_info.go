@@ -204,25 +204,55 @@ func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tab
 }
 
 type OrderAmountInfo struct {
-	TokenId string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Amount  decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
+	TokenId    string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
+	Amount     decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
+	USDAmount  decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount; type:decimal(50,10) NOT NULL DEFAULT '0' COMMENT '';"`
+	CouponCode string          `json:"coupon_code" gorm:"column:coupon_code; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
 }
 
 func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]decimal.Decimal, err error) {
 	list := make([]*OrderAmountInfo, 0)
-	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, sum(amount-premium_amount) as amount").
-		Where("parent_account_id=? and pay_status=? and order_status=?", accountId, tables.PayStatusPaid, tables.OrderStatusSuccess)
+	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, amount-premium_amount as amount, coupon_code").
+		Where("parent_account_id=? and pay_status=? and order_status=? and action_type in (?)",
+			accountId, tables.PayStatusPaid, tables.OrderStatusSuccess, []tables.ActionType{tables.ActionTypeMint, tables.ActionTypeRenew})
 	if paid {
 		db = db.Where("auto_payment_id != ''")
 	}
-	err = db.Group("token_id").Find(&list).Error
-	if err == gorm.ErrRecordNotFound {
+	err = db.Find(&list).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 
+	tokens, err := d.FindTokens()
+	if err != nil {
+		return nil, err
+	}
+
+	feeRate := decimal.NewFromFloat(0.85)
+	minPrice := decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))
 	result = make(map[string]decimal.Decimal)
 	for _, v := range list {
-		result[v.TokenId] = result[v.TokenId].Add(v.Amount)
+		if v.CouponCode == "" {
+			if v.USDAmount.GreaterThan(minPrice) {
+				result[v.TokenId] = result[v.TokenId].Add(v.Amount.Mul(feeRate))
+				continue
+			}
+
+			amount := v.USDAmount.Sub(decimal.NewFromFloat(1.09))
+			if amount.GreaterThan(decimal.Zero) {
+				result[v.TokenId] = result[v.TokenId].Add(amount.Div(tokens[v.TokenId].Price))
+			}
+			continue
+		}
+
+		couponSetInfo, err := d.GetCouponSetInfoByCode(v.CouponCode)
+		if err != nil {
+			return nil, err
+		}
+		if v.USDAmount.GreaterThan(couponSetInfo.Price) {
+			amount := v.USDAmount.Sub(couponSetInfo.Price).Div(tokens[v.TokenId].Price)
+			result[v.TokenId] = result[v.TokenId].Add(amount.Mul(feeRate))
+		}
 	}
 	return
 }
