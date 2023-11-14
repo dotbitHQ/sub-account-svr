@@ -72,7 +72,14 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 	}
 	signAddress := res.AddressHex
 	if res.DasAlgorithmId == common.DasAlgorithmIdWebauthn {
-		signAddress = req.SignAddress
+		signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
+			ChainType:     common.ChainTypeWebauthn,
+			AddressNormal: req.SignAddress,
+		})
+		if err != nil {
+			return fmt.Errorf("NormalToHex: %s", err.Error())
+		}
+		signAddress = signAddressHex.AddressHex
 	}
 
 	signMsg := fmt.Sprintf("%s%d", req.Account, req.Timestamp)
