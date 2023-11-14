@@ -303,7 +303,7 @@ func createCoupon(couponCodes map[string]struct{}, req *ReqCouponOrderCreate) er
 		}
 		couponCodes[code] = struct{}{}
 
-		if len(couponCodes) >= req.Num {
+		if int64(len(couponCodes)) >= req.Num {
 			break
 		}
 	}
