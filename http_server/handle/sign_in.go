@@ -70,6 +70,7 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil
 	}
+
 	signAddress := res.AddressHex
 	if res.DasAlgorithmId == common.DasAlgorithmIdWebauthn {
 		signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
@@ -80,6 +81,15 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 			return fmt.Errorf("NormalToHex: %s", err.Error())
 		}
 		signAddress = signAddressHex.AddressHex
+
+		idx, err := h.DasCore.GetIdxOfKeylist(*res, signAddressHex)
+		if err != nil {
+			return fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
+		}
+		if idx == -1 {
+			return fmt.Errorf("permission denied")
+		}
+		h.DasCore.AddPkIndexForSignMsg(&req.Signature, idx)
 	}
 
 	signMsg := fmt.Sprintf("%s%d", req.Account, req.Timestamp)

@@ -5,6 +5,7 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 )
 
@@ -26,7 +27,8 @@ type RespCouponSetInfo struct {
 	Name      string `json:"name"`
 	Note      string `json:"note"`
 	Price     string `json:"price"`
-	Num       int    `json:"num"`
+	Num       int64  `json:"num"`
+	Used      int64  `json:"used"`
 	Status    int    `json:"status"`
 	BeginAt   int64  `json:"begin_at"`
 	ExpiredAt int64  `json:"expired_at"`
@@ -66,21 +68,44 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 
 	resp := &RespCouponSetInfoList{
 		Total: total,
-		List:  make([]RespCouponSetInfo, 0),
+		List:  make([]RespCouponSetInfo, 0, len(setInfo)),
 	}
-	for _, v := range setInfo {
-		resp.List = append(resp.List, RespCouponSetInfo{
-			Cid:       v.Cid,
-			Account:   v.Account,
-			Name:      v.Name,
-			Note:      v.Note,
-			Price:     v.Price.String(),
-			Num:       v.Num,
-			Status:    v.Status,
-			BeginAt:   v.BeginAt,
-			ExpiredAt: v.ExpiredAt,
-			CreatedAt: v.CreatedAt.UnixMilli(),
-		})
+
+	errWg := &errgroup.Group{}
+	ch := make(chan int, 10)
+	errWg.Go(func() error {
+		for idx := range setInfo {
+			ch <- idx
+		}
+		close(ch)
+		return nil
+	})
+
+	errWg.Go(func() error {
+		for idx := range ch {
+			used, err := h.DbDao.GetUsedCoupon(setInfo[idx].Cid)
+			if err != nil {
+				return err
+			}
+			v := setInfo[idx]
+			resp.List = append(resp.List, RespCouponSetInfo{
+				Cid:       v.Cid,
+				Account:   v.Account,
+				Name:      v.Name,
+				Note:      v.Note,
+				Price:     v.Price.String(),
+				Num:       v.Num,
+				Used:      used,
+				Status:    v.Status,
+				BeginAt:   v.BeginAt,
+				ExpiredAt: v.ExpiredAt,
+				CreatedAt: v.CreatedAt.UnixMilli(),
+			})
+		}
+		return nil
+	})
+	if err := errWg.Wait(); err != nil {
+		return err
 	}
 	apiResp.ApiRespOK(resp)
 	return nil

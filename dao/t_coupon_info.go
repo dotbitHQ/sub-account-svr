@@ -202,3 +202,11 @@ func (d *DbDao) GetCouponAccount() (num int64, err error) {
 	}
 	return
 }
+
+func (d *DbDao) GetUsedCoupon(cid string) (num int64, err error) {
+	err = d.db.Model(&tables.CouponInfo{}).Where("cid=? and status=?", cid, tables.CouponStatusUsed).Count(&num).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
