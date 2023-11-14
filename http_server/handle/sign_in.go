@@ -15,9 +15,10 @@ import (
 
 type ReqSignIn struct {
 	core.ChainTypeAddress
-	Account   string `json:"account" binding:"required"`
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	Signature string `json:"signature" binding:"required"`
+	Account     string `json:"account" binding:"required"`
+	Timestamp   int64  `json:"timestamp" binding:"required"`
+	Signature   string `json:"signature" binding:"required"`
+	SignAddress string `json:"sign_address"`
 }
 
 type RespSignIn struct {
@@ -69,11 +70,13 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil
 	}
-	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
+	signAddress := res.AddressHex
+	if res.DasAlgorithmId == common.DasAlgorithmIdWebauthn {
+		signAddress = req.SignAddress
+	}
 
 	signMsg := fmt.Sprintf("%s%d", req.Account, req.Timestamp)
-
-	if ok, _, err := api_code.VerifySignature(res.DasAlgorithmId, signMsg, req.Signature, address); err != nil {
+	if ok, _, err := api_code.VerifySignature(res.DasAlgorithmId, signMsg, req.Signature, signAddress); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
 		return nil
 	} else if !ok {
@@ -95,14 +98,14 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeParentAccountExpired, "account expired")
 		return nil
 	}
-	if !strings.EqualFold(accInfo.Manager, address) && !strings.EqualFold(accInfo.Owner, address) {
+	if !strings.EqualFold(accInfo.Manager, res.AddressHex) && !strings.EqualFold(accInfo.Owner, res.AddressHex) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
 
 	claims := &Claims{
 		Account:   req.Account,
-		Address:   address,
+		Address:   res.AddressHex,
 		Aid:       res.DasAlgorithmId,
 		SubAid:    res.DasSubAlgorithmId,
 		Timestamp: req.Timestamp,
