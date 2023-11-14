@@ -65,17 +65,33 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			csvRecord.Ids = make([]uint64, 0)
 			records[v.ParentAccountId][v.TokenId] = csvRecord
 		}
-		amount := decimal.Zero
+
+		feeRate := decimal.NewFromFloat(0.85)
+		minPriceFee := decimal.NewFromFloat(0.99).Mul(decimal.NewFromInt(int64(v.Years))).Add(decimal.NewFromFloat(0.1))
+		couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15))
+
+		amount := v.Amount.Sub(v.PremiumAmount)
 		if v.CouponCode == "" {
-			amount = v.Amount.Sub(v.PremiumAmount)
-			couponMinPrice := decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))
-			if v.USDAmount.GreaterThan(couponMinPrice) {
-				amount = amount.Mul(decimal.NewFromFloat(0.85))
-				csvRecord.FeeRate = decimal.NewFromFloat(0.15)
-				csvRecord.Fee = amount.Mul(decimal.NewFromFloat(0.15))
+			if v.USDAmount.GreaterThan(decimal.Zero) {
+				if v.USDAmount.GreaterThan(couponMinPrice) {
+					csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
+					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
+					amount = amount.Mul(feeRate)
+				} else {
+					fee := minPriceFee.Div(token.Price).Mul(decimal.New(1, token.Decimals))
+					amount = amount.Sub(fee)
+					csvRecord.Fee = fee
+				}
 			} else {
-				amount = amount.Sub(decimal.NewFromFloat(1.09).Div(token.Price).Mul(decimal.NewFromInt(int64(token.Decimals))))
-				csvRecord.Fee = decimal.NewFromFloat(1.09)
+				if v.Amount.GreaterThan(couponMinPrice.Div(token.Price).Mul(decimal.New(1, token.Decimals))) {
+					csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
+					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
+					amount = amount.Mul(feeRate)
+				} else {
+					fee := minPriceFee.Div(token.Price).Mul(decimal.New(1, token.Decimals))
+					amount = amount.Sub(fee)
+					csvRecord.Fee = fee
+				}
 			}
 		} else {
 			couponSetInfo, err := s.DbDao.GetSetInfoByCoupon(v.CouponCode)
@@ -83,13 +99,19 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 				return nil, err
 			}
 			if v.USDAmount.GreaterThan(couponSetInfo.Price) {
-				amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.NewFromFloat(0.85)).Div(token.Price).Mul(decimal.NewFromInt(int64(token.Decimals)))
-				csvRecord.FeeRate = decimal.NewFromFloat(0.15)
-				csvRecord.Fee = amount.Mul(decimal.NewFromFloat(0.15))
+				amount = v.USDAmount.Sub(couponSetInfo.Price).Div(token.Price).Mul(decimal.New(1, token.Decimals))
+				csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
+				csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
+				amount = amount.Mul(feeRate)
+			} else {
+				amount = decimal.Zero
 			}
 		}
-		csvRecord.Amount = csvRecord.Amount.Add(amount)
-		csvRecord.Ids = append(csvRecord.Ids, v.Id)
+
+		if amount.GreaterThan(decimal.Zero) {
+			csvRecord.Amount = csvRecord.Amount.Add(amount)
+			csvRecord.Ids = append(csvRecord.Ids, v.Id)
+		}
 	}
 
 	recordsNew := make(map[string]map[string]*CsvRecord)

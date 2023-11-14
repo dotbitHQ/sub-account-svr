@@ -101,6 +101,17 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	}
 	// testnet 2023-09-15
 	minPrice := uint64(990000)
+
+	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(0.03))
+	ckbToken, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
+	if err != nil {
+		return "", err
+	}
+	usdtToken, err := h.DbDao.GetTokenById(tables.TokenIdErc20USDT)
+	if err != nil {
+		return "", err
+	}
+
 	amount := decimal.Zero
 	for _, v := range list {
 		outpoint := common.OutPoint2String(v.TxHash, 0)
@@ -115,6 +126,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			return "", fmt.Errorf("GetSmtRecordListByTaskId err: %s", err.Error())
 		}
 		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.Years)))
+		couponMinPrice := decimal.NewFromInt(int64(minPrice)).
+			Div(decimal.New(1, usdtToken.Decimals)).
+			Mul(decimal.NewFromInt(int64(v.Years))).
+			Add(decimal.NewFromFloat(0.1)).
+			Div(decimal.NewFromFloat(0.15))
 
 		smtRecordPrice := decimal.Zero
 		for _, v := range smtRecordInfo {
@@ -136,12 +152,27 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			smtRecordPrice = smtRecordPrice.Add(priceDecimal)
 
 			var payAmount decimal.Decimal
-			if order.CouponCode == "" && order.USDAmount.GreaterThan(decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))) {
-				payAmount = priceDecimal.Mul(decimal.NewFromFloat(0.88))
+			if order.CouponCode == "" {
+				if order.USDAmount.GreaterThan(decimal.Zero) {
+					if order.USDAmount.GreaterThan(couponMinPrice) {
+						payAmount = priceDecimal.Mul(feeRate)
+					} else {
+						payAmount = priceDecimal.Sub(minCKB)
+					}
+				} else {
+					couponMinCkbPrice := couponMinPrice.Div(ckbToken.Price).Mul(decimal.New(1, ckbToken.Decimals))
+					if priceDecimal.GreaterThan(couponMinCkbPrice) {
+						payAmount = priceDecimal.Mul(feeRate)
+					} else {
+						payAmount = priceDecimal.Sub(minCKB)
+					}
+				}
 			} else {
 				payAmount = priceDecimal.Sub(minCKB)
 			}
-			amount = amount.Add(payAmount)
+			if payAmount.GreaterThan(decimal.Zero) {
+				amount = amount.Add(payAmount)
+			}
 		}
 		if !smtRecordPrice.Equal(v.Price) {
 			return "", fmt.Errorf("smt data abnormal, smt_record_info price != auto_mint_statements price: %s %s", smtRecordPrice, v.Price)
