@@ -176,8 +176,13 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it not open")
 			return nil
 		}
-		if time.Now().After(time.UnixMilli(setInfo.ExpiredAt)) {
+		if now.After(time.UnixMilli(setInfo.ExpiredAt)) {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it expired")
+			return nil
+		}
+		couponAccId := common.Bytes2Hex(common.GetAccountIdByAccount(setInfo.Account))
+		if couponAccId != parentAccountId {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "this coupon code can not use, because it not belong to this account")
 			return nil
 		}
 
@@ -295,7 +300,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		CouponCode:        req.CouponCode,
 		PayStatus:         tables.PayStatusUnpaid,
 		OrderStatus:       tables.OrderStatusDefault,
-		Timestamp:         time.Now().UnixMilli(),
+		Timestamp:         now.UnixMilli(),
 		SvrName:           config.Cfg.Slb.SvrName,
 		PremiumPercentage: premiumPercentage,
 		PremiumBase:       premiumBase,
