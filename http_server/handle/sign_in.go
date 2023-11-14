@@ -6,7 +6,6 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
-	"github.com/dotbitHQ/das-lib/sign"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
@@ -73,7 +72,8 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
 	signMsg := fmt.Sprintf("%s%d", req.Account, req.Timestamp)
-	if ok, err := sign.VerifyPersonalSignature(common.Hex2Bytes(req.Signature), []byte(signMsg), address); err != nil {
+
+	if ok, _, err := api_code.VerifySignature(res.DasAlgorithmId, signMsg, req.Signature, address); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
 		return nil
 	} else if !ok {
