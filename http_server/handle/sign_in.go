@@ -73,21 +73,29 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 
 	signAddress := res.AddressHex
 	if res.DasAlgorithmId == common.DasAlgorithmIdWebauthn {
+		if req.SignAddress == "" {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sign_address can't be empty")
+			return nil
+		}
 		signAddressHex, err := h.DasCore.Daf().NormalToHex(core.DasAddressNormal{
 			ChainType:     common.ChainTypeWebauthn,
 			AddressNormal: req.SignAddress,
 		})
 		if err != nil {
-			return fmt.Errorf("NormalToHex: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return err
 		}
 		signAddress = signAddressHex.AddressHex
 
 		idx, err := h.DasCore.GetIdxOfKeylist(*res, signAddressHex)
 		if err != nil {
-			return fmt.Errorf("GetIdxOfKeylist err: %s", err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return err
 		}
 		if idx == -1 {
-			return fmt.Errorf("permission denied")
+			err = fmt.Errorf("permission denied")
+			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, err.Error())
+			return err
 		}
 		h.DasCore.AddPkIndexForSignMsg(&req.Signature, idx)
 	}
