@@ -19,6 +19,8 @@ type ReqCheckPermissions struct {
 }
 
 func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {
+	return
+
 	var apiResp api_code.ApiResp
 	defer func() {
 		if apiResp.ErrNo != 0 {
