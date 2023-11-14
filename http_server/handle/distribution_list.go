@@ -1,6 +1,8 @@
 package handle
 
 import (
+	"das_sub_account/config"
+	"das_sub_account/encrypt"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -170,10 +172,16 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 							return err
 						}
 
+						resCode, err := encrypt.AesDecrypt(couponInfo.Code, config.Cfg.Das.Coupon.EncryptionKey)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
+
 						resp.List[idx].CouponInfo.Cid = couponInfo.Cid
 						resp.List[idx].CouponInfo.OrderAmount = fmt.Sprintf("$%s", order.USDAmount)
 						resp.List[idx].CouponInfo.SetName = couponSetInfo.Name
-						resp.List[idx].CouponInfo.Code = couponInfo.Code
+						resp.List[idx].CouponInfo.Code = resCode
 						resp.List[idx].CouponInfo.CouponPrice = fmt.Sprintf("-$%s", couponSetInfo.Price)
 						userAmount := decimal.Zero
 						if couponSetInfo.Price.LessThan(order.USDAmount) {

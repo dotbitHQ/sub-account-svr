@@ -162,13 +162,6 @@ func (d *DbDao) GetCouponByCode(code string) (res tables.CouponInfo, err error) 
 		err = nil
 		return
 	}
-	if res.Id > 0 {
-		resCode, err := encrypt.AesDecrypt(res.Code, config.Cfg.Das.Coupon.EncryptionKey)
-		if err != nil {
-			return res, err
-		}
-		res.Code = resCode
-	}
 	return
 }
 
