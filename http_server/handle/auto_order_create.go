@@ -198,6 +198,15 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	premiumBase := decimal.Zero
 	premiumAmount := decimal.Zero
 
+	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
+		return fmt.Errorf("GetTokenById err: %s", err.Error())
+	} else if tokenPrice.Id == 0 {
+		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+		return nil
+	}
+
 	// usd price -> token price
 	if actualUsdPrice.GreaterThan(decimal.Zero) {
 		// check user payment config
@@ -227,14 +236,6 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			return fmt.Errorf("price not be less than min: %s$", minPrice.String())
 		}
 
-		tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
-			return fmt.Errorf("GetTokenById err: %s", err.Error())
-		} else if tokenPrice.Id == 0 {
-			apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
-			return nil
-		}
 		// usd price -> token price
 		amount = actualUsdPrice.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
 		amount = RoundAmount(amount, req.TokenId)
@@ -320,6 +321,10 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	if err = h.DbDao.CreateOrderInfoWithCoupon(orderInfo, paymentInfo, couponInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
+	}
+
+	if req.TokenId == tables.TokenIdDp {
+		amount = amount.Div(decimal.New(1, tokenPrice.Decimals))
 	}
 
 	var resp RespAutoOrderCreate
