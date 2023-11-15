@@ -157,7 +157,7 @@ func (d *DbDao) FindCouponCodeList(cid string, page, pageSize int) (res []*table
 }
 
 func (d *DbDao) FindCouponCode(cid string) (res []*tables.CouponInfo, err error) {
-	if err = d.db.Where("cid = ?", cid).Order("created_at desc").Find(&res).Error; err != nil {
+	if err = d.db.Where("cid = ?", cid).Order("status asc").Order("created_at desc").Find(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = nil
 		}
