@@ -129,7 +129,7 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			}
 
 			price := record.Amount.Div(decimal.NewFromInt(int64(math.Pow10(int(record.Decimals))))).Mul(token.Price)
-			if price.LessThan(decimal.NewFromInt(config.Cfg.Das.AutoMint.PaymentMinPrice)) {
+			if price.LessThan(decimal.NewFromInt(config.Cfg.Das.AutoMint.PaymentMinPrice)) && config.Cfg.Server.Net == common.DasNetTypeMainNet {
 				log.Warnf("account: %s, token_id: %s, amount: %s$ less than min price: %d$, skip it",
 					record.Amount, record.TokenId, price, config.Cfg.Das.AutoMint.PaymentMinPrice)
 				continue
