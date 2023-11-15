@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/tables"
 	"encoding/csv"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"net/http"
+	"time"
 )
 
 type ReqCouponDownload struct {
@@ -36,7 +38,6 @@ func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
 	if err = h.doCouponDownload(ctx, &req, &apiResp); err != nil {
 		log.Error("doCouponDownload err:", err.Error(), funcName, clientIp, ctx)
 	}
-	ctx.JSON(http.StatusOK, apiResp)
 }
 
 func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, apiResp *api_code.ApiResp) error {
@@ -70,19 +71,43 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 	}
 
 	items := [][]string{
-		{"code", "status"},
+		{"Coupon Code", "Schedule", "Status", "Used By"},
 	}
 	for _, v := range couponList {
-		items = append(items, []string{v.Code, fmt.Sprint(v.Status)})
+		item := []string{v.Code}
+		schedule := ""
+		if setInfo.BeginAt > 0 {
+			schedule += time.UnixMilli(setInfo.BeginAt).Format("2006-01-02")
+		}
+		schedule += "~"
+		if setInfo.ExpiredAt > 0 {
+			schedule += time.UnixMilli(setInfo.ExpiredAt).Format("2006-01-02")
+		}
+		item = append(item, schedule)
+		if v.Status == tables.CouponStatusNormal {
+			item = append(item, "Valid")
+			item = append(item, "-")
+		} else {
+			item = append(item, "Invalid")
+			order, err := h.DbDao.GetOrderByCoupon(v.Code)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order info")
+				return err
+			}
+			item = append(item, order.Account)
+		}
+		items = append(items, item)
 	}
 
-	ctx.Header("Content-Type", "text/csv")
+	ctx.Header("Content-Description", "File Transfer")
 	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", req.Cid))
+	ctx.Header("Content-Type", "text/csv")
 	wr := csv.NewWriter(ctx.Writer)
 	if err := wr.WriteAll(items); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return nil
 	}
 	wr.Flush()
+	ctx.Status(http.StatusOK)
 	return nil
 }

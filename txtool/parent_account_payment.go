@@ -40,8 +40,8 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		return nil, err
 	}
 
-	if config.Cfg.Das.AutoMint.ServiceFeeMin >= 0.15 {
-		return nil, fmt.Errorf("service fee min: %f, must less than 0.15", config.Cfg.Das.AutoMint.ServiceFeeMin)
+	if config.Cfg.Das.AutoMint.ServiceFeeRatio >= 0.15 {
+		return nil, fmt.Errorf("service fee rate: %f, must less than 0.15", config.Cfg.Das.AutoMint.ServiceFeeRatio)
 	}
 
 	records := make(map[string]map[string]*CsvRecord)
