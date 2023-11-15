@@ -25,6 +25,10 @@ type RespConfigInfo struct {
 	MintCostsManually  decimal.Decimal `json:"mint_costs_manually"`
 	RenewCostsManually decimal.Decimal `json:"renew_costs_manually"`
 	ManagementTimes    uint64          `json:"management_times"`
+	Stripe             struct {
+		PremiumPercentage decimal.Decimal `json:"premium_percentage"`
+		PremiumBase       decimal.Decimal `json:"premium_base"`
+	} `json:"stripe"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -78,6 +82,9 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 
 	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
 	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
+
+	resp.Stripe.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
+	resp.Stripe.PremiumBase = config.Cfg.Stripe.PremiumBase
 	apiResp.ApiRespOK(resp)
 	return nil
 }
