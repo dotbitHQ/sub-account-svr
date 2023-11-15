@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/tables"
 	"errors"
 	"github.com/shopspring/decimal"
@@ -208,18 +209,10 @@ func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tab
 	})
 }
 
-type OrderAmountInfo struct {
-	TokenId    string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Amount     decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
-	USDAmount  decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount; type:decimal(50,10) NOT NULL DEFAULT '0' COMMENT '';"`
-	CouponCode string          `json:"coupon_code" gorm:"column:coupon_code; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-}
-
 func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]decimal.Decimal, err error) {
-	list := make([]*OrderAmountInfo, 0)
-	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, amount-premium_amount as amount, coupon_code").
-		Where("parent_account_id=? and pay_status=? and order_status=? and action_type in (?)",
-			accountId, tables.PayStatusPaid, tables.OrderStatusSuccess, []tables.ActionType{tables.ActionTypeMint, tables.ActionTypeRenew})
+	list := make([]*tables.OrderInfo, 0)
+	db := d.db.Where("parent_account_id=? and pay_status=? and order_status=? and action_type in (?)",
+		accountId, tables.PayStatusPaid, tables.OrderStatusSuccess, []tables.ActionType{tables.ActionTypeMint, tables.ActionTypeRenew})
 	if paid {
 		db = db.Where("auto_payment_id != ''")
 	}
@@ -234,30 +227,45 @@ func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]d
 	}
 
 	feeRate := decimal.NewFromFloat(0.85)
-	minPrice := decimal.NewFromFloat(1.09).Div(decimal.NewFromFloat(0.15))
+	minPriceFee := decimal.NewFromFloat(0.99).
+		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
+
 	result = make(map[string]decimal.Decimal)
 	for _, v := range list {
+		token := tokens[v.TokenId]
+		couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).
+			Mul(decimal.NewFromInt(int64(v.Years)))
+		amount := v.Amount.Sub(v.PremiumAmount)
+
 		if v.CouponCode == "" {
-			if v.USDAmount.GreaterThan(minPrice) {
-				result[v.TokenId] = result[v.TokenId].Add(v.Amount.Mul(feeRate))
-				continue
+			if v.USDAmount.GreaterThan(decimal.Zero) {
+				if v.USDAmount.GreaterThan(couponMinPrice) {
+					amount = amount.Mul(feeRate)
+				} else {
+					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+					amount = amount.Sub(fee)
+				}
+			} else {
+				if v.Amount.GreaterThan(couponMinPrice.Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()) {
+					amount = amount.Mul(feeRate)
+				} else {
+					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+					amount = amount.Sub(fee)
+				}
 			}
-
-			amount := v.USDAmount.Sub(decimal.NewFromFloat(1.09))
-			if amount.GreaterThan(decimal.Zero) {
-				result[v.TokenId] = result[v.TokenId].Add(amount.Div(tokens[v.TokenId].Price))
+		} else {
+			couponSetInfo, err := d.GetSetInfoByCoupon(v.CouponCode)
+			if err != nil {
+				return nil, err
 			}
-			continue
+			if v.USDAmount.GreaterThan(couponSetInfo.Price) {
+				amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+				amount = amount.Mul(feeRate)
+			} else {
+				amount = decimal.Zero
+			}
 		}
-
-		couponSetInfo, err := d.GetCouponSetInfoByCode(v.CouponCode)
-		if err != nil {
-			return nil, err
-		}
-		if v.USDAmount.GreaterThan(couponSetInfo.Price) {
-			amount := v.USDAmount.Sub(couponSetInfo.Price).Div(tokens[v.TokenId].Price)
-			result[v.TokenId] = result[v.TokenId].Add(amount.Mul(feeRate))
-		}
+		result[v.TokenId] = result[v.TokenId].Add(amount.Div(tokens[v.TokenId].Price))
 	}
 	return
 }

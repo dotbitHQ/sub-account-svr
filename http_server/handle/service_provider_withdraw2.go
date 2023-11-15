@@ -101,16 +101,10 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	}
 	// testnet 2023-09-15
 	minPrice := uint64(990000)
-
-	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(0.03))
-	ckbToken, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
-	if err != nil {
-		return "", err
-	}
-	usdtToken, err := h.DbDao.GetTokenById(tables.TokenIdErc20USDT)
-	if err != nil {
-		return "", err
-	}
+	minPriceFee := decimal.NewFromFloat(0.99).
+		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin)).
+		Div(decimal.NewFromFloat(0.15))
+	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio))
 
 	amount := decimal.Zero
 	for _, v := range list {
@@ -125,12 +119,6 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		if err != nil {
 			return "", fmt.Errorf("GetSmtRecordListByTaskId err: %s", err.Error())
 		}
-		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.Years)))
-		couponMinPrice := decimal.NewFromInt(int64(minPrice)).
-			Div(decimal.New(1, usdtToken.Decimals)).
-			Mul(decimal.NewFromInt(int64(v.Years))).
-			Add(decimal.NewFromFloat(0.1)).
-			Div(decimal.NewFromFloat(0.15))
 
 		smtRecordPrice := decimal.Zero
 		for _, v := range smtRecordInfo {
@@ -150,18 +138,21 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			}
 			priceDecimal := decimal.NewFromInt(int64(price))
 			smtRecordPrice = smtRecordPrice.Add(priceDecimal)
+			minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.RegisterYears+v.RenewYears)))
+			priceFee := minPriceFee.Mul(decimal.NewFromInt(int64(v.RegisterYears + v.RenewYears)))
 
 			var payAmount decimal.Decimal
 			if order.CouponCode == "" {
 				if order.USDAmount.GreaterThan(decimal.Zero) {
-					if order.USDAmount.GreaterThan(couponMinPrice) {
+					if order.USDAmount.GreaterThan(priceFee) {
 						payAmount = priceDecimal.Mul(feeRate)
 					} else {
 						payAmount = priceDecimal.Sub(minCKB)
 					}
 				} else {
-					couponMinCkbPrice := couponMinPrice.Div(ckbToken.Price).Mul(decimal.New(1, ckbToken.Decimals))
-					if priceDecimal.GreaterThan(couponMinCkbPrice) {
+					couponMinCkbPrice := config.PriceToCKB(uint64(minPriceFee.Mul(decimal.New(1, 6)).IntPart()),
+						uint64(v.Quote.IntPart()), v.RegisterYears+v.RenewYears)
+					if priceDecimal.GreaterThan(decimal.NewFromInt(int64(couponMinCkbPrice))) {
 						payAmount = priceDecimal.Mul(feeRate)
 					} else {
 						payAmount = priceDecimal.Sub(minCKB)

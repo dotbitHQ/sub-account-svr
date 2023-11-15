@@ -40,6 +40,10 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		return nil, err
 	}
 
+	if config.Cfg.Das.AutoMint.ServiceFeeMin >= 0.15 {
+		return nil, fmt.Errorf("service fee min: %f, must less than 0.15", config.Cfg.Das.AutoMint.ServiceFeeMin)
+	}
+
 	records := make(map[string]map[string]*CsvRecord)
 	for _, v := range list {
 		token, ok := tokens[v.TokenId]
@@ -67,10 +71,12 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		}
 
 		feeRate := decimal.NewFromFloat(0.85)
-		minPriceFee := decimal.NewFromFloat(0.99).Mul(decimal.NewFromInt(int64(v.Years))).Add(decimal.NewFromFloat(0.1))
-		couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15))
-
+		minPriceFee := decimal.NewFromFloat(0.99).
+			Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
+		couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).
+			Mul(decimal.NewFromInt(int64(v.Years)))
 		amount := v.Amount.Sub(v.PremiumAmount)
+
 		if v.CouponCode == "" {
 			if v.USDAmount.GreaterThan(decimal.Zero) {
 				if v.USDAmount.GreaterThan(couponMinPrice) {
@@ -78,17 +84,17 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
 					amount = amount.Mul(feeRate)
 				} else {
-					fee := minPriceFee.Div(token.Price).Mul(decimal.New(1, token.Decimals))
+					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
 					amount = amount.Sub(fee)
 					csvRecord.Fee = fee
 				}
 			} else {
-				if v.Amount.GreaterThan(couponMinPrice.Div(token.Price).Mul(decimal.New(1, token.Decimals))) {
+				if v.Amount.GreaterThan(couponMinPrice.Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()) {
 					csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
 					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
 					amount = amount.Mul(feeRate)
 				} else {
-					fee := minPriceFee.Div(token.Price).Mul(decimal.New(1, token.Decimals))
+					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
 					amount = amount.Sub(fee)
 					csvRecord.Fee = fee
 				}
@@ -99,7 +105,7 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 				return nil, err
 			}
 			if v.USDAmount.GreaterThan(couponSetInfo.Price) {
-				amount = v.USDAmount.Sub(couponSetInfo.Price).Div(token.Price).Mul(decimal.New(1, token.Decimals))
+				amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
 				csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
 				csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
 				amount = amount.Mul(feeRate)

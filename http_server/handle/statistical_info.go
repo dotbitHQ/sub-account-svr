@@ -140,10 +140,9 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 				!paymentConfig.CfgMap[k].Enable {
 				continue
 			}
-			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
-			rate := decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio)
-			total := v.Mul(rate).DivRound(decimals, token.Decimals)
-			balance := v.Sub(paidAmount[k]).Mul(rate).DivRound(decimals, token.Decimals)
+			decimals := decimal.New(1, token.Decimals)
+			total := v.DivRound(decimals, token.Decimals)
+			balance := v.Sub(paidAmount[k]).DivRound(decimals, token.Decimals)
 
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:            token.Symbol,

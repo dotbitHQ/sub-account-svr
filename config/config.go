@@ -86,6 +86,7 @@ type CfgServer struct {
 			BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
 			PaymentMinPrice     int64             `json:"payment_min_price" yaml:"payment_min_price"`
 			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
+			ServiceFeeMin       float64           `json:"service_fee_min" yaml:"service_fee_min"`
 		} `json:"auto_mint" yaml:"auto_mint"`
 		Approval struct {
 			MaxDelayCount uint8 `json:"max_delay_count" yaml:"max_delay_count"`
