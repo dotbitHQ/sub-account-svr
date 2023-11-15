@@ -56,6 +56,11 @@ func (d *DbDao) GetChainSmtRecordListByTaskId(taskId string) (list []tables.Tabl
 	return
 }
 
+func (d *DbDao) GetChainSmtRecordListByTaskIdAndAccId(taskId, accId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("task_id=? AND account_id=? AND record_type=?", taskId, accId, tables.RecordTypeChain).First(&info).Error
+	return
+}
+
 func (d *DbDao) GetSmtRecordListByTaskIds(taskIds []string, recordType tables.RecordType) (list []tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("task_id IN(?) AND record_type=?", taskIds, recordType).Find(&list).Error
 	return

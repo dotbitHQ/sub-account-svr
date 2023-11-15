@@ -9,7 +9,6 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
-	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
@@ -99,80 +98,69 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	if len(list) == 0 {
 		return "", nil
 	}
-	// testnet 2023-09-15
-	minPrice := uint64(990000)
-	minPriceFee := decimal.NewFromFloat(0.99).
+
+	minPrice := decimal.NewFromFloat(0.99)
+	minPriceFee := minPrice.
 		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin)).
-		Div(decimal.NewFromFloat(0.15))
+		Div(decimal.NewFromFloat(0.15)).
+		Mul(decimal.New(1, 6))
 	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio))
 
 	amount := decimal.Zero
-	for _, v := range list {
-		outpoint := common.OutPoint2String(v.TxHash, 0)
-		task, err := h.DbDao.GetTaskByOutpointWithParentAccountId(v.ParentAccountId, outpoint)
+	for _, statement := range list {
+		tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(statement.TxHash))
+		if err != nil {
+			return "", err
+		}
+		builder := witness.SubAccountNewBuilder{}
+		dataBys := tx.Transaction.Witnesses[statement.WitnessIndex][common.WitnessDasTableTypeEndIndex:]
+		subAccountNew, err := builder.ConvertSubAccountNewFromBytes(dataBys)
+		if err != nil {
+			return "", err
+		}
+		subAccId := subAccountNew.CurrentSubAccountData.AccountId
+
+		outpoint := common.OutPoint2String(statement.TxHash, 0)
+		task, err := h.DbDao.GetTaskByOutpointWithParentAccountId(statement.ParentAccountId, outpoint)
 		if err != nil {
 			return "", fmt.Errorf("GetTaskByOutpointWithParentAccountId err: %s", err.Error())
-		} else if task.Id == 0 {
-			return "", fmt.Errorf("GetTaskByOutpointWithParentAccountId err not found: %s", outpoint)
-		}
-		smtRecordInfo, err := h.DbDao.GetChainSmtRecordListByTaskId(task.TaskId)
-		if err != nil {
-			return "", fmt.Errorf("GetSmtRecordListByTaskId err: %s", err.Error())
 		}
 
-		smtRecordPrice := decimal.Zero
-		for _, v := range smtRecordInfo {
-			if v.OrderID == "" {
-				continue
-			}
-			order, err := h.DbDao.GetOrderByOrderID(v.OrderID)
+		var orderInfo tables.OrderInfo
+		if task.Id > 0 {
+			smtRecord, err := h.DbDao.GetChainSmtRecordListByTaskIdAndAccId(task.TaskId, subAccId)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: %s", err.Error())
 			}
-			if order.Id == 0 {
-				return "", fmt.Errorf("order not found: %s", v.OrderID)
+			if smtRecord.Id == 0 {
+				return "", fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: subAccount not found, task_id=%s, sub_acc=%s", task.TaskId, subAccountNew.CurrentSubAccountData.Account())
 			}
-			price, err := molecule.Bytes2GoU64(common.Hex2Bytes(v.EditValue)[20:])
+			if smtRecord.OrderID == "" {
+				return "", fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: order_id is empty, task_id=%s, sub_acc=%s", task.TaskId, subAccountNew.CurrentSubAccountData.Account())
+			}
+			orderInfo, err = h.DbDao.GetOrderByOrderID(smtRecord.OrderID)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("GetOrderByOrderID err: %s", err.Error())
 			}
-			priceDecimal := decimal.NewFromInt(int64(price))
-			smtRecordPrice = smtRecordPrice.Add(priceDecimal)
-			minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.RegisterYears+v.RenewYears)))
-			priceFee := minPriceFee.Mul(decimal.NewFromInt(int64(v.RegisterYears + v.RenewYears)))
-
-			var payAmount decimal.Decimal
-			if order.CouponCode == "" {
-				if order.USDAmount.GreaterThan(decimal.Zero) {
-					if order.USDAmount.GreaterThan(priceFee) {
-						payAmount = priceDecimal.Mul(feeRate)
-					} else {
-						payAmount = priceDecimal.Sub(minCKB)
-					}
-				} else {
-					couponMinCkbPrice := config.PriceToCKB(uint64(minPriceFee.Mul(decimal.New(1, 6)).IntPart()),
-						uint64(v.Quote.IntPart()), v.RegisterYears+v.RenewYears)
-					if priceDecimal.GreaterThan(decimal.NewFromInt(int64(couponMinCkbPrice))) {
-						payAmount = priceDecimal.Mul(feeRate)
-					} else {
-						payAmount = priceDecimal.Sub(minCKB)
-					}
-				}
-			} else {
-				payAmount = priceDecimal.Sub(minCKB)
-			}
-			if payAmount.GreaterThan(decimal.Zero) {
-				amount = amount.Add(payAmount)
+			if orderInfo.Id == 0 {
+				return "", fmt.Errorf("GetOrderByOrderID err: order not found, order_id=%s", smtRecord.OrderID)
 			}
 		}
-		if !smtRecordPrice.Equal(v.Price) {
-			return "", fmt.Errorf("smt data abnormal, smt_record_info price != auto_mint_statements price: %s %s", smtRecordPrice, v.Price)
+
+		minCkbFee := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPriceFee.IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPrice.Mul(decimal.New(1, 6)).IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		if (task.Id == 0 || orderInfo.CouponCode == "") && statement.Price.GreaterThan(minCkbFee) {
+			// other provider or self but not use coupon
+			amount = amount.Add(statement.Price.Mul(feeRate))
+		} else if statement.Price.Sub(minCKB).GreaterThan(decimal.Zero) {
+			amount = amount.Add(statement.Price.Sub(minCKB))
 		}
 	}
 	log.Info("ServiceProviderWithdraw2:", req.ServiceProviderAddress, req.Account, amount.String())
 
-	if amount.LessThanOrEqual(decimal.NewFromInt(int64(common.MinCellOccupiedCkb))) {
-		return "", nil
+	minCellOccupiedCkb := decimal.NewFromInt(int64(common.MinCellOccupiedCkb))
+	if amount.LessThanOrEqual(minCellOccupiedCkb) {
+		return "", fmt.Errorf("transfer ckb less than %s", minCellOccupiedCkb)
 	}
 	if !req.Withdraw {
 		return "", nil
