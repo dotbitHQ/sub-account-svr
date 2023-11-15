@@ -83,6 +83,30 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	providerId := common.Bytes2Hex(spAddr.Script.Args)
 
+	// check pending tx
+	task, err := h.DbDao.GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, common.DasActionCollectSubAccountChannelProfit, tables.TxStatusPending)
+	if err != nil {
+		return err
+	}
+	if task.Id > 0 {
+		return fmt.Errorf("have pending task: %s", task.TaskId)
+	}
+
+	task, err = h.DbDao.GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, common.DasActionCollectSubAccountChannelProfit, tables.TxStatusCommitted)
+	if err != nil {
+		return err
+	}
+	if task.Id > 0 {
+		txHash, _ := common.String2OutPoint(task.Outpoint)
+		statement, err := h.DbDao.GetSubAccountAutoMintByTxHash(txHash)
+		if err != nil {
+			return err
+		}
+		if statement.Id == 0 {
+			return fmt.Errorf("have pending task: %s", task.TaskId)
+		}
+	}
+
 	latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType2(providerId, parentAccountId, tables.SubAccountAutoMintTxTypeExpenditure)
 	if err != nil {
 		return fmt.Errorf("GetLatestSubAccountAutoMintStatementByType2 err: %s", err.Error())

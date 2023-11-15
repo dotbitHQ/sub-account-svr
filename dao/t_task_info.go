@@ -354,3 +354,11 @@ func (d *DbDao) GetUnDoTaskListByParentAccountId(parentAccountId string) (count 
 			parentAccountId, tables.SmtStatusNeedToWrite, tables.TxStatusUnSend).Count(&count).Error
 	return
 }
+
+func (d *DbDao) GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, action string, txStatus tables.TxStatus) (task tables.TableTaskInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND action=? AND tx_status=?", parentAccountId, action, txStatus).Order("id desc").First(&task).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
