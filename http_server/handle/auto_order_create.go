@@ -168,7 +168,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
 			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
 		}
-		if setInfo.OrderId == "" || setInfo.Status != tables.CouponSetInfoStatusPaid {
+		if setInfo.OrderId == "" || setInfo.Status != tables.CouponSetInfoStatusSuccess {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it order not paid")
 			return nil
 		}

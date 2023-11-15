@@ -14,7 +14,6 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/http_api"
 	"github.com/labstack/gommon/random"
-	"github.com/shopspring/decimal"
 	"strings"
 	"time"
 )
@@ -240,33 +239,10 @@ func DoPaymentConfirm(dasCore *core.DasCore, dbDao *dao.DbDao, orderId, payHash 
 			}
 		}
 
-		price, err := decimal.NewFromString(req.Price)
+		couponSetInfo, err := dbDao.GetCouponSetInfoByOrderId(orderId)
 		if err != nil {
 			return err
 		}
-
-		res, err := req.ChainTypeAddress.FormatChainTypeAddress(dasCore.NetType(), false)
-		if err != nil {
-			return err
-		}
-
-		accId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
-		couponSetInfo := &tables.CouponSetInfo{
-			AccountId:     accId,
-			OrderId:       orderId,
-			Account:       req.Account,
-			ManagerAid:    int(res.DasAlgorithmId),
-			ManagerSubAid: int(res.DasSubAlgorithmId),
-			Manager:       res.AddressHex,
-			Name:          req.Name,
-			Note:          req.Note,
-			Price:         price,
-			Num:           req.Num,
-			BeginAt:       req.BeginAt,
-			ExpiredAt:     req.ExpiredAt,
-			Status:        tables.CouponSetInfoStatusPaid,
-		}
-		couponSetInfo.InitCid()
 
 		couponInfos := make([]tables.CouponInfo, 0, len(couponCodes))
 		for k := range couponCodes {

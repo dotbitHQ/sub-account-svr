@@ -90,7 +90,7 @@ func (d *DbDao) UpdateOrderPayStatusOkWithSmtRecord(paymentInfo tables.PaymentIn
 	return
 }
 
-func (d *DbDao) UpdateOrderPayStatusOkWithCoupon(paymentInfo tables.PaymentInfo, setInfo *tables.CouponSetInfo, coupons []tables.CouponInfo) (rowsAffected int64, e error) {
+func (d *DbDao) UpdateOrderPayStatusOkWithCoupon(paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo, coupons []tables.CouponInfo) (rowsAffected int64, e error) {
 	e = d.db.Transaction(func(tx *gorm.DB) error {
 		tmpTx := tx.Model(tables.OrderInfo{}).
 			Where("order_id=? AND pay_status=?",
@@ -134,9 +134,11 @@ func (d *DbDao) UpdateOrderPayStatusOkWithCoupon(paymentInfo tables.PaymentInfo,
 			return nil
 		}
 
-		if err := tx.Create(setInfo).Error; err != nil {
+		setInfo.Status = tables.CouponSetInfoStatusSuccess
+		if err := tx.Save(&setInfo).Error; err != nil {
 			return err
 		}
+
 		if err := tx.Create(&coupons).Error; err != nil {
 			return err
 		}
@@ -169,7 +171,7 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 	return
 }
 
-func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.PaymentInfo) error {
+func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&info).Error; err != nil {
 			return err
@@ -178,6 +180,9 @@ func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.Paymen
 			if err := tx.Create(&paymentInfo).Error; err != nil {
 				return err
 			}
+		}
+		if err := tx.Create(&setInfo).Error; err != nil {
+			return err
 		}
 		return nil
 	})

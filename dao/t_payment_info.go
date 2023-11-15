@@ -25,10 +25,22 @@ func (d *DbDao) GetPaymentInfoByOrderId(orderID string) (payment tables.PaymentI
 	return
 }
 
-func (d *DbDao) CreatePaymentInfo(info tables.PaymentInfo) error {
-	return d.db.Clauses(clause.Insert{
-		Modifier: "IGNORE",
-	}).Create(&info).Error
+func (d *DbDao) CreatePaymentInfo(info tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&info).Error; err != nil {
+			return err
+		}
+		if setInfo.Id > 0 {
+			if err := tx.Model(&setInfo).Where("id=? and status=?", setInfo.Id, tables.CouponSetInfoStatusCreated).Updates(map[string]interface{}{
+				"status": tables.CouponSetInfoStatusPaid,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (d *DbDao) GetUnRefundList() (list []tables.PaymentInfo, err error) {

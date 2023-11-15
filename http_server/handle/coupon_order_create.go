@@ -34,7 +34,7 @@ type ReqCouponOrderCreate struct {
 	core.ChainTypeAddress
 	Account   string         `json:"account" binding:"required"`
 	TokenId   tables.TokenId `json:"token_id" binding:"required"`
-	Num       int            `json:"num" binding:"min=1,max=10000"`
+	Num       int64          `json:"num" binding:"min=1,max=10000"`
 	Name      string         `json:"name" binding:"required"`
 	Note      string         `json:"note"`
 	Price     string         `json:"price" binding:"required"`
@@ -196,7 +196,30 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 			Timestamp:     time.Now().UnixMilli(),
 		}
 	}
-	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo); err != nil {
+
+	price, err := decimal.NewFromString(req.Price)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "price invalid")
+		return nil
+	}
+	setInfo := tables.CouponSetInfo{
+		OrderId:       createOrderRes.OrderId,
+		AccountId:     res.accId,
+		Account:       req.Account,
+		ManagerAid:    int(hexAddr.DasAlgorithmId),
+		ManagerSubAid: int(hexAddr.DasSubAlgorithmId),
+		Manager:       hexAddr.AddressHex,
+		Name:          req.Name,
+		Note:          req.Note,
+		Price:         price,
+		Num:           req.Num,
+		BeginAt:       req.BeginAt,
+		ExpiredAt:     req.ExpiredAt,
+		Status:        tables.CouponSetInfoStatusCreated,
+	}
+	setInfo.InitCid()
+
+	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo, setInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}

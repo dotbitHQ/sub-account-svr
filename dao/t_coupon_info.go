@@ -98,7 +98,7 @@ func (d *DbDao) UpdateCouponSetInfo(setInfo *tables.CouponSetInfo) error {
 }
 
 func (d *DbDao) GetUnPaidCouponSetByAccId(accId string) (res tables.CouponSetInfo, err error) {
-	if err = d.db.Where("account_id = ? and status = ?", accId, tables.CouponSetInfoStatusPending).First(&res).Error; err != nil {
+	if err = d.db.Where("account_id = ? and status = ?", accId, tables.CouponSetInfoStatusCreated).First(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = nil
 			return
@@ -215,7 +215,7 @@ func (d *DbDao) GetCouponNum(status ...tables.CouponStatus) (num int64, err erro
 }
 
 func (d *DbDao) GetCouponAccount() (num int64, err error) {
-	err = d.db.Model(&tables.CouponSetInfo{}).Distinct("account_id").Where("status=?", tables.CouponSetInfoStatusPaid).Count(&num).Error
+	err = d.db.Model(&tables.CouponSetInfo{}).Distinct("account_id").Where("status=?", tables.CouponSetInfoStatusSuccess).Count(&num).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}

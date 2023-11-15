@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	CouponSetInfoStatusPending = 0
+	CouponSetInfoStatusCreated = 0
 	CouponSetInfoStatusPaid    = 1
 	CouponSetInfoStatusFailed  = 2
+	CouponSetInfoStatusSuccess = 3
 )
 
 type CouponSetInfo struct {
@@ -22,7 +23,6 @@ type CouponSetInfo struct {
 	ManagerAid    int             `gorm:"column:manager_aid;default:0;NOT NULL"`
 	ManagerSubAid int             `gorm:"column:manager_sub_aid;default:0;NOT NULL"`
 	Manager       string          `gorm:"index:idx_manager;column:manager;default:;NOT NULL"`
-	Root          string          `gorm:"column:root;default:;NOT NULL"`
 	Name          string          `gorm:"column:name;default:;NOT NULL"`
 	Note          string          `gorm:"column:note;default:;NOT NULL"`
 	Price         decimal.Decimal `gorm:"price:amount; type:decimal(50,10) NOT NULL DEFAULT '0' COMMENT '';"`
@@ -30,7 +30,6 @@ type CouponSetInfo struct {
 	BeginAt       int64           `gorm:"column:begin_at;default:0;NOT NULL"`
 	ExpiredAt     int64           `gorm:"column:expired_at;default:0;NOT NULL"`
 	Status        int             `gorm:"column:status;default:0;NOT NULL"`
-	Signature     string          `gorm:"column:signature;default:;NOT NULL"`
 	CreatedAt     time.Time       `json:"created_at" gorm:"column:created_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '';"`
 	UpdatedAt     time.Time       `json:"updated_at" gorm:"column:updated_at; type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '';"`
 }
