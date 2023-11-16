@@ -23,6 +23,7 @@ type RespCouponSetInfoList struct {
 
 type RespCouponSetInfo struct {
 	Cid       string `json:"cid"`
+	OrderId   string `json:"order_id"`
 	Account   string `json:"account" `
 	Name      string `json:"name"`
 	Note      string `json:"note"`
@@ -90,6 +91,7 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 			v := setInfo[idx]
 			resp.List = append(resp.List, RespCouponSetInfo{
 				Cid:       v.Cid,
+				OrderId:   v.OrderId,
 				Account:   v.Account,
 				Name:      v.Name,
 				Note:      v.Note,
