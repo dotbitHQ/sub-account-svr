@@ -83,6 +83,14 @@ func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_cod
 	resp.ContractAddress = orderInfo.ContractAddress
 	resp.ClientSecret = orderInfo.ClientSecret
 
+	if order.TokenId == string(tables.TokenIdDp) {
+		token, err := h.DbDao.GetTokenById(tables.TokenIdDp)
+		if err != nil {
+			return err
+		}
+		resp.Amount = resp.Amount.Div(decimal.New(1, token.Decimals))
+	}
+
 	// get payment
 	paymentInfo, err := h.DbDao.GetPaymentInfoByOrderId(req.OrderId)
 	if err != nil {
