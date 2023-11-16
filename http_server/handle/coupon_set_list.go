@@ -90,14 +90,9 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 				return err
 			}
 			v := setInfo[idx]
-			orderInfo, err := h.DbDao.GetOrderByOrderID(v.OrderId)
-			if err != nil {
-				return err
-			}
 			resp.List = append(resp.List, RespCouponSetInfo{
 				Cid:       v.Cid,
 				OrderId:   v.OrderId,
-				TokenId:   orderInfo.TokenId,
 				Account:   v.Account,
 				Name:      v.Name,
 				Note:      v.Note,

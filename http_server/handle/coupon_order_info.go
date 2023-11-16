@@ -2,6 +2,7 @@ package handle
 
 import (
 	"das_sub_account/tables"
+	"das_sub_account/unipay"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
@@ -18,12 +19,15 @@ type ReqCouponOrderInfo struct {
 }
 
 type RespCouponOrderInfo struct {
-	OrderId     string          `json:"order_id"`
-	TokenId     string          `json:"token_id"`
-	Amount      decimal.Decimal `json:"amount"`
-	PayHash     string          `json:"pay_hash"`
-	OrderStatus OrderStatus     `json:"order_status"`
-	Cid         string          `json:"cid"`
+	OrderId         string          `json:"order_id"`
+	TokenId         string          `json:"token_id"`
+	PaymentAddress  string          `json:"payment_address"`
+	ContractAddress string          `json:"contract_address"`
+	ClientSecret    string          `json:"client_secret"`
+	Amount          decimal.Decimal `json:"amount"`
+	PayHash         string          `json:"pay_hash"`
+	OrderStatus     OrderStatus     `json:"order_status"`
+	Cid             string          `json:"cid"`
 }
 
 func (h *HttpHandle) CouponOrderInfo(ctx *gin.Context) {
@@ -61,10 +65,23 @@ func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_cod
 		return nil
 	}
 
+	// get order info
+	orderInfo, err := unipay.GetOrderInfo(unipay.ReqOrderInfo{
+		BusinessId: unipay.BusinessIdAutoSubAccount,
+		OrderId:    req.OrderId,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
+	}
+
 	var resp RespCouponOrderInfo
 	resp.OrderId = req.OrderId
 	resp.TokenId = order.TokenId
 	resp.Amount = order.Amount
+	resp.PaymentAddress = orderInfo.PaymentAddress
+	resp.ContractAddress = orderInfo.ContractAddress
+	resp.ClientSecret = orderInfo.ClientSecret
 
 	// get payment
 	paymentInfo, err := h.DbDao.GetPaymentInfoByOrderId(req.OrderId)
