@@ -24,6 +24,7 @@ type RespCouponSetInfoList struct {
 type RespCouponSetInfo struct {
 	Cid       string `json:"cid"`
 	OrderId   string `json:"order_id"`
+	TokenId   string `json:"token_id"`
 	Account   string `json:"account" `
 	Name      string `json:"name"`
 	Note      string `json:"note"`
@@ -89,9 +90,14 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 				return err
 			}
 			v := setInfo[idx]
+			orderInfo, err := h.DbDao.GetOrderByOrderID(v.OrderId)
+			if err != nil {
+				return err
+			}
 			resp.List = append(resp.List, RespCouponSetInfo{
 				Cid:       v.Cid,
 				OrderId:   v.OrderId,
+				TokenId:   orderInfo.TokenId,
 				Account:   v.Account,
 				Name:      v.Name,
 				Note:      v.Note,
