@@ -99,9 +99,9 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 		items = append(items, item)
 	}
 
-	ctx.Header("Content-Description", "File Transfer")
+	ctx.Header("Content-Type", "application/octet-stream")
 	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", req.Cid))
-	ctx.Header("Content-Type", "text/csv")
+	ctx.Header("Content-Transfer-Encoding", "binary")
 	wr := csv.NewWriter(ctx.Writer)
 	if err := wr.WriteAll(items); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
