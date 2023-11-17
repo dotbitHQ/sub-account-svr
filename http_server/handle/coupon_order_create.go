@@ -296,7 +296,7 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponOrderCreate, apiResp 
 	}
 	address := common.FormatAddressPayload(res.AddressPayload, res.DasAlgorithmId)
 
-	if !strings.EqualFold(accInfo.Manager, address) {
+	if !strings.EqualFold(accInfo.Owner, address) && !strings.EqualFold(accInfo.Manager, address) {
 		apiResp.ApiRespErr(api_code.ApiCodeNoAccountPermissions, "no account permissions")
 		return nil
 	}
