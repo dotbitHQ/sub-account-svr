@@ -247,20 +247,21 @@ func (s *SubAccountTxTool) getAccountPrice(p *ParamBuildUpdateSubAccountTx) (*Ac
 				yearlyPrice = p.RenewSubAccountPrice
 			}
 		case tables.MintTypeAutoMint:
-			subAccountCell, err := s.getSubAccountCell(v.ParentAccountId)
+			ruleConfig, err := s.DbDao.GetRuleConfigByAccountId(v.ParentAccountId)
 			if err != nil {
 				return nil, err
 			}
-			subAccountTx, err := s.DasCore.Client().GetTransaction(s.Ctx, subAccountCell.OutPoint.TxHash)
+			ruleTx, err := s.DasCore.Client().GetTransaction(s.Ctx, types.HexToHash(ruleConfig.TxHash))
 			if err != nil {
 				return nil, err
 			}
+
 			parentAccountInfo, err := s.DbDao.GetAccountInfoByAccountId(v.ParentAccountId)
 			if err != nil {
 				return nil, err
 			}
 			subAccountRule := witness.NewSubAccountRuleEntity(parentAccountInfo.Account)
-			if err := subAccountRule.ParseFromTx(subAccountTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+			if err := subAccountRule.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
 				return nil, err
 			}
 			hit, idx, err := subAccountRule.Hit(v.Account)
