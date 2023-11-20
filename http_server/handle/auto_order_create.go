@@ -18,6 +18,11 @@ import (
 	"time"
 )
 
+const (
+	PaymentStatusNormal = 0
+	PaymentWithout      = 1
+)
+
 type ReqAutoOrderCreate struct {
 	core.ChainTypeAddress
 	ActionType tables.ActionType `json:"action_type"`
@@ -33,6 +38,7 @@ type RespAutoOrderCreate struct {
 	ContractAddress string          `json:"contract_address"`
 	ClientSecret    string          `json:"client_secret"`
 	Amount          decimal.Decimal `json:"amount"`
+	PaymentStatus   int             `json:"payment_status"`
 }
 
 func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
@@ -332,6 +338,9 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	resp.PaymentAddress = res.PaymentAddress
 	resp.ContractAddress = res.ContractAddress
 	resp.ClientSecret = res.ClientSecret
+	if amount.Equal(decimal.Zero) {
+		resp.PaymentStatus = PaymentWithout
+	}
 
 	apiResp.ApiRespOK(resp)
 	return nil
