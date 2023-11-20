@@ -11,7 +11,6 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
-	"math"
 	"net/http"
 	"strings"
 )
@@ -149,7 +148,7 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 					amount := decimal.Zero
 					if order.TokenId != "" && order.Amount.GreaterThan(decimal.Zero) {
 						token := tokens[order.TokenId]
-						amount = order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
+						amount = order.Amount.Sub(order.PremiumAmount).DivRound(decimal.New(1, token.Decimals), token.Decimals)
 						resp.List[idx].Symbol = token.Symbol
 					}
 					resp.List[idx].Amount = amount.String()
