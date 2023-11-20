@@ -2,10 +2,12 @@ package handle
 
 import (
 	"das_sub_account/tables"
+	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type ReqCouponInfo struct {
@@ -48,6 +50,12 @@ func (h *HttpHandle) CouponInfo(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doCouponInfo(req *ReqCouponInfo, apiResp *api_code.ApiResp) error {
+	lockKey := fmt.Sprintf("coupon_info:%s", req.clientIP)
+	if err := h.RC.Lock(lockKey, time.Second*10); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "operation frequent")
+		return nil
+	}
+
 	couponInfo, err := h.DbDao.GetCouponByCode(req.Code)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "coupon info find failed")
