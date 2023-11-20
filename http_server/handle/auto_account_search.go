@@ -257,7 +257,7 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 	smtRecord, err := h.DbDao.GetLatestSmtRecordAccountId(subAccountId, subAction)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query mint record")
-		e = fmt.Errorf("GetSmtRecordMintingByAccountId err: %s %s", err.Error(), subAccountId)
+		e = fmt.Errorf("GetLatestSmtRecordAccountId err: %s %s", err.Error(), subAccountId)
 		return
 	}
 

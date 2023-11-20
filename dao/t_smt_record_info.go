@@ -207,7 +207,7 @@ func (d *DbDao) GetSmtRecordMintingByAccountId(accountId, subAction string) (inf
 }
 
 func (d *DbDao) GetLatestSmtRecordAccountId(accountId, subAction string) (info tables.TableSmtRecordInfo, err error) {
-	err = d.db.Where("account_id=? AND sub_action=?", accountId, tables.RecordTypeDefault, subAction).Order("id desc").First(&info).Error
+	err = d.db.Where("account_id=? AND sub_action=?", accountId, subAction).Order("id desc").First(&info).Error
 	return
 }
 
