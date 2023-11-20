@@ -565,17 +565,22 @@ func (s *SubAccountTxTool) accountWitness(txParams *txbuilder.BuildTransactionPa
 	})
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
 
-	// sub_account_cell custom rule witness
-	subAccountTx, err := s.DasCore.Client().GetTransaction(s.Ctx, p.SubAccountOutpoint.TxHash)
+	// account price rule witness
+	ruleConfig, err := s.DbDao.GetRuleConfigByAccountId(p.Account.AccountId)
 	if err != nil {
 		return err
 	}
-
-	if err := witness.GetWitnessDataFromTx(subAccountTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
-		if actionDataType == common.ActionDataTypeSubAccountPriceRules || actionDataType == common.ActionDataTypeSubAccountPreservedRules {
-			witnessBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
-			txParams.Witnesses = append(txParams.Witnesses, witnessBytes)
+	ruleTx, err := s.DasCore.Client().GetTransaction(s.Ctx, types.HexToHash(ruleConfig.TxHash))
+	if err != nil {
+		return err
+	}
+	if err := witness.GetWitnessDataFromTx(ruleTx.Transaction, func(actionDataType common.ActionDataType, dataBys []byte, index int) (bool, error) {
+		if actionDataType != common.ActionDataTypeSubAccountPriceRules &&
+			actionDataType != common.ActionDataTypeSubAccountPreservedRules {
+			return true, nil
 		}
+		witnessBytes := witness.GenDasDataWitnessWithByte(actionDataType, dataBys)
+		txParams.Witnesses = append(txParams.Witnesses, witnessBytes)
 		return true, nil
 	}); err != nil {
 		return err
