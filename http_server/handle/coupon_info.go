@@ -11,7 +11,7 @@ import (
 type ReqCouponInfo struct {
 	core.ChainTypeAddress
 	Code     string `json:"code" binding:"required"`
-	remoteIp string
+	clientIP string
 }
 
 type RespCouponInfo struct {
@@ -38,7 +38,7 @@ func (h *HttpHandle) CouponInfo(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	req.remoteIp = remoteAddrIP
+	req.clientIP = clientIp
 
 	if err = h.doCouponInfo(&req, &apiResp); err != nil {
 		log.Error("doCouponInfo err:", err.Error(), funcName, clientIp, ctx)

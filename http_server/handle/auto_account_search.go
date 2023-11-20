@@ -280,8 +280,7 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 		return
 	}
 	if orderInfo.Id > 0 {
-		if smtRecord.OrderID == orderInfo.OrderId &&
-			smtRecord.RecordType == tables.RecordTypeClosed {
+		if smtRecord.OrderID == orderInfo.OrderId {
 			accStatus = AccStatusDefault
 			return
 		}
