@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
@@ -208,6 +209,9 @@ func (d *DbDao) GetSmtRecordMintingByAccountId(accountId, subAction string) (inf
 
 func (d *DbDao) GetLatestSmtRecordAccountId(accountId, subAction string) (info tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("account_id=? AND sub_action=?", accountId, subAction).Order("id desc").First(&info).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }
 
