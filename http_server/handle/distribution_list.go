@@ -145,10 +145,14 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, err.Error())
 						return err
 					}
-					token := tokens[order.TokenId]
-					amount := order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
+
+					amount := decimal.Zero
+					if order.TokenId != "" && order.Amount.GreaterThan(decimal.Zero) {
+						token := tokens[order.TokenId]
+						amount = order.Amount.Sub(order.PremiumAmount).DivRound(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))), token.Decimals)
+						resp.List[idx].Symbol = token.Symbol
+					}
 					resp.List[idx].Amount = amount.String()
-					resp.List[idx].Symbol = token.Symbol
 
 					if order.CouponCode != "" {
 						couponInfo, err := h.DbDao.GetCouponByCode(order.CouponCode)
