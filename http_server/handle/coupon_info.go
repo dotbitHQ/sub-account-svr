@@ -6,9 +6,18 @@ import (
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"net/http"
 	"time"
 )
+
+var couponInfoLockLua = `
+	local key = KEYS[1]
+	local code = KEYS[2]
+	redis.call('HINCRBY', key, code, 1)
+	redis.call('HINCRBY', key, 'total', 1)
+	redis.call('EXPIREAT', key, ARGV[1])
+`
 
 type ReqCouponInfo struct {
 	core.ChainTypeAddress
@@ -51,7 +60,14 @@ func (h *HttpHandle) CouponInfo(ctx *gin.Context) {
 
 func (h *HttpHandle) doCouponInfo(req *ReqCouponInfo, apiResp *api_code.ApiResp) error {
 	lockKey := fmt.Sprintf("coupon_info:%s", req.clientIP)
-	if err := h.RC.Lock(lockKey, time.Second*10); err != nil {
+	if _, err := h.RC.Red.Pipelined(func(p redis.Pipeliner) error {
+		p.HIncrBy(lockKey, req.Code, 1)
+		p.ExpireAt(lockKey, time.Now().Add(time.Second*10))
+		return nil
+	}); err != nil {
+		return err
+	}
+	if h.RC.Red.HLen(lockKey).Val() > 2 {
 		apiResp.ApiRespErr(api_code.ApiCodeOperationFrequent, "operation frequent")
 		return nil
 	}
