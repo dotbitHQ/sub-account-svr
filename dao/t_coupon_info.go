@@ -119,7 +119,7 @@ func (d *DbDao) FindCouponSetInfoList(accId string, page, pageSize int) ([]*tabl
 		return res, 0, nil
 	}
 
-	if err := db.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&res).Error; err != nil {
+	if err := db.Order("expired_at desc").Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&res).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, 0, err
 		}
