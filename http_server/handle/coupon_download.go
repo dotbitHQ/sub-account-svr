@@ -85,7 +85,7 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 		if v.Status == tables.CouponStatusNormal {
 			item = append(item, "Available")
 			item = append(item, "-")
-			item = append(item, "%s/mint/.%s?coupon_code=%s", topDidLink, accName, v.Code)
+			item = append(item, fmt.Sprintf("%s/mint/.%s?coupon_code=%s", topDidLink, accName, v.Code))
 		} else {
 			item = append(item, "Used")
 			order, err := h.DbDao.GetOrderByCoupon(v.Code)
