@@ -4,12 +4,13 @@ import (
 	"das_sub_account/tables"
 	"encoding/csv"
 	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"net/http"
-	"time"
+	"strings"
 )
 
 type ReqCouponDownload struct {
@@ -60,6 +61,7 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
 		return nil
 	}
+	accName := strings.TrimSuffix(req.Account, common.DasAccountSuffix)
 
 	couponList, err := h.DbDao.FindCouponCode(req.Cid)
 	if err != nil {
@@ -70,37 +72,35 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 		return nil
 	}
 
+	topDidLink := "https://test.topdid.com"
+	if h.DasCore.NetType() == common.DasNetTypeMainNet {
+		topDidLink = "https://topdid.com"
+	}
+
 	items := [][]string{
-		{"Coupon Code", "Schedule", "Status", "Used By"},
+		{"Coupon Code", "Status", "Used For", "Link"},
 	}
 	for _, v := range couponList {
 		item := []string{v.Code}
-		schedule := ""
-		if setInfo.BeginAt > 0 {
-			schedule += time.UnixMilli(setInfo.BeginAt).Format("2006-01-02")
-		}
-		schedule += "~"
-		if setInfo.ExpiredAt > 0 {
-			schedule += time.UnixMilli(setInfo.ExpiredAt).Format("2006-01-02")
-		}
-		item = append(item, schedule)
 		if v.Status == tables.CouponStatusNormal {
-			item = append(item, "Valid")
+			item = append(item, "Available")
 			item = append(item, "-")
+			item = append(item, "%s/mint/.%s?coupon_code=%s", topDidLink, accName, v.Code)
 		} else {
-			item = append(item, "Invalid")
+			item = append(item, "Used")
 			order, err := h.DbDao.GetOrderByCoupon(v.Code)
 			if err != nil {
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order info")
 				return err
 			}
 			item = append(item, order.Account)
+			item = append(item, "-")
 		}
 		items = append(items, item)
 	}
 
 	ctx.Header("Content-Type", "application/octet-stream")
-	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", req.Cid))
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s-%s.csv", accName, setInfo.Name))
 	ctx.Header("Content-Transfer-Encoding", "binary")
 	wr := csv.NewWriter(ctx.Writer)
 	if err := wr.WriteAll(items); err != nil {
