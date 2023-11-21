@@ -186,8 +186,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeCouponExpired, "this coupon code can not use, because it expired")
 			return nil
 		}
-		couponAccId := common.Bytes2Hex(common.GetAccountIdByAccount(setInfo.Account))
-		if couponAccId != parentAccountId {
+		if setInfo.AccountId != parentAccountId {
 			apiResp.ApiRespErr(api_code.ApiCodeCouponErrAccount, "this coupon code can not use, because it not belong to this account")
 			return nil
 		}

@@ -11,14 +11,6 @@ import (
 	"time"
 )
 
-var couponInfoLockLua = `
-	local key = KEYS[1]
-	local code = KEYS[2]
-	redis.call('HINCRBY', key, code, 1)
-	redis.call('HINCRBY', key, 'total', 1)
-	redis.call('EXPIREAT', key, ARGV[1])
-`
-
 type ReqCouponInfo struct {
 	core.ChainTypeAddress
 	Code     string `json:"code" binding:"required"`
