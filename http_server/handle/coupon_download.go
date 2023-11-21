@@ -93,7 +93,7 @@ func (h *HttpHandle) doCouponDownload(ctx *gin.Context, req *ReqCouponDownload, 
 				apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order info")
 				return err
 			}
-			item = append(item, order.Account)
+			item = append(item, strings.TrimSuffix(order.Account, common.DasAccountSuffix))
 			item = append(item, "-")
 		}
 		items = append(items, item)
