@@ -359,3 +359,14 @@ func (d *DbDao) GetOrderByCoupon(coupon string) (order tables.OrderInfo, err err
 	}
 	return
 }
+
+func (d *DbDao) GetOrderAmountByTokenId(tokenId tables.TokenId) (amount decimal.Decimal, err error) {
+	order := &tables.OrderInfo{}
+	err = d.db.Model(order).Select("sum(amount) as amount").
+		Where("token_id=? and pay_status=?", tokenId, tables.PayStatusPaid).First(order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	amount = order.Amount
+	return
+}
