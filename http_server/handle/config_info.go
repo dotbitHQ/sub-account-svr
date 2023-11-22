@@ -7,8 +7,10 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/molecule"
+	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 )
 
@@ -63,58 +65,70 @@ func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
 func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	var resp RespConfigInfo
 
-	if err := h.checkSystemUpgrade(apiResp); err != nil {
+	err := h.checkSystemUpgrade(apiResp)
+	if err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
 
-	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	var builder *witness.ConfigCellDataBuilder
+
+	errWg := &errgroup.Group{}
+	errWg.Go(func() error {
+		builder, err = h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+		if err != nil {
+			return err
+		}
+		quoteCell, err := h.DasCore.GetQuoteCell()
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil
+		}
+		quote := decimal.NewFromInt(int64(quoteCell.Quote()))
+
+		mintPrice, _ := builder.NewSubAccountPrice()
+		renewPrice, _ := builder.RenewSubAccountPrice()
+		resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
+		resp.SubAccountNewSubAccountPrice = config.PriceToCKB(mintPrice, quoteCell.Quote(), 1)
+		resp.SubAccountRenewSubAccountPrice = config.PriceToCKB(renewPrice, quoteCell.Quote(), 1)
+
+		resp.MintCostsManually = decimal.NewFromInt(int64(mintPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+		resp.RenewCostsManually = decimal.NewFromInt(int64(renewPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+		return nil
+	})
+
+	errWg.Go(func() error {
+		tokens, err := h.DbDao.GetTokenPriceList()
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return nil
+		}
+		for _, v := range tokens {
+			resp.TokenList = append(resp.TokenList, TokenData{
+				TokenId:   v.TokenId,
+				ChainType: v.ChainType,
+				Name:      v.Name,
+				Symbol:    v.Symbol,
+				Decimals:  v.Decimals,
+				Logo:      v.Logo,
+				Price:     v.Price,
+			})
+		}
+		return nil
+	})
+	if err := errWg.Wait(); err != nil {
+		return err
 	}
+
 	resp.SubAccountBasicCapacity, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.BasicCapacity().RawData())
 	resp.SubAccountPreparedFeeCapacity, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	resp.SubAccountCommonFee, _ = molecule.Bytes2GoU64(builder.ConfigCellSubAccount.CommonFee().RawData())
 	resp.ManagementTimes = 10000
-
-	mintPrice, _ := builder.NewSubAccountPrice()
-	renewPrice, _ := builder.RenewSubAccountPrice()
-
-	resp.MintCostsManually = decimal.NewFromInt(int64(mintPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
-	resp.RenewCostsManually = decimal.NewFromInt(int64(renewPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
-
-	quoteCell, err := h.DasCore.GetQuoteCell()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return nil
-	}
-	quote := decimal.NewFromInt(int64(quoteCell.Quote()))
-	resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
-	resp.SubAccountNewSubAccountPrice = config.PriceToCKB(mintPrice, quoteCell.Quote(), 1)
-	resp.SubAccountRenewSubAccountPrice = config.PriceToCKB(renewPrice, quoteCell.Quote(), 1)
 
 	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
 	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
 
 	resp.Stripe.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
 	resp.Stripe.PremiumBase = config.Cfg.Stripe.PremiumBase
-
-	tokens, err := h.DbDao.FindTokens()
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return nil
-	}
-	for _, v := range tokens {
-		resp.TokenList = append(resp.TokenList, TokenData{
-			TokenId:   v.TokenId,
-			ChainType: v.ChainType,
-			Name:      v.Name,
-			Symbol:    v.Symbol,
-			Decimals:  v.Decimals,
-			Logo:      v.Logo,
-			Price:     v.Price,
-		})
-	}
 
 	apiResp.ApiRespOK(resp)
 	return nil
