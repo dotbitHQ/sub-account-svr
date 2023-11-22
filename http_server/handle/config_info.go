@@ -2,6 +2,7 @@ package handle
 
 import (
 	"das_sub_account/config"
+	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
@@ -29,6 +30,18 @@ type RespConfigInfo struct {
 		PremiumPercentage decimal.Decimal `json:"premium_percentage"`
 		PremiumBase       decimal.Decimal `json:"premium_base"`
 	} `json:"stripe"`
+	TokenList []TokenData `json:"token_list"`
+}
+
+type TokenData struct {
+	TokenId   tables.TokenId  `json:"token_id"`
+	ChainType int             `json:"chain_type"`
+	Contract  string          `json:"contract"`
+	Name      string          `json:"name"`
+	Symbol    string          `json:"symbol"`
+	Decimals  int32           `json:"decimals"`
+	Logo      string          `json:"logo"`
+	Price     decimal.Decimal `json:"price"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -85,6 +98,24 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 
 	resp.Stripe.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
 	resp.Stripe.PremiumBase = config.Cfg.Stripe.PremiumBase
+
+	tokens, err := h.DbDao.FindTokens()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return nil
+	}
+	for _, v := range tokens {
+		resp.TokenList = append(resp.TokenList, TokenData{
+			TokenId:   v.TokenId,
+			ChainType: v.ChainType,
+			Name:      v.Name,
+			Symbol:    v.Symbol,
+			Decimals:  v.Decimals,
+			Logo:      v.Logo,
+			Price:     v.Price,
+		})
+	}
+
 	apiResp.ApiRespOK(resp)
 	return nil
 }

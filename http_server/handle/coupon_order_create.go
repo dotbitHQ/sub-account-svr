@@ -32,6 +32,7 @@ var (
 
 type ReqCouponOrderCreate struct {
 	core.ChainTypeAddress
+	OrderId   string         `json:"order_id"`
 	Account   string         `json:"account" binding:"required"`
 	TokenId   tables.TokenId `json:"token_id" binding:"required"`
 	Num       int64          `json:"num" binding:"min=1,max=10000"`
@@ -125,23 +126,20 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
 	}
 
-	order, err := h.DbDao.GetPendingOrderByAccIdAndActionType(res.accId, tables.ActionTypeCouponCreate)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get pending order")
-		return fmt.Errorf("GetPendingOrderByAccIdAndActionType err: %s", err.Error())
-	}
-	if order.Id > 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeCouponUnpaid, "have pending order")
-		apiResp.Data = map[string]interface{}{
-			"order_id": order.OrderId,
-		}
-		return nil
-	}
-
 	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil
+	}
+
+	var oldOrder tables.OrderInfo
+	if req.OrderId != "" {
+		oldOrder, err = h.DbDao.GetOrderByOrderID(req.OrderId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get order")
+			return err
+		}
+		oldOrder.OrderStatus = tables.OrderStatusClosed
 	}
 
 	createOrderRes, err := unipay.CreateOrder(unipay.ReqOrderCreate{
@@ -219,7 +217,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	}
 	setInfo.InitCid()
 
-	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo, setInfo); err != nil {
+	if err = h.DbDao.CreateOrderInfo(orderInfo, oldOrder, paymentInfo, setInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}
@@ -247,6 +245,24 @@ type checkCreateParamsResp struct {
 
 func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) *checkCreateParamsResp {
 	log.Infof("couponCreateParamsCheck: %+v", *req)
+
+	if req.OrderId != "" {
+		order, err := h.DbDao.GetOrderByOrderID(req.OrderId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to get order")
+			return nil
+		}
+		if order.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, "order does not exist")
+			return nil
+		}
+		if order.OrderStatus == tables.OrderStatusSuccess ||
+			order.OrderStatus == tables.OrderStatusFail ||
+			order.OrderStatus == tables.OrderStatusClosed {
+			apiResp.ApiRespErr(api_code.ApiCodeOrderClosed, "order closed")
+			return nil
+		}
+	}
 
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err := h.DbDao.GetAccountInfoByAccountId(accountId)

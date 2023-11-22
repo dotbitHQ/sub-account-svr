@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
@@ -85,11 +86,18 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 
 	errWg.Go(func() error {
 		for idx := range ch {
+			v := setInfo[idx]
+			orderInfo, err := h.DbDao.GetOrderByOrderID(v.OrderId)
+			if err != nil {
+				return err
+			}
+			if orderInfo.OrderStatus == tables.OrderStatusClosed {
+				continue
+			}
 			used, err := h.DbDao.GetUsedCoupon(setInfo[idx].Cid)
 			if err != nil {
 				return err
 			}
-			v := setInfo[idx]
 			resp.List = append(resp.List, RespCouponSetInfo{
 				Cid:       v.Cid,
 				OrderId:   v.OrderId,

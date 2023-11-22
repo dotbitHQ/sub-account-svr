@@ -20,6 +20,7 @@ const (
 	OrderStatusDefault OrderStatus = 0
 	OrderStatusSuccess OrderStatus = 1
 	OrderStatusFail    OrderStatus = 2
+	OrderStatusClosed  OrderStatus = 3
 )
 
 type ActionType int

@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"errors"
 	"gorm.io/gorm"
 )
 
@@ -16,7 +17,7 @@ func (d *DbDao) GetTokenById(tokenID tables.TokenId) (token tables.TTokenPriceIn
 func (d *DbDao) FindTokens() (tokens map[string]*tables.TTokenPriceInfo, err error) {
 	list := make([]*tables.TTokenPriceInfo, 0)
 	err = d.parserDb.Find(&list).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	tokens = make(map[string]*tables.TTokenPriceInfo)

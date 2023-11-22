@@ -9,6 +9,9 @@ type TTokenPriceInfo struct {
 	Id            uint64          `gorm:"column:id;AUTO_INCREMENT;comment:自增主键" json:"id"`
 	TokenId       TokenId         `gorm:"column:token_id;type:varchar(255);NOT NULL" json:"token_id"`
 	ChainType     int             `gorm:"column:chain_type;type:smallint(6);default:0;NOT NULL" json:"chain_type"`
+	GeckoId       string          `json:"gecko_id" gorm:"column:gecko_id"`
+	Name          string          `json:"name" gorm:"column:name"`
+	Status        int             `json:"status" gorm:"column:status"`
 	Contract      string          `gorm:"column:contract;type:varchar(255);NOT NULL" json:"contract"`
 	Symbol        string          `gorm:"column:symbol;type:varchar(255);comment:the symbol of token;NOT NULL" json:"symbol"`
 	Decimals      int32           `gorm:"column:decimals;type:smallint(6);default:0;NOT NULL" json:"decimals"`

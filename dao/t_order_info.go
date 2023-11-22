@@ -172,17 +172,22 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 	return
 }
 
-func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
+func (d *DbDao) CreateOrderInfo(info, oldOrder tables.OrderInfo, paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&info).Error; err != nil {
 			return err
+		}
+		if oldOrder.Id > 0 {
+			if err := tx.Save(&oldOrder).Error; err != nil {
+				return err
+			}
 		}
 		if paymentInfo.PayHash != "" {
 			if err := tx.Create(&paymentInfo).Error; err != nil {
 				return err
 			}
 		}
-		if err := tx.Create(&setInfo).Error; err != nil {
+		if err := tx.Save(&setInfo).Error; err != nil {
 			return err
 		}
 		return nil
@@ -344,8 +349,8 @@ func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash st
 	})
 }
 
-func (d *DbDao) GetPendingOrderByAccIdAndActionType(accountId string, actionType tables.ActionType) (order tables.OrderInfo, err error) {
-	err = d.db.Where("account_id=? and action_type=? and order_status=?", accountId, actionType, tables.OrderStatusDefault).First(&order).Error
+func (d *DbDao) GetOrderByAccIdAndActionType(accountId string, actionType tables.ActionType, orderStatus ...tables.OrderStatus) (order tables.OrderInfo, err error) {
+	err = d.db.Where("account_id=? and action_type=? and order_status in (?)", accountId, actionType, orderStatus).First(&order).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
