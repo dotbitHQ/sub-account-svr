@@ -36,6 +36,10 @@ das:
     price_min: 0.99
     price_max: 500
   jwt_key: ""
+  dp:
+    transfer_white_list: ""
+    capacity_whitelist: ""
+    time_online: 1700623410763
 origins:
   - ""
 notify:

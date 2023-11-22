@@ -98,6 +98,11 @@ type CfgServer struct {
 			PriceMax      float64 `json:"price_max" yaml:"price_max"`
 		} `json:"coupon" yaml:"coupon"`
 		JwtKey string `json:"jwt_key" yaml:"jwt_key"`
+		Dp     struct {
+			TransferWhiteList string `json:"transfer_white_list" yaml:"transfer_white_list"`
+			CapacityWhitelist string `json:"capacity_whitelist" yaml:"capacity_whitelist"`
+			TimeOnline        int64  `json:"time_online" yaml:"time_online"`
+		} `json:"dp" yaml:"dp"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {

@@ -224,7 +224,14 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return fmt.Errorf("GetOrderAmountByTokenId err: %s", err.Error())
 		}
-		resp.DpSpending.Total = amount.DivRound(decimal.New(1, 6), 2).String()
+		total, err := h.DbDao.GetSmtRecordManualMintYearsByTime(accountId, config.Cfg.Das.Dp.TimeOnline)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return fmt.Errorf("GetSmtRecordManualMintYears err: %s", err.Error())
+		}
+		manual := decimal.NewFromInt(int64(total)).Mul(decimal.NewFromFloat(9.9))
+
+		resp.DpSpending.Total = amount.DivRound(decimal.New(1, 6), 2).Add(manual).String()
 		return nil
 	})
 
