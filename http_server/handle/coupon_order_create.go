@@ -325,19 +325,6 @@ func (h *HttpHandle) couponCreateParamsCheck(req *ReqCouponOrderCreate, apiResp 
 		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
 		return nil
 	}
-
-	unpaidSetInfo, err := h.DbDao.GetUnPaidCouponSetByAccId(accountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
-		return nil
-	}
-	if unpaidSetInfo.Id > 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeCouponUnpaid, "have unpaid coupon order")
-		apiResp.Data = map[string]interface{}{
-			"cid": unpaidSetInfo.Cid,
-		}
-		return nil
-	}
 	return &checkCreateParamsResp{
 		accId:      accountId,
 		dasAddr:    res,
