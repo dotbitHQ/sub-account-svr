@@ -36,14 +36,13 @@ type RespConfigInfo struct {
 }
 
 type TokenData struct {
-	TokenId   tables.TokenId  `json:"token_id"`
-	ChainType int             `json:"chain_type"`
-	Contract  string          `json:"contract"`
-	Name      string          `json:"name"`
-	Symbol    string          `json:"symbol"`
-	Decimals  int32           `json:"decimals"`
-	Logo      string          `json:"logo"`
-	Price     decimal.Decimal `json:"price"`
+	TokenId     tables.TokenId  `json:"token_id"`
+	CoinType    common.CoinType `json:"coin_type"`
+	Symbol      string          `json:"symbol"`
+	Decimals    int32           `json:"decimals"`
+	Price       decimal.Decimal `json:"price"`
+	DisplayName string          `json:"display_name"`
+	Icon        string          `json:"icon"`
 }
 
 func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
@@ -104,13 +103,13 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 		}
 		for _, v := range tokens {
 			resp.TokenList = append(resp.TokenList, TokenData{
-				TokenId:   v.TokenId,
-				ChainType: v.ChainType,
-				Name:      v.Name,
-				Symbol:    v.Symbol,
-				Decimals:  v.Decimals,
-				Logo:      v.Logo,
-				Price:     v.Price,
+				TokenId:     v.FormatTokenId(),
+				CoinType:    v.CoinType,
+				Symbol:      v.Symbol,
+				Decimals:    v.Decimals,
+				Price:       v.Price,
+				DisplayName: v.DisplayName,
+				Icon:        v.Icon,
 			})
 		}
 		return nil

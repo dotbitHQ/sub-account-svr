@@ -7,8 +7,11 @@ import (
 )
 
 func (d *DbDao) GetTokenById(tokenID tables.TokenId) (token tables.TTokenPriceInfo, err error) {
+	if tokenID == tables.TokenIdCkbDas {
+		tokenID = tables.TokenIdCkb
+	}
 	err = d.parserDb.Where("token_id=?", tokenID).First(&token).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	return
@@ -28,6 +31,11 @@ func (d *DbDao) FindTokens() (tokens map[string]*tables.TTokenPriceInfo, err err
 }
 
 func (d *DbDao) GetTokenPriceList() (list []tables.TTokenPriceInfo, err error) {
-	err = d.parserDb.Where("token_id NOT IN('bsc_bep20_usdt','eth_erc20_usdt','tron_trc20_usdt')").Order("id DESC").Find(&list).Error
+	tokenIds := []tables.TokenId{
+		tables.TokenIdErc20USDT,
+		tables.TokenIdBep20USDT,
+		tables.TokenIdTrc20USDT,
+	}
+	err = d.parserDb.Where("token_id NOT IN(?)", tokenIds).Order("id DESC").Find(&list).Error
 	return
 }
