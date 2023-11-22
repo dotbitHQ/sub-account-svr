@@ -8,14 +8,12 @@ import (
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
-	"github.com/dotbitHQ/das-lib/molecule"
 	"github.com/dotbitHQ/das-lib/smt"
 	"github.com/dotbitHQ/das-lib/txbuilder"
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
-	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
 	"strings"
@@ -111,24 +109,11 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 		return nil
 	}
 
-	// das lock
-	var balanceDasLock, balanceDasType *types.Script
-	if acc.ManagerChainType == req.chainType && strings.EqualFold(acc.Manager, req.address) {
-		balanceDasLock, balanceDasType, err = h.DasCore.Daf().HexToScript(core.DasAddressHex{
-			DasAlgorithmId: acc.ManagerChainType.ToDasAlgorithmId(true),
-			AddressHex:     acc.Manager,
-			IsMulti:        false,
-			ChainType:      acc.ManagerChainType,
-		})
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("FormatAddressToDasLockScript err: %s", err.Error())
-		}
-	} else {
+	// check permission
+	if acc.ManagerChainType != req.chainType || !strings.EqualFold(acc.Manager, req.address) {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
 	}
-	log.Info("doSubAccountCreateNew:", balanceDasLock, balanceDasType)
 
 	// do distribution
 	parentAccountId := acc.AccountId
@@ -137,35 +122,34 @@ func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *ap
 		return nil
 	}
 
-	// check balance
+	// check manager dp cell have enough amount to pay
 	configCellBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "get config cell err")
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
-	newSubAccountPrice, _ := molecule.Bytes2GoU64(configCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
-	totalCapacity := uint64(0)
-	totalRegisterYears := uint64(0)
+	newSubAccountPrice, err := configCellBuilder.NewSubAccountPrice()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "get new sub account price err")
+		return fmt.Errorf("NewSubAccountPrice err: %s", err.Error())
+	}
+	var totalRegisterYears uint64
 	for _, v := range req.SubAccountList {
 		totalRegisterYears += v.RegisterYears
 	}
+	totalPrice := newSubAccountPrice * totalRegisterYears
 
-	quoteCell, err := h.DasCore.GetQuoteCell()
+	lock, _, err := req.FormatChainTypeAddressToScript(h.DasCore.NetType(), true)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "failed to get quote cell")
-		return fmt.Errorf("GetQuoteCell err: %s", err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "FormatChainTypeAddressToScript err")
+		return err
 	}
-	totalCapacity = config.PriceToCKB(newSubAccountPrice, quoteCell.Quote(), totalRegisterYears)
-	//totalCapacity = totalRegisterYears * newSubAccountPrice
-
-	_, _, err = h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
-		DasCache:          nil,
-		LockScript:        balanceDasLock,
-		CapacityNeed:      totalCapacity,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
-		SearchOrder:       indexer.SearchOrderAsc,
-	})
-	if err != nil {
+	if _, _, _, err := h.DasCore.GetDpCells(&core.ParamGetDpCells{
+		DasCache:    h.DasCache,
+		LockScript:  lock,
+		AmountNeed:  totalPrice,
+		SearchOrder: indexer.SearchOrderAsc,
+	}); err != nil {
 		return doDasBalanceError(err, apiResp)
 	}
 
