@@ -99,10 +99,6 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		return fmt.Errorf("sync block number")
 	}
 
-	if req.TokenId == tables.TokenIdCkbDas {
-		req.TokenId = tables.TokenIdCkb
-	}
-
 	res := h.couponCreateParamsCheck(req, apiResp)
 	if apiResp.ErrNo != 0 {
 		return nil

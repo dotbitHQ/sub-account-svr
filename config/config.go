@@ -151,6 +151,8 @@ func GetUnipayAddress(tokenId tables.TokenId) string {
 		return Cfg.UnipayAddressMap["evm"]
 	case tables.TokenIdTrx, tables.TokenIdTrc20USDT:
 		return Cfg.UnipayAddressMap["tron"]
+	case tables.TokenIdCkb, tables.TokenIdCkbDas:
+		return Cfg.UnipayAddressMap["ckb"]
 	}
 	return ""
 }
