@@ -100,7 +100,7 @@ func (h *HttpHandle) doSignIn(ctx *gin.Context, req *ReqSignIn, apiResp *api_cod
 		h.DasCore.AddPkIndexForSignMsg(&req.Signature, idx)
 	}
 
-	signMsg := fmt.Sprintf("%s%d", req.Account, req.Timestamp)
+	signMsg := fmt.Sprintf("Account: %s Timestamp: %d", req.Account, req.Timestamp)
 	if ok, _, err := api_code.VerifySignature(res.DasAlgorithmId, signMsg, req.Signature, signAddress); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
 		return nil
