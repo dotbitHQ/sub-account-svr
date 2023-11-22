@@ -219,7 +219,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		amount, err := h.DbDao.GetOrderAmountByTokenId(tables.TokenIdDp)
+		amount, err := h.DbDao.GetOrderAmountByAccIdAndTokenId(accountId, tables.TokenIdDp)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return fmt.Errorf("GetOrderAmountByTokenId err: %s", err.Error())
