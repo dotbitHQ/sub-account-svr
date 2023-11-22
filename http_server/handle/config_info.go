@@ -67,6 +67,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 
 	err := h.checkSystemUpgrade(apiResp)
 	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
 
@@ -80,8 +81,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 		}
 		quoteCell, err := h.DasCore.GetQuoteCell()
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return nil
+			return err
 		}
 		quote := decimal.NewFromInt(int64(quoteCell.Quote()))
 
@@ -116,6 +116,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 		return nil
 	})
 	if err := errWg.Wait(); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
 	}
 
