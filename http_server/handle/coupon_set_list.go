@@ -132,8 +132,8 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 		respList = resp.List[:expiredAtIdx]
 	}
 	sort.Slice(respList, func(i, j int) bool {
-		li := resp.List[i].Num - resp.List[i].Used
-		lj := resp.List[j].Num - resp.List[j].Used
+		li := respList[i].Num - respList[i].Used
+		lj := respList[j].Num - respList[j].Used
 		return li > lj
 	})
 	if expiredAtIdx > 1 {
