@@ -172,6 +172,17 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 	return
 }
 
+func (d *DbDao) GetMintOrderInProgressByAccountId(accountId string, actionType tables.ActionType) (info tables.OrderInfo, err error) {
+	timestamp := tables.GetEfficientOrderTimestamp()
+	err = d.db.Where("account_id=? AND timestamp>=? AND action_type=? AND pay_status=?",
+		accountId, timestamp, actionType, tables.PayStatusPaid).
+		Order("id DESC").First(&info).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
 func (d *DbDao) CreateOrderInfo(info, oldOrder tables.OrderInfo, paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&info).Error; err != nil {
