@@ -66,7 +66,6 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 
 	err := h.checkSystemUpgrade(apiResp)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
 
