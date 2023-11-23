@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 	"net/http"
+	"sort"
+	"time"
 )
 
 type ReqCouponSetList struct {
@@ -69,6 +71,7 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 		return nil
 	}
 
+	now := time.Now()
 	resp := &RespCouponSetInfoList{
 		Total: total,
 		List:  make([]RespCouponSetInfo, 0, len(setInfo)),
@@ -83,6 +86,8 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 		close(ch)
 		return nil
 	})
+
+	expiredAtIdx := -1
 
 	errWg.Go(func() error {
 		for idx := range ch {
@@ -112,12 +117,29 @@ func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.Ap
 				ExpiredAt: v.ExpiredAt,
 				CreatedAt: v.CreatedAt.UnixMilli(),
 			})
+			if expiredAtIdx == -1 && now.After(time.UnixMilli(v.ExpiredAt)) {
+				expiredAtIdx = idx
+			}
 		}
 		return nil
 	})
 	if err := errWg.Wait(); err != nil {
 		return err
 	}
+
+	respList := resp.List
+	if expiredAtIdx > 1 {
+		respList = resp.List[:expiredAtIdx]
+	}
+	sort.Slice(respList, func(i, j int) bool {
+		li := resp.List[i].Num - resp.List[i].Used
+		lj := resp.List[j].Num - resp.List[j].Used
+		return li > lj
+	})
+	if expiredAtIdx > 1 {
+		respList = append(respList, resp.List[expiredAtIdx:]...)
+	}
+	resp.List = respList
 	apiResp.ApiRespOK(resp)
 	return nil
 }
