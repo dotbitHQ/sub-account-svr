@@ -1,6 +1,8 @@
 package handle
 
 import (
+	"das_sub_account/config"
+	"das_sub_account/encrypt"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -9,7 +11,6 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
-	"math"
 	"net/http"
 	"strings"
 )
@@ -27,12 +28,20 @@ type RespDistributionList struct {
 }
 
 type DistributionListElement struct {
-	Time    int64            `json:"time"`
-	Account string           `json:"account"`
-	Years   uint64           `json:"years"`
-	Amount  string           `json:"amount"`
-	Symbol  string           `json:"symbol"`
-	Action  common.SubAction `json:"action"`
+	Time       int64            `json:"time"`
+	Account    string           `json:"account"`
+	Years      uint64           `json:"years"`
+	Amount     string           `json:"amount"`
+	Symbol     string           `json:"symbol"`
+	Action     common.SubAction `json:"action"`
+	CouponInfo struct {
+		Cid         string `json:"cid"`
+		OrderAmount string `json:"order_amount"`
+		SetName     string `json:"set_name"`
+		Code        string `json:"code"`
+		CouponPrice string `json:"coupon_price"`
+		UserAmount  string `json:"user_amount"`
+	} `json:"coupon_info"`
 }
 
 func (h *HttpHandle) DistributionList(ctx *gin.Context) {
@@ -135,11 +144,54 @@ func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_c
 						apiResp.ApiRespErr(api_code.ApiCodeOrderNotExist, err.Error())
 						return err
 					}
-					log.Infof("account: %s %d", order.Account, order.Amount.IntPart())
-					token := tokens[order.TokenId]
-					amount := order.Amount.Sub(order.PremiumAmount).Div(decimal.NewFromInt(int64(math.Pow10(int(token.Decimals)))))
+
+					amount := decimal.Zero
+					if order.TokenId != "" && order.Amount.GreaterThan(decimal.Zero) {
+						token := tokens[order.TokenId]
+						amount = order.Amount.Sub(order.PremiumAmount).DivRound(decimal.New(1, token.Decimals), token.Decimals)
+						resp.List[idx].Symbol = token.Symbol
+					}
 					resp.List[idx].Amount = amount.String()
-					resp.List[idx].Symbol = token.Symbol
+
+					if order.CouponCode != "" {
+						couponInfo, err := h.DbDao.GetCouponByCode(order.CouponCode)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+							return err
+						}
+						if couponInfo.Id == 0 {
+							err = fmt.Errorf("coupon_code: %s no exist", order.CouponCode)
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
+						couponSetInfo, err := h.DbDao.GetCouponSetInfo(couponInfo.Cid)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+							return err
+						}
+						if couponSetInfo.Id == 0 {
+							err = fmt.Errorf("cid: %s no exist", couponInfo.Cid)
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
+
+						resCode, err := encrypt.AesDecrypt(couponInfo.Code, config.Cfg.Das.Coupon.EncryptionKey)
+						if err != nil {
+							apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+							return err
+						}
+
+						resp.List[idx].CouponInfo.Cid = couponInfo.Cid
+						resp.List[idx].CouponInfo.OrderAmount = fmt.Sprintf("$%s", order.USDAmount)
+						resp.List[idx].CouponInfo.SetName = couponSetInfo.Name
+						resp.List[idx].CouponInfo.Code = resCode
+						resp.List[idx].CouponInfo.CouponPrice = fmt.Sprintf("-$%s", couponSetInfo.Price)
+						userAmount := decimal.Zero
+						if couponSetInfo.Price.LessThan(order.USDAmount) {
+							userAmount = order.USDAmount.Sub(couponSetInfo.Price)
+						}
+						resp.List[idx].CouponInfo.UserAmount = fmt.Sprintf("$%s", userAmount)
+					}
 				}
 				return nil
 			})

@@ -85,6 +85,7 @@ func (t *ToolUniPay) doOrderCheck() error {
 			if err := t.DbDao.UpdateOrderStatusForCheckRenew(v.OrderId, tables.OrderStatusDefault, newStatus); err != nil {
 				return fmt.Errorf("UpdateOrderStatusForCheckRenew err: %s[%s]", err.Error(), v.OrderId)
 			}
+		case tables.ActionTypeCouponCreate:
 		default:
 			notify.SendLarkErrNotify("doOrderCheck", fmt.Sprintf("doOrderCheck unsupport action %d", v.ActionType))
 		}

@@ -24,6 +24,7 @@ type EventInfo struct {
 	OrderId      string              `json:"order_id"`
 	PayStatus    tables.PayStatus    `json:"pay_status"`
 	PayHash      string              `json:"pay_hash"`
+	PayAddress   string              `json:"pay_address"`
 	RefundStatus tables.RefundStatus `json:"refund_status"`
 	RefundHash   string              `json:"refund_hash"`
 }

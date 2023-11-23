@@ -14,7 +14,6 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
-	"math"
 	"net/http"
 	"sort"
 	"strings"
@@ -28,7 +27,8 @@ type RespStatisticalInfo struct {
 	SubAccountNum int64        `json:"sub_account_num"`
 	AddressNum    int64        `json:"address_num"`
 	IncomeInfo    []IncomeInfo `json:"income_info"`
-	CkbSpending   CkbSpending  `json:"ckb_spending"`
+	CkbSpending   Spending     `json:"ckb_spending"`
+	DpSpending    Spending     `json:"dp_spending"`
 	AutoMint      struct {
 		Enable          bool  `json:"enable"`
 		FirstEnableTime int64 `json:"first_enable_time"`
@@ -43,7 +43,7 @@ type IncomeInfo struct {
 	BackgroundColor string `json:"background_color"`
 }
 
-type CkbSpending struct {
+type Spending struct {
 	Balance string `json:"balance"`
 	Total   string `json:"total"`
 }
@@ -81,6 +81,22 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "search account err")
 		return fmt.Errorf("SearchAccount err: %s", err.Error())
+	}
+
+	dasLock, _, err := h.DasCore.Daf().HexToScript(core.DasAddressHex{
+		DasAlgorithmId: acc.ManagerAlgorithmId,
+		AddressHex:     acc.Manager,
+		ChainType:      acc.ManagerChainType,
+	})
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return fmt.Errorf("HexToScript err: %s", err.Error())
+	}
+
+	tokens, err := h.DbDao.FindTokens()
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		return err
 	}
 
 	resp := RespStatisticalInfo{
@@ -129,21 +145,15 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			}
 		}
 
-		tokens, err := h.DbDao.FindTokens()
-		if err != nil {
-			return err
-		}
-
 		for k, v := range totalAmount {
 			token := tokens[k]
 			if v.Sub(paidAmount[k]).LessThanOrEqual(decimal.NewFromInt(0)) &&
 				!paymentConfig.CfgMap[k].Enable {
 				continue
 			}
-			decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
-			rate := decimal.NewFromFloat(1 - config.Cfg.Das.AutoMint.ServiceFeeRatio)
-			total := v.Mul(rate).DivRound(decimals, token.Decimals)
-			balance := v.Sub(paidAmount[k]).Mul(rate).DivRound(decimals, token.Decimals)
+			decimals := decimal.New(1, token.Decimals)
+			total := v.DivRound(decimals, token.Decimals)
+			balance := v.Sub(paidAmount[k]).DivRound(decimals, token.Decimals)
 
 			resp.IncomeInfo = append(resp.IncomeInfo, IncomeInfo{
 				Type:            token.Symbol,
@@ -160,15 +170,6 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		dasLock, _, err := h.DasCore.Daf().HexToScript(core.DasAddressHex{
-			DasAlgorithmId: acc.ManagerAlgorithmId,
-			AddressHex:     acc.Manager,
-			ChainType:      acc.ManagerChainType,
-		})
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-			return fmt.Errorf("HexToScript err: %s", err.Error())
-		}
 		_, totalCapacity, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 			LockScript:  dasLock,
 			SearchOrder: indexer.SearchOrderDesc,
@@ -177,7 +178,6 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
-
 		log.Infof("totalCapacity: %d", totalCapacity)
 
 		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
@@ -185,8 +185,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return fmt.Errorf("GetTokenById err: %s", err)
 		}
-		decimals := decimal.NewFromInt(int64(math.Pow10(int(token.Decimals))))
-		resp.CkbSpending.Balance = decimal.NewFromInt(int64(totalCapacity)).Div(decimals).String()
+		resp.CkbSpending.Balance = decimal.NewFromInt(int64(totalCapacity)).Div(decimal.New(1, token.Decimals)).String()
 		return nil
 	})
 
@@ -202,6 +201,37 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			return fmt.Errorf("GetSmtRecordManualCKB err: %s", err.Error())
 		}
 		resp.CkbSpending.Total = fmt.Sprintf("%d", total+total2)
+		return nil
+	})
+
+	errG.Go(func() error {
+		_, dpAmount, _, err := h.DasCore.GetDpCells(&core.ParamGetDpCells{
+			LockScript:  dasLock,
+			SearchOrder: indexer.SearchOrderAsc,
+		})
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			return err
+		}
+		dpResp := decimal.NewFromInt(int64(dpAmount)).DivRound(decimal.New(1, 6), 2)
+		resp.DpSpending.Balance = dpResp.String()
+		return nil
+	})
+
+	errG.Go(func() error {
+		amount, err := h.DbDao.GetOrderAmountByAccIdAndTokenId(accountId, tables.TokenIdDp)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return fmt.Errorf("GetOrderAmountByTokenId err: %s", err.Error())
+		}
+		total, err := h.DbDao.GetSmtRecordManualMintYearsByTime(accountId, config.Cfg.Das.Dp.TimeOnline)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
+			return fmt.Errorf("GetSmtRecordManualMintYears err: %s", err.Error())
+		}
+		manual := decimal.NewFromInt(int64(total)).Mul(decimal.NewFromFloat(9.9))
+
+		resp.DpSpending.Total = amount.DivRound(decimal.New(1, 6), 2).Add(manual).String()
 		return nil
 	})
 

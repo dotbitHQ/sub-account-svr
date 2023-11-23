@@ -43,6 +43,12 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/auto/payment/list", api_code.DoMonitorLog("auto_payment_list"), cacheHandleShort, h.H.AutoPaymentList)
 		v1.POST("/auto/order/info", api_code.DoMonitorLog("auto_order_info"), cacheHandleShort, h.H.AutoOrderInfo)
 		v1.POST("/mint/config/get", api_code.DoMonitorLog("mint_config_get"), cacheHandleShort, h.H.MintConfigGet)
+		v1.POST("/coupon/order/info", api_code.DoMonitorLog("coupon_order_info"), h.H.CouponOrderInfo)
+		v1.POST("/coupon/set/list", api_code.DoMonitorLog("coupon_set_list"), cacheHandleShort, h.H.CouponSetList)
+		v1.POST("/coupon/code/list", api_code.DoMonitorLog("coupon_code_list"), cacheHandleShort, h.H.CheckPermissions, h.H.CouponCodeList)
+		v1.POST("/coupon/info", api_code.DoMonitorLog("coupon_info"), cacheHandleShort, h.H.CouponInfo)
+		v1.POST("/coupon/download", api_code.DoMonitorLog("coupon_download"), cacheHandleShort, h.H.CheckPermissions, h.H.CouponDownload)
+		v1.POST("/signin/info", api_code.DoMonitorLog("signin_info"), h.H.SignInInfo)
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit)               // enable_sub_account
@@ -71,7 +77,10 @@ func (h *HttpServer) initRouter() {
 		v1.POST("/approval/delay", api_code.DoMonitorLog("approval_delay"), h.H.ApprovalDelay)
 		v1.POST("/approval/revoke", api_code.DoMonitorLog("approval_revoke"), h.H.ApprovalRevoke)
 		v1.POST("/approval/fulfill", api_code.DoMonitorLog("approval_fulfill"), h.H.ApprovalFulfill)
+		v1.POST("/coupon/order/create", api_code.DoMonitorLog("coupon_order_create"), h.H.CheckPermissions, h.H.CouponOrderCreate)
+		v1.POST("/signin", api_code.DoMonitorLog("signin"), h.H.SignIn)
 	}
+
 	internalV1 := h.internalEngine.Group("v1")
 	{
 		internalV1.POST("/internal/smt/info", h.H.SmtInfo)
@@ -85,6 +94,8 @@ func (h *HttpServer) initRouter() {
 		internalV1.POST("/service/provider/withdraw", h.H.ServiceProviderWithdraw)
 		internalV1.POST("/service/provider/withdraw2", h.H.ServiceProviderWithdraw2)
 		internalV1.POST("/internal/recycle/account", h.H.RecycleAccount)
+		internalV1.POST("/coupon/statistical/info", h.H.CouponStatisticalInfo)
+		internalV1.GET("/debug/notify", h.H.DebugNotify)
 	}
 	// curl -X POST http://127.0.0.1:8127/v1/service/provider/withdraw2 -d'{"service_provider_address":"","account":"","withdraw":false}'
 }

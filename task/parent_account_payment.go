@@ -38,6 +38,7 @@ func (t *SmtTask) doParentAccountPayment() error {
 	log.Infof("doParentAccountPayment recordsNew: %s", toolib.JsonString(recordsNew))
 
 	if len(recordsNew) == 0 {
+		notify.SendLarkTextNotify(config.Cfg.Notify.LarkParentAccountPaymentKey, "OwnerPaymentInfo", "no account to pay")
 		return nil
 	}
 

@@ -75,7 +75,13 @@ func (h *HttpHandle) doAutoOrderHash(req *ReqAutoOrderHash, apiResp *api_code.Ap
 		PayHashStatus: tables.PayHashStatusPending,
 		Timestamp:     time.Now().UnixMilli(),
 	}
-	if err := h.DbDao.CreatePaymentInfo(paymentInfo); err != nil {
+	setInfo, err := h.DbDao.GetCouponSetInfoByOrderId(req.OrderId)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, fmt.Sprintf("Failed to search order: %s", req.OrderId))
+		return err
+	}
+
+	if err := h.DbDao.CreatePaymentInfo(paymentInfo, setInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, fmt.Sprintf("Failed to write back hash: %s", req.OrderId))
 		return fmt.Errorf("CreatePaymentInfo err: %s", err.Error())
 	}

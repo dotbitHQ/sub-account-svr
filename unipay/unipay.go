@@ -71,6 +71,7 @@ type RespPaymentInfo struct {
 type PaymentInfo struct {
 	OrderId       string               `json:"order_id"`
 	PayHash       string               `json:"pay_hash"`
+	PayAddress    string               `json:"pay_address"`
 	PayHashStatus tables.PayHashStatus `json:"pay_hash_status"`
 	RefundStatus  tables.RefundStatus  `json:"refund_status"`
 	RefundHash    string               `json:"refund_hash"`
@@ -91,6 +92,7 @@ type RespOrderInfo struct {
 	OrderId         string `json:"order_id"`
 	PaymentAddress  string `json:"payment_address"`
 	ContractAddress string `json:"contract_address"`
+	ClientSecret    string `json:"client_secret"`
 }
 
 func GetOrderInfo(req ReqOrderInfo) (resp RespOrderInfo, err error) {

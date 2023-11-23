@@ -12,6 +12,7 @@ const (
 	lockTime      = 180
 	lockTicker    = 10
 	lockAccountId = "lock:account_id:"
+	lock          = "lock:"
 )
 
 var ErrDistributedLockPreemption = errors.New("distributed lock preemption")
@@ -35,6 +36,32 @@ func (r *RedisCache) UnLockWithRedis(accountId string) error {
 		return fmt.Errorf("redis del order nx-->%s", err.Error())
 	}
 	log.Info("UnLockWithRedis:", accountId)
+	return nil
+}
+
+func (r *RedisCache) Lock(key string, expirations ...time.Duration) error {
+	expiration := time.Second * lockTime
+	if len(expirations) > 0 {
+		expiration = expirations[0]
+	}
+	ret := r.Red.SetNX(lock+key, 1, expiration)
+	if err := ret.Err(); err != nil {
+		return fmt.Errorf("redis set order nx-->%s", err.Error())
+	}
+	if !ret.Val() {
+		log.Info("Lock lock:", key)
+		return ErrDistributedLockPreemption
+	}
+	log.Info("Lock:", key)
+	return nil
+}
+
+func (r *RedisCache) UnLock(key string) error {
+	ret := r.Red.Del(lock + key)
+	if err := ret.Err(); err != nil {
+		return fmt.Errorf("redis del order nx-->%s", err.Error())
+	}
+	log.Info("UnLock:", key)
 	return nil
 }
 

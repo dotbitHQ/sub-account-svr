@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
@@ -13,15 +14,22 @@ import (
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 	"time"
+)
+
+const (
+	PaymentStatusNormal = 0
+	PaymentWithout      = 1
 )
 
 type ReqAutoOrderCreate struct {
 	core.ChainTypeAddress
 	ActionType tables.ActionType `json:"action_type"`
-	SubAccount string            `json:"sub_account"`
+	SubAccount string            `json:"sub_account" binding:"required"`
 	TokenId    tables.TokenId    `json:"token_id"`
-	Years      uint64            `json:"years"`
+	Years      uint64            `json:"years" binding:"gt=0"`
+	CouponCode string            `json:"coupon_code"`
 }
 
 type RespAutoOrderCreate struct {
@@ -30,6 +38,7 @@ type RespAutoOrderCreate struct {
 	ContractAddress string          `json:"contract_address"`
 	ClientSecret    string          `json:"client_secret"`
 	Amount          decimal.Decimal `json:"amount"`
+	PaymentStatus   int             `json:"payment_status"`
 }
 
 func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
@@ -57,7 +66,7 @@ func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_code.ApiResp) error {
-	var resp RespAutoOrderCreate
+	now := time.Now()
 	// check key info
 	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
@@ -108,21 +117,12 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
-	// check token id
-	userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
-		return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
-	} else if cfg, ok := userConfig.CfgMap[string(req.TokenId)]; !ok || !cfg.Enable {
-		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
-		return nil
-	}
-
 	// get max years
 	if maxYear := h.getMaxYears(parentAccount); req.Years > maxYear {
 		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, "The main account is valid for less than one year")
 		return nil
 	}
+
 	// get rule price
 	usdAmount, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
 	if err != nil {
@@ -130,57 +130,130 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	tokenPrice, err := h.DbDao.GetTokenById(req.TokenId)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
-		return fmt.Errorf("GetTokenById err: %s", err.Error())
-	} else if tokenPrice.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
-		return nil
-	}
-	// check min price 0.99$
-	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
-	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
-		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-	}
-	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
-	minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
-	if req.ActionType == tables.ActionTypeRenew {
-		renewSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
-		minPrice = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
-	}
-	if minPrice.GreaterThan(usdAmount) {
-		apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, "Pricing below minimum")
-		return fmt.Errorf("price not be less than min: %s$", minPrice.String())
-	}
 
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
+	// total usd price
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
-	//log.Info("usdAmount:", usdAmount.String(), req.Years)
-	amount := usdAmount.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
-	if amount.Cmp(decimal.Zero) != 1 {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("price err: %s", amount.String()))
-		return nil
+
+	// deduct coupons
+	actualUsdPrice := usdAmount
+	var couponInfo tables.CouponInfo
+	if req.CouponCode != "" {
+		lockKey := fmt.Sprintf("%x", md5.Sum([]byte("coupon:use:"+req.CouponCode)))
+		if err := h.RC.Lock(lockKey); err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get lock")
+			return fmt.Errorf("RC.Lock err: %s", err.Error())
+		}
+		defer func() {
+			if err := h.RC.UnLock(lockKey); err != nil {
+				log.Error("RC.UnLock err:", err.Error())
+			}
+		}()
+
+		couponInfo, err = h.DbDao.GetCouponByCode(req.CouponCode)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return fmt.Errorf("GetCouponSetInfoByCode err: %s", err.Error())
+		}
+		if couponInfo.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "coupon code not exist")
+			return nil
+		}
+		if couponInfo.Status != tables.CouponStatusNormal {
+			switch couponInfo.Status {
+			case tables.CouponStatusUsed:
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "coupon code has been used")
+			default:
+				apiResp.ApiRespErr(api_code.ApiCodeError500, "coupon code status is not normal")
+			}
+			return nil
+		}
+
+		setInfo, err := h.DbDao.GetCouponSetInfo(couponInfo.Cid)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, err.Error())
+			return fmt.Errorf("GetCouponSetInfo err: %s", err.Error())
+		}
+		if setInfo.OrderId == "" || setInfo.Status != tables.CouponSetInfoStatusSuccess {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "this coupon code can not use, because it order not paid")
+			return nil
+		}
+		if setInfo.BeginAt > 0 && now.Before(time.UnixMilli(setInfo.BeginAt)) {
+			apiResp.ApiRespErr(api_code.ApiCodeCouponOpenTimeNotArrived, "this coupon code can not use, because it not open")
+			return nil
+		}
+		if now.After(time.UnixMilli(setInfo.ExpiredAt)) {
+			apiResp.ApiRespErr(api_code.ApiCodeCouponExpired, "this coupon code can not use, because it expired")
+			return nil
+		}
+		if setInfo.AccountId != parentAccountId {
+			apiResp.ApiRespErr(api_code.ApiCodeCouponErrAccount, "this coupon code can not use, because it not belong to this account")
+			return nil
+		}
+
+		if setInfo.Price.LessThan(usdAmount) {
+			actualUsdPrice = usdAmount.Sub(setInfo.Price)
+		} else {
+			actualUsdPrice = decimal.Zero
+		}
 	}
-	amount = RoundAmount(amount, req.TokenId)
-	//
-	//if req.TokenId == tables.TokenIdStripeUSD && amount.Cmp(decimal.NewFromFloat(0.52)) == -1 {
-	//	apiResp.ApiRespErr(http_api.ApiCodeAmountIsTooLow, "Prices must not be lower than 0.52$")
-	//	return nil
-	//}
-	// create order
+
+	amount := decimal.Zero
 	premiumPercentage := decimal.Zero
 	premiumBase := decimal.Zero
 	premiumAmount := decimal.Zero
-	if req.TokenId == tables.TokenIdStripeUSD {
-		premiumPercentage = config.Cfg.Stripe.PremiumPercentage
-		premiumBase = config.Cfg.Stripe.PremiumBase
-		premiumAmount = amount
-		amount = amount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
-		amount = decimal.NewFromInt(amount.Ceil().IntPart())
-		premiumAmount = amount.Sub(premiumAmount)
-		usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+	var tokenPrice tables.TTokenPriceInfo
+
+	// usd price -> token price
+	if actualUsdPrice.GreaterThan(decimal.Zero) {
+		// check user payment config
+		userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
+			return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
+		} else if cfg, ok := userConfig.CfgMap[string(req.TokenId)]; !ok || !cfg.Enable {
+			apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+			return nil
+		}
+
+		// check min price 0.99$
+		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
+			return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+		}
+		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
+		minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+		if req.ActionType == tables.ActionTypeRenew {
+			renewSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+			minPrice = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+		}
+		if minPrice.GreaterThan(usdAmount) {
+			apiResp.ApiRespErr(api_code.ApiCodePriceRulePriceNotBeLessThanMin, "Pricing below minimum")
+			return fmt.Errorf("price not be less than min: %s$", minPrice.String())
+		}
+
+		// usd price -> token price
+		tokenPrice, err = h.DbDao.GetTokenById(req.TokenId)
+		if err != nil {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search token price")
+			return fmt.Errorf("GetTokenById err: %s", err.Error())
+		} else if tokenPrice.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+			return nil
+		}
+		amount = actualUsdPrice.Mul(decimal.New(1, tokenPrice.Decimals)).Div(tokenPrice.Price).Ceil()
+		amount = RoundAmount(amount, req.TokenId)
+
+		if req.TokenId == tables.TokenIdStripeUSD {
+			premiumPercentage = config.Cfg.Stripe.PremiumPercentage
+			premiumBase = config.Cfg.Stripe.PremiumBase
+			premiumAmount = amount
+			amount = amount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+			amount = decimal.NewFromInt(amount.Ceil().IntPart())
+			premiumAmount = amount.Sub(premiumAmount)
+			usdAmount = usdAmount.Mul(premiumPercentage.Add(decimal.NewFromInt(1))).Add(premiumBase.Mul(decimal.NewFromInt(100)))
+		}
 	}
 
 	action := "mint"
@@ -205,10 +278,19 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		},
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "600004") {
+			apiResp.ApiRespErr(api_code.ApiCodePaymentMethodDisable, "This payment method is unavailable")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
+		if strings.Contains(err.Error(), "600003") {
+			apiResp.ApiRespErr(api_code.ApiCodeAmountIsTooLow, "Amount must not be lower than 0.52$")
+			return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
 	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
+
 	orderInfo := tables.OrderInfo{
 		OrderId:           res.OrderId,
 		ActionType:        req.ActionType,
@@ -221,14 +303,16 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		TokenId:           string(req.TokenId),
 		Amount:            amount,
 		USDAmount:         usdAmount,
+		CouponCode:        req.CouponCode,
 		PayStatus:         tables.PayStatusUnpaid,
 		OrderStatus:       tables.OrderStatusDefault,
-		Timestamp:         time.Now().UnixMilli(),
+		Timestamp:         now.UnixMilli(),
 		SvrName:           config.Cfg.Slb.SvrName,
 		PremiumPercentage: premiumPercentage,
 		PremiumBase:       premiumBase,
 		PremiumAmount:     premiumAmount,
 	}
+
 	var paymentInfo tables.PaymentInfo
 	if req.TokenId == tables.TokenIdStripeUSD && res.StripePaymentIntentId != "" {
 		paymentInfo = tables.PaymentInfo{
@@ -238,16 +322,24 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 			Timestamp:     time.Now().UnixMilli(),
 		}
 	}
-	if err = h.DbDao.CreateOrderInfo(orderInfo, paymentInfo); err != nil {
+	if req.TokenId == tables.TokenIdDp {
+		amount = amount.Div(decimal.New(1, tokenPrice.Decimals))
+	}
+
+	if err = h.DbDao.CreateOrderInfoWithCoupon(orderInfo, paymentInfo, couponInfo); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create order")
 		return fmt.Errorf("CreateOrderInfo err: %s", err.Error())
 	}
 
+	var resp RespAutoOrderCreate
 	resp.OrderId = res.OrderId
 	resp.Amount = amount
 	resp.PaymentAddress = res.PaymentAddress
 	resp.ContractAddress = res.ContractAddress
 	resp.ClientSecret = res.ClientSecret
+	if amount.Equal(decimal.Zero) {
+		resp.PaymentStatus = PaymentWithout
+	}
 
 	apiResp.ApiRespOK(resp)
 	return nil

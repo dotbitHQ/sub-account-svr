@@ -1,7 +1,9 @@
 package dao
 
 import (
+	"das_sub_account/config"
 	"das_sub_account/tables"
+	"errors"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -9,7 +11,7 @@ import (
 
 func (d *DbDao) GetOrderByOrderID(orderID string) (order tables.OrderInfo, err error) {
 	err = d.db.Where("order_id=?", orderID).First(&order).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	return
@@ -21,7 +23,7 @@ func (d *DbDao) FindOrderByPayment(end int64, accountId string) (list []*tables.
 		db = db.Where("parent_account_id=?", accountId)
 	}
 	err = db.Find(&list).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 	return
@@ -89,6 +91,63 @@ func (d *DbDao) UpdateOrderPayStatusOkWithSmtRecord(paymentInfo tables.PaymentIn
 	return
 }
 
+func (d *DbDao) UpdateOrderPayStatusOkWithCoupon(paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo, coupons []tables.CouponInfo) (rowsAffected int64, e error) {
+	e = d.db.Transaction(func(tx *gorm.DB) error {
+		tmpTx := tx.Model(tables.OrderInfo{}).
+			Where("order_id=? AND pay_status=?",
+				paymentInfo.OrderId, tables.PayStatusUnpaid).
+			Updates(map[string]interface{}{
+				"pay_status":   tables.PayStatusPaid,
+				"order_status": tables.OrderStatusSuccess,
+			})
+
+		if tmpTx.Error != nil {
+			return tmpTx.Error
+		}
+		rowsAffected = tmpTx.RowsAffected
+		log.Info("UpdateOrderPayStatusOkWithCoupon:", rowsAffected, paymentInfo.OrderId)
+
+		if err := tx.Clauses(clause.Insert{
+			Modifier: "IGNORE",
+		}).Create(&paymentInfo).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(tables.PaymentInfo{}).
+			Where("pay_hash=?", paymentInfo.PayHash).
+			Updates(map[string]interface{}{
+				"pay_hash_status": tables.PayHashStatusConfirmed,
+				"timestamp":       paymentInfo.Timestamp,
+			}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(tables.PaymentInfo{}).
+			Where("order_id=? AND pay_hash!=? AND pay_hash_status=?",
+				paymentInfo.OrderId, paymentInfo.PayHash, tables.PayHashStatusPending).
+			Updates(map[string]interface{}{
+				"pay_hash_status": tables.PayHashStatusRejected,
+			}).Error; err != nil {
+			return err
+		}
+
+		if rowsAffected == 0 { // multi pay hash
+			return nil
+		}
+
+		setInfo.Status = tables.CouponSetInfoStatusSuccess
+		if err := tx.Save(&setInfo).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(&coupons).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	return
+}
+
 // =========
 
 func (d *DbDao) GetMintOrderInProgressByAccountIdWithoutAddr(accountId, addr string, actionType tables.ActionType) (info tables.OrderInfo, err error) {
@@ -113,7 +172,29 @@ func (d *DbDao) GetMintOrderInProgressByAccountIdWithAddr(accountId, addr string
 	return
 }
 
-func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.PaymentInfo) error {
+func (d *DbDao) CreateOrderInfo(info, oldOrder tables.OrderInfo, paymentInfo tables.PaymentInfo, setInfo tables.CouponSetInfo) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&info).Error; err != nil {
+			return err
+		}
+		if oldOrder.Id > 0 {
+			if err := tx.Save(&oldOrder).Error; err != nil {
+				return err
+			}
+		}
+		if paymentInfo.PayHash != "" {
+			if err := tx.Create(&paymentInfo).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Save(&setInfo).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *DbDao) CreateOrderInfoWithCoupon(info tables.OrderInfo, paymentInfo tables.PaymentInfo, couponInfo tables.CouponInfo) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&info).Error; err != nil {
 			return err
@@ -123,30 +204,72 @@ func (d *DbDao) CreateOrderInfo(info tables.OrderInfo, paymentInfo tables.Paymen
 				return err
 			}
 		}
+		if couponInfo.Id > 0 {
+			couponInfo.Status = tables.CouponStatusUsed
+			if err := tx.Where("status = ?", tables.CouponStatusNormal).Save(&couponInfo).Error; err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }
 
-type OrderAmountInfo struct {
-	TokenId string          `json:"token_id" gorm:"column:token_id; type:varchar(255) NOT NULL DEFAULT '' COMMENT '';"`
-	Amount  decimal.Decimal `json:"amount" gorm:"column:amount; type:decimal(60,0) NOT NULL DEFAULT '0' COMMENT '';"`
-}
-
 func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]decimal.Decimal, err error) {
-	list := make([]*OrderAmountInfo, 0)
-	db := d.db.Model(&tables.OrderInfo{}).Select("token_id, sum(amount-premium_amount) as amount").
-		Where("parent_account_id=? and pay_status=? and order_status=?", accountId, tables.PayStatusPaid, tables.OrderStatusSuccess)
+	list := make([]*tables.OrderInfo, 0)
+	db := d.db.Where("parent_account_id=? and pay_status=? and order_status=? and action_type in (?)",
+		accountId, tables.PayStatusPaid, tables.OrderStatusSuccess, []tables.ActionType{tables.ActionTypeMint, tables.ActionTypeRenew})
 	if paid {
 		db = db.Where("auto_payment_id != ''")
 	}
-	err = db.Group("token_id").Find(&list).Error
-	if err == gorm.ErrRecordNotFound {
+	err = db.Find(&list).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = nil
 	}
 
+	tokens, err := d.FindTokens()
+	if err != nil {
+		return nil, err
+	}
+
+	feeRate := decimal.NewFromFloat(0.85)
+	minPriceFee := decimal.NewFromFloat(0.99).
+		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
+
 	result = make(map[string]decimal.Decimal)
 	for _, v := range list {
-		result[v.TokenId] = result[v.TokenId].Add(v.Amount)
+		amount := decimal.Zero
+		if v.TokenId != "" && v.Amount.GreaterThan(decimal.Zero) {
+			token := tokens[v.TokenId]
+			couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).Mul(decimal.NewFromInt(int64(v.Years)))
+			tokenMinPrice := couponMinPrice.Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+			fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+			amount = v.Amount.Sub(v.PremiumAmount)
+			if v.CouponCode == "" {
+				if v.USDAmount.GreaterThan(decimal.Zero) {
+					if v.USDAmount.GreaterThan(couponMinPrice) {
+						amount = amount.Mul(feeRate)
+					} else {
+						amount = amount.Sub(fee)
+					}
+				} else {
+					if v.Amount.GreaterThan(tokenMinPrice) {
+						amount = amount.Mul(feeRate)
+					} else {
+						amount = amount.Sub(fee)
+					}
+				}
+			} else {
+				couponSetInfo, err := d.GetSetInfoByCoupon(v.CouponCode)
+				if err != nil {
+					return nil, err
+				}
+				if v.USDAmount.GreaterThan(couponSetInfo.Price) {
+					amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+					amount = amount.Mul(feeRate)
+				}
+			}
+		}
+		result[v.TokenId] = result[v.TokenId].Add(amount)
 	}
 	return
 }
@@ -224,4 +347,32 @@ func (d *DbDao) UpdateOrderStatusToFailForUnconfirmedPayHash(orderId, payHash st
 		}
 		return nil
 	})
+}
+
+func (d *DbDao) GetOrderByAccIdAndActionType(accountId string, actionType tables.ActionType, orderStatus ...tables.OrderStatus) (order tables.OrderInfo, err error) {
+	err = d.db.Where("account_id=? and action_type=? and order_status in (?)", accountId, actionType, orderStatus).First(&order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetOrderByCoupon(coupon string) (order tables.OrderInfo, err error) {
+	err = d.db.Where("coupon_code=?", coupon).First(&order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) GetOrderAmountByAccIdAndTokenId(accountId string, tokenId tables.TokenId) (amount decimal.Decimal, err error) {
+	order := &tables.OrderInfo{}
+	err = d.db.Model(order).Select("sum(amount) as amount").
+		Where("(account_id=? or parent_account_id=?) and token_id=? and pay_status=? and order_status=?",
+			accountId, accountId, tokenId, tables.PayStatusPaid, tables.OrderStatusSuccess).First(order).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	amount = order.Amount
+	return
 }

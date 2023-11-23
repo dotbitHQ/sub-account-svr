@@ -27,7 +27,8 @@ type ReqServiceProviderWithdraw2 struct {
 }
 
 type RespServiceProviderWithdraw2 struct {
-	Hash string `json:"hash"`
+	Hash   string          `json:"hash"`
+	Amount decimal.Decimal `json:"amount"`
 }
 
 func (h *HttpHandle) ServiceProviderWithdraw2(ctx *gin.Context) {
@@ -66,59 +67,126 @@ func (h *HttpHandle) doServiceProviderWithdraw2(req *ReqServiceProviderWithdraw2
 		return fmt.Errorf("sync block number")
 	}
 
-	//
-	if hash, err := h.buildServiceProviderWithdraw2Tx(req); err != nil {
+	if err := h.buildServiceProviderWithdraw2Tx(req, &resp); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("buildServiceProviderWithdraw2Tx err: %s", err.Error())
-	} else {
-		resp.Hash = hash
 	}
-
 	apiResp.ApiRespOK(resp)
 	return nil
 }
 
-func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWithdraw2) (string, error) {
+func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWithdraw2, resp *RespServiceProviderWithdraw2) error {
 	spAddr, err := address.Parse(req.ServiceProviderAddress)
 	if err != nil {
-		return "", fmt.Errorf("address.Parse err: %s", err.Error())
+		return fmt.Errorf("address.Parse err: %s", err.Error())
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	providerId := common.Bytes2Hex(spAddr.Script.Args)
 
+	// check pending tx
+	task, err := h.DbDao.GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, common.DasActionCollectSubAccountChannelProfit, tables.TxStatusPending)
+	if err != nil {
+		return err
+	}
+	if task.Id > 0 {
+		return fmt.Errorf("have pending task: %s", task.TaskId)
+	}
+
+	task, err = h.DbDao.GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, common.DasActionCollectSubAccountChannelProfit, tables.TxStatusCommitted)
+	if err != nil {
+		return err
+	}
+	if task.Id > 0 {
+		txHash, _ := common.String2OutPoint(task.Outpoint)
+		statement, err := h.DbDao.GetSubAccountAutoMintByTxHash(txHash)
+		if err != nil {
+			return err
+		}
+		if statement.Id == 0 {
+			return fmt.Errorf("have pending task: %s", task.TaskId)
+		}
+	}
+
 	latestExpenditure, err := h.DbDao.GetLatestSubAccountAutoMintStatementByType2(providerId, parentAccountId, tables.SubAccountAutoMintTxTypeExpenditure)
 	if err != nil {
-		return "", fmt.Errorf("GetLatestSubAccountAutoMintStatementByType2 err: %s", err.Error())
+		return fmt.Errorf("GetLatestSubAccountAutoMintStatementByType2 err: %s", err.Error())
 	}
 
 	list, err := h.DbDao.FindSubAccountAutoMintStatements2(providerId, parentAccountId, tables.SubAccountAutoMintTxTypeIncome, latestExpenditure.BlockNumber)
 	if err != nil {
-		return "", fmt.Errorf("FindSubAccountAutoMintStatements err: %s", err.Error())
+		return fmt.Errorf("FindSubAccountAutoMintStatements err: %s", err.Error())
 	}
 	if len(list) == 0 {
-		return "", nil
+		return nil
 	}
-	// testnet 2023-09-15
-	minPrice := uint64(990000)
+
+	minPrice := decimal.NewFromFloat(0.99)
+	minPriceFee := minPrice.
+		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin)).
+		Div(decimal.NewFromFloat(0.15)).
+		Mul(decimal.New(1, 6))
+	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio))
+
 	amount := decimal.Zero
-	for _, v := range list {
-		log.Info(v.ServiceProviderId, v.Quote, v.Years, v.Price)
-		if v.Quote.Cmp(decimal.Zero) == 0 || v.Years == 0 {
-			amount = amount.Add(v.Price)
-			continue
+	for _, statement := range list {
+		tx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(statement.TxHash))
+		if err != nil {
+			return err
 		}
-		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(minPrice, uint64(v.Quote.IntPart()), v.Years)))
-		backCKB := v.Price.Sub(minCKB)
-		if backCKB.Cmp(decimal.Zero) == 1 {
-			amount = amount.Add(backCKB)
+		builder := witness.SubAccountNewBuilder{}
+		dataBys := tx.Transaction.Witnesses[statement.WitnessIndex][common.WitnessDasTableTypeEndIndex:]
+		subAccountNew, err := builder.ConvertSubAccountNewFromBytes(dataBys)
+		if err != nil {
+			return err
+		}
+		subAccId := subAccountNew.CurrentSubAccountData.AccountId
+
+		outpoint := common.OutPoint2String(statement.TxHash, 0)
+		task, err := h.DbDao.GetTaskByOutpointWithParentAccountId(statement.ParentAccountId, outpoint)
+		if err != nil {
+			return fmt.Errorf("GetTaskByOutpointWithParentAccountId err: %s", err.Error())
+		}
+
+		var orderInfo tables.OrderInfo
+		if task.Id > 0 {
+			smtRecord, err := h.DbDao.GetChainSmtRecordListByTaskIdAndAccId(task.TaskId, subAccId)
+			if err != nil {
+				return fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: %s", err.Error())
+			}
+			if smtRecord.Id == 0 {
+				return fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: subAccount not found, task_id=%s, sub_acc=%s", task.TaskId, subAccountNew.CurrentSubAccountData.Account())
+			}
+			if smtRecord.OrderID == "" {
+				return fmt.Errorf("GetChainSmtRecordListByTaskIdAndAccId err: order_id is empty, task_id=%s, sub_acc=%s", task.TaskId, subAccountNew.CurrentSubAccountData.Account())
+			}
+			orderInfo, err = h.DbDao.GetOrderByOrderID(smtRecord.OrderID)
+			if err != nil {
+				return fmt.Errorf("GetOrderByOrderID err: %s", err.Error())
+			}
+			if orderInfo.Id == 0 {
+				return fmt.Errorf("GetOrderByOrderID err: order not found, order_id=%s", smtRecord.OrderID)
+			}
+		}
+
+		minCkbFee := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPriceFee.IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPrice.Mul(decimal.New(1, 6)).IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		if (task.Id == 0 || orderInfo.CouponCode == "") && statement.Price.GreaterThan(minCkbFee) {
+			// other provider or self but not use coupon
+			amount = amount.Add(statement.Price.Mul(feeRate))
+		} else if statement.Price.Sub(minCKB).GreaterThan(decimal.Zero) {
+			amount = amount.Add(statement.Price.Sub(minCKB))
 		}
 	}
 	log.Info("ServiceProviderWithdraw2:", req.ServiceProviderAddress, req.Account, amount.String())
-	if amount.Cmp(decimal.NewFromInt(int64(common.MinCellOccupiedCkb))) < 1 {
-		return "", nil
+
+	minCellOccupiedCkb := decimal.NewFromInt(int64(common.MinCellOccupiedCkb))
+	if amount.LessThanOrEqual(minCellOccupiedCkb) {
+		return fmt.Errorf("transfer ckb less than %s", minCellOccupiedCkb)
 	}
+	resp.Amount = amount
+
 	if !req.Withdraw {
-		return "", nil
+		return nil
 	}
 
 	// build tx ==================
@@ -127,15 +195,15 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	// CellDeps
 	contractSubAccount, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
 	if err != nil {
-		return "", fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
 	contractBalanceCell, err := core.GetDasContractInfo(common.DasContractNameBalanceCellType)
 	if err != nil {
-		return "", fmt.Errorf("GetDasContractInfo err: %s", err.Error())
+		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
 	configCellSubAcc, err := core.GetDasConfigCellInfo(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
-		return "", fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
+		return fmt.Errorf("GetDasConfigCellInfo err: %s", err.Error())
 	}
 	txParams.CellDeps = append(txParams.CellDeps,
 		contractSubAccount.ToCellDep(),
@@ -146,7 +214,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	// inputs cell
 	subAccountCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
-		return "", fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
 	txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 		PreviousOutput: subAccountCell.OutPoint,
@@ -157,7 +225,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		NeedCapacity: common.OneCkb,
 	})
 	if err != nil {
-		return "", fmt.Errorf("GetBalanceCell err: %s", err.Error())
+		return fmt.Errorf("GetBalanceCell err: %s", err.Error())
 	}
 	for _, v := range liveBalanceCell {
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
@@ -191,14 +259,13 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 
 	actionWitness, err := witness.GenActionDataWitness(common.DasActionCollectSubAccountChannelProfit, nil)
 	if err != nil {
-		return "", fmt.Errorf("GenActionDataWitness err: %s", err.Error())
+		return fmt.Errorf("GenActionDataWitness err: %s", err.Error())
 	}
 	txParams.Witnesses = append(txParams.Witnesses, actionWitness)
 
-	//
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(txParams); err != nil {
-		return "", fmt.Errorf("BuildTransaction err: %s", err.Error())
+		return fmt.Errorf("BuildTransaction err: %s", err.Error())
 	}
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 	latestIndex := len(txBuilder.Transaction.Outputs) - 1
@@ -207,8 +274,9 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 
 	hash, err := txBuilder.SendTransaction()
 	if err != nil {
-		return "", fmt.Errorf("SendTransaction err: %s", err.Error())
+		return fmt.Errorf("SendTransaction err: %s", err.Error())
 	}
+	resp.Hash = hash.Hex()
 
 	taskInfo := &tables.TableTaskInfo{
 		TaskType:        tables.TaskTypeChain,
@@ -222,8 +290,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	taskInfo.InitTaskId()
 	if err := h.DbDao.CreateTask(taskInfo); err != nil {
 		log.Error("CreateTask err: ", err.Error(), hash.Hex())
-		return hash.Hex(), nil
+		return err
 	}
-
-	return hash.Hex(), nil
+	return nil
 }

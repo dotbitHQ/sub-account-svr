@@ -86,10 +86,23 @@ type CfgServer struct {
 			BackgroundColors    map[string]string `json:"background_colors" yaml:"background_colors"`
 			PaymentMinPrice     int64             `json:"payment_min_price" yaml:"payment_min_price"`
 			ServiceFeeRatio     float64           `json:"service_fee_ratio" yaml:"service_fee_ratio"`
+			ServiceFeeMin       float64           `json:"service_fee_min" yaml:"service_fee_min"`
 		} `json:"auto_mint" yaml:"auto_mint"`
 		Approval struct {
 			MaxDelayCount uint8 `json:"max_delay_count" yaml:"max_delay_count"`
 		} `json:"approval" yaml:"approval"`
+		Coupon struct {
+			CouponPrice   float64 `json:"coupon_price" yaml:"coupon_price"`
+			EncryptionKey string  `json:"encryption_key" yaml:"encryption_key"`
+			PriceMin      float64 `json:"price_min" yaml:"price_min"`
+			PriceMax      float64 `json:"price_max" yaml:"price_max"`
+		} `json:"coupon" yaml:"coupon"`
+		JwtKey string `json:"jwt_key" yaml:"jwt_key"`
+		Dp     struct {
+			TransferWhiteList string `json:"transfer_white_list" yaml:"transfer_white_list"`
+			CapacityWhitelist string `json:"capacity_whitelist" yaml:"capacity_whitelist"`
+			TimeOnline        int64  `json:"time_online" yaml:"time_online"`
+		} `json:"dp" yaml:"dp"`
 	} `json:"das" yaml:"das"`
 	Origins []string `json:"origins" yaml:"origins"`
 	Notify  struct {
@@ -138,6 +151,8 @@ func GetUnipayAddress(tokenId tables.TokenId) string {
 		return Cfg.UnipayAddressMap["evm"]
 	case tables.TokenIdTrx, tables.TokenIdTrc20USDT:
 		return Cfg.UnipayAddressMap["tron"]
+	case tables.TokenIdCkb, tables.TokenIdCkbDas:
+		return Cfg.UnipayAddressMap["ckb"]
 	}
 	return ""
 }

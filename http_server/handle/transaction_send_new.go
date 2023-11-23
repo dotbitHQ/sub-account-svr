@@ -2,6 +2,7 @@ package handle
 
 import (
 	"das_sub_account/config"
+	"das_sub_account/consts"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
 	"encoding/json"
@@ -90,7 +91,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
-	case ActionCurrencyUpdate, ActionMintConfigUpdate:
+	case consts.ActionCurrencyUpdate, ActionMintConfigUpdate:
 		if err := h.doActionAutoMint(req, apiResp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -106,7 +107,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 
 func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	switch req.Action {
-	case ActionCurrencyUpdate:
+	case consts.ActionCurrencyUpdate:
 		var data ReqCurrencyUpdate
 		if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 			if err == redis.Nil {
@@ -617,7 +618,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 			return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 		}
 		txAddr = dataCache.Address
-	case ActionCurrencyUpdate, ActionMintConfigUpdate:
+	case consts.ActionCurrencyUpdate, ActionMintConfigUpdate:
 		chainTypeAddress := &core.ChainTypeAddress{}
 		txStr, err := h.RC.GetSignTxCache(req.SignKey)
 		if err != nil {

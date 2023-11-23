@@ -99,31 +99,28 @@ CREATE TABLE `t_mint_sign_info`
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='mint sign info';
 
 -- t_coupon_set_info
-CREATE TABLE `t_coupon_set_info`
-(
-    `id`         BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '',
-    `cid`        VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `account_id` VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `owner_aid`  SMALLINT            NOT NULL DEFAULT '0' COMMENT '',
-    `owner`      VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `root`       VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `name`       VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `note`       VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `price`      DECIMAL(50, 10)     NOT NULL DEFAULT '' COMMENT '',
-    `num`        INT                 NOT NULL DEFAULT '0' COMMENT '',
-    `expired_at` BIGINT              NOT NULL DEFAULT '0' COMMENT '',
-    `status`     SMALLINT            NOT NULL DEFAULT '0' COMMENT '',
-    `signature`  VARCHAR(255)        NOT NULL DEFAULT '' COMMENT '',
-    `created_at` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
-    `updated_at` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_cid` (`cid`),
-    KEY `k_account_id` (`account_id`),
-    KEY `k_owner` (`owner`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci COMMENT ='coupon set info';
-
+CREATE TABLE `t_coupon_set_info` (
+    `id` BIGINT ( 20 ) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '',
+    `cid` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `account_id` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `manager_aid` SMALLINT NOT NULL DEFAULT '0' COMMENT '',
+    `manager_sub_aid` SMALLINT NOT NULL DEFAULT '0' COMMENT '',
+    `manager` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `root` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `name` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `note` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `price` DECIMAL ( 50, 10 ) NOT NULL DEFAULT '' COMMENT '',
+    `num` INT NOT NULL DEFAULT '0' COMMENT '',
+    `expired_at` BIGINT NOT NULL DEFAULT '0' COMMENT '',
+    `status` SMALLINT NOT NULL DEFAULT '0' COMMENT '',
+    `signature` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
+    PRIMARY KEY ( `id` ),
+    UNIQUE KEY `uk_cid` ( `cid` ),
+    KEY `k_acc_id` (`account_id`),
+    KEY `k_manager` (`manager`)
+) ENGINE = INNODB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'coupon set info';
 
 -- t_coupon_info
 CREATE TABLE `t_coupon_info`
@@ -135,7 +132,6 @@ CREATE TABLE `t_coupon_info`
     `created_at` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
     `updated_at` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_cid` (`cid`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci COMMENT ='coupon info';
+    UNIQUE KEY `uk_cid` (`cid`),
+    UNIQUE KEY `uk_code` (`code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='coupon info';

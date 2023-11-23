@@ -5,7 +5,6 @@ import (
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
-	"math"
 	"net/http"
 	"time"
 )
@@ -57,7 +56,7 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 	}
 	for _, v := range recordsNew {
 		for _, record := range v {
-			amount := record.Amount.DivRound(decimal.NewFromInt(int64(math.Pow10(int(record.Decimals)))), record.Decimals)
+			amount := record.Amount.DivRound(decimal.New(1, record.Decimals), record.Decimals)
 			if err := w.Write([]string{record.Account, record.Address, record.TokenId, amount.String()}); err != nil {
 				log.Error(err)
 				_ = ctx.AbortWithError(http.StatusInternalServerError, err)

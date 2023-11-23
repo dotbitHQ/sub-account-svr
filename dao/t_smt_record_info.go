@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
@@ -53,6 +54,11 @@ func (d *DbDao) GetSmtRecordListByTaskId(taskId string) (list []tables.TableSmtR
 
 func (d *DbDao) GetChainSmtRecordListByTaskId(taskId string) (list []tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("task_id=? AND record_type=?", taskId, tables.RecordTypeChain).Find(&list).Error
+	return
+}
+
+func (d *DbDao) GetChainSmtRecordListByTaskIdAndAccId(taskId, accId string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("task_id=? AND account_id=? AND record_type=?", taskId, accId, tables.RecordTypeChain).First(&info).Error
 	return
 }
 
@@ -171,6 +177,17 @@ func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint6
 	return
 }
 
+func (d *DbDao) GetSmtRecordManualMintYearsByTime(parentAccountId string, nowTime int64) (total uint64, err error) {
+	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("IFNULL(sum(register_years+renew_years),0)").
+		Where("parent_account_id=? and mint_type in (?) and timestamp>? and sub_action in (?) and record_type=? and quote=0",
+			parentAccountId, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual}, nowTime,
+			[]common.DasAction{common.SubActionCreate, common.SubActionRenew}, tables.RecordTypeChain).Scan(&total).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
 func (d *DbDao) GetSmtRecordManualCKB(parentAccountId string) (total uint64, err error) {
 	err = d.db.Model(&tables.TableSmtRecordInfo{}).
 		Select("IFNULL(sum(round(990000/quote,0)*(register_years+renew_years)),0)").
@@ -197,7 +214,15 @@ func (d *DbDao) GetSmtRecordCreateByAccountId(accountId string, timestamp int64)
 
 func (d *DbDao) GetSmtRecordMintingByAccountId(accountId, subAction string) (info tables.TableSmtRecordInfo, err error) {
 	err = d.db.Where("account_id=? AND record_type=? AND sub_action=?",
-		accountId, tables.RecordTypeDefault, subAction).Limit(1).Find(&info).Error
+		accountId, tables.RecordTypeDefault, subAction).Order("id desc").First(&info).Error
+	return
+}
+
+func (d *DbDao) GetLatestSmtRecordAccountId(accountId, subAction string) (info tables.TableSmtRecordInfo, err error) {
+	err = d.db.Where("account_id=? AND sub_action=?", accountId, subAction).Order("id desc").First(&info).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }
 

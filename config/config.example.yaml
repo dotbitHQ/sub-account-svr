@@ -28,7 +28,18 @@ das:
       tron_trx: "#eff6ff"
       bsc_bnb: "#fefce8"
     payment_min_price: 50
-    service_fee_ratio: 0.1
+    service_fee_ratio: 0.03
+    service_fee_min: 0.1
+  coupon:
+    coupon_price: 0.99
+    encryption_key: ""
+    price_min: 0.99
+    price_max: 500
+  jwt_key: ""
+  dp:
+    transfer_white_list: ""
+    capacity_whitelist: ""
+    time_online: 1700623410763
 origins:
   - ""
 notify:

@@ -2,6 +2,7 @@ package dao
 
 import (
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"gorm.io/gorm"
@@ -273,6 +274,9 @@ SELECT * FROM %s WHERE parent_account_id=? AND smt_status=?
 func (d *DbDao) GetTaskByOutpointWithParentAccountId(parentAccountId, outpoint string) (task tables.TableTaskInfo, err error) {
 	err = d.db.Where("parent_account_id=? AND outpoint=? AND task_type=? AND smt_status=?",
 		parentAccountId, outpoint, tables.TaskTypeChain, tables.SmtStatusWriteComplete).Find(&task).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }
 
@@ -348,5 +352,13 @@ func (d *DbDao) GetUnDoTaskListByParentAccountId(parentAccountId string) (count 
 	err = d.db.Model(tables.TableTaskInfo{}).
 		Where("parent_account_id=? AND smt_status=? AND tx_status=?",
 			parentAccountId, tables.SmtStatusNeedToWrite, tables.TxStatusUnSend).Count(&count).Error
+	return
+}
+
+func (d *DbDao) GetPendingTaskByParentIdAndActionAndTxStatus(parentAccountId, action string, txStatus tables.TxStatus) (task tables.TableTaskInfo, err error) {
+	err = d.db.Where("parent_account_id=? AND action=? AND tx_status=?", parentAccountId, action, txStatus).Order("id desc").First(&task).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }
