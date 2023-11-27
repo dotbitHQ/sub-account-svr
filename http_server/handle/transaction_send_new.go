@@ -67,7 +67,7 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 	}
 
 	if err := h.doEditSignMsg(req, apiResp); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "doEditSignMsg err ")
 		return fmt.Errorf("doEditSignMsg err: %s", err.Error())
 	}
 
@@ -143,7 +143,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		}
 		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err")
 			return fmt.Errorf("VerifySignature err: %s", err.Error())
 		}
 		if !verifyRes {
@@ -202,7 +202,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 		}
 		verifyRes, signature, err := api_code.VerifySignature(signType, signMsg, signature, address)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err: "+err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeSignError, "VerifySignature err")
 			return fmt.Errorf("VerifySignature err: %s", err.Error())
 		}
 		if !verifyRes {

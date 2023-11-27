@@ -102,16 +102,16 @@ func (h *HttpHandle) doSmtUpdate(req *ReqSmtUpdate, apiResp *api_code.ApiResp) e
 			apiResp.ApiRespErr(api_code.ApiCodeTaskInProgress, "task in progress")
 			return nil
 		}
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "DoCheckBeforeBuildTx err")
 		return fmt.Errorf("DoCheckBeforeBuildTx err: %s", err.Error())
 	}
 
 	// lock smt and unlock
 	if err := h.RC.LockWithRedis(parentAccountId); err != nil {
 		if err == cache.ErrDistributedLockPreemption {
-			apiResp.ApiRespErr(api_code.ApiCodeDistributedLockPreemption, err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeDistributedLockPreemption, "ErrDistributedLockPreemption")
 		} else {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "LockWithRedis err")
 		}
 		return fmt.Errorf("LockWithRedis err: %s", err.Error())
 	}
@@ -139,7 +139,7 @@ func (h *HttpHandle) doSmtUpdate(req *ReqSmtUpdate, apiResp *api_code.ApiResp) e
 	}
 	r, err := tree.UpdateSmt(kv, opt)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "UpdateSmt err")
 		return fmt.Errorf("tree.Update err: %s", err.Error())
 	}
 	root := r.Root

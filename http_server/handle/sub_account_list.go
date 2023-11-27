@@ -60,7 +60,7 @@ func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.
 	if req.ChainTypeAddress.KeyInfo.Key != "" {
 		addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
 			return nil
 		}
 		req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex

@@ -44,7 +44,7 @@ func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 	// check params
 	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
 		return
 	}
 	r.chainType, r.address = addrHex.ChainType, addrHex.AddressHex
