@@ -97,7 +97,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	errWg.Go(func() error {
 		tokens, err := h.DbDao.GetTokenPriceList()
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeError500, "GetTokenPriceList err")
 			return nil
 		}
 		for _, v := range tokens {
@@ -114,7 +114,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 		return nil
 	})
 	if err := errWg.Wait(); err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "errWg.Wait err")
 		return err
 	}
 

@@ -60,7 +60,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 
 	hexAddress, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return nil
 	}
 	if req.Account == "" {
@@ -110,12 +110,12 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	}
 	contractSubAcc, err := core.GetDasContractInfo(common.DASContractNameSubAccountCellType)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetDasContractInfo err")
 		return fmt.Errorf("GetDasContractInfo err: %s", err.Error())
 	}
 	subAccountLiveCell, err := h.DasCore.GetSubAccountCell(acc.AccountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "GetSubAccountCell err")
 		return fmt.Errorf("getSubAccountCell err: %s", err.Error())
 	}
 	subDataDetail := witness.ConvertSubAccountCellOutputData(subAccountLiveCell.OutputData)
@@ -152,7 +152,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	}
 	txParams, err := h.buildCustomScriptTx(&p)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildCustomScriptTx err: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildCustomScriptTx err")
 		return fmt.Errorf("buildCustomScriptTx err: %s", err.Error())
 	}
 
@@ -165,7 +165,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		account:    req.Account,
 	})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err")
 		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
 

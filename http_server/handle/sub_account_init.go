@@ -64,7 +64,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
 		return nil
 	}
 	req.chainType, req.address = addrHex.ChainType, addrHex.AddressHex
@@ -94,7 +94,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	// config cell
 	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount, common.ConfigCellTypeArgsAccount)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "ConfigCellDataBuilderByTypeArgsList err")
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
 
@@ -110,7 +110,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 
 	feeDasLock, feeDasType, err = h.DasCore.Daf().HexToScript(*addrHex)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err: %s", err.Error()))
+		apiResp.ApiRespErr(api_code.ApiCodeError500, fmt.Sprintf("HexToScript err"))
 		return fmt.Errorf("HexToScript err: %s", err.Error())
 	}
 	total := uint64(0)
@@ -139,7 +139,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	}
 	txParams, err := h.buildSubAccountInitTx(&buildParams)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx params err: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "build tx params err")
 		return fmt.Errorf("buildSubAccountInitSubAccountTx err: %s", err.Error())
 	}
 
@@ -158,7 +158,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 		account:    req.Account,
 	})
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err")
 		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
 

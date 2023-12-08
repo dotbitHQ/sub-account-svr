@@ -50,7 +50,7 @@ func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {
 	}
 	ConfigCellDataBuilder, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsMain)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "ConfigCellDataBuilderByTypeArgs err")
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgs err: %s", err.Error())
 	}
 	status, _ := ConfigCellDataBuilder.Status()
@@ -60,7 +60,7 @@ func (h *HttpHandle) checkSystemUpgrade(apiResp *api_code.ApiResp) error {
 	}
 	ok, err := h.DasCore.CheckContractStatusOK(common.DASContractNameSubAccountCellType)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "CheckContractStatusOK err")
 		return fmt.Errorf("CheckContractStatusOK err: %s", err.Error())
 	} else if !ok {
 		apiResp.ApiRespErr(api_code.ApiCodeSystemUpgrade, api_code.TextSystemUpgrade)
@@ -75,11 +75,11 @@ func doSendTransactionError(err error, apiResp *api_code.ApiResp) error {
 		strings.Contains(err.Error(), "Unknown(OutPoint(") ||
 		(strings.Contains(err.Error(), "getInputCell") && strings.Contains(err.Error(), "not live")) {
 
-		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, "SendTransaction err")
 		return fmt.Errorf("SendTransaction err: %s", err.Error())
 	}
 
-	apiResp.ApiRespErr(api_code.ApiCodeError500, "send tx err:"+err.Error())
+	apiResp.ApiRespErr(api_code.ApiCodeError500, "send tx err")
 	return fmt.Errorf("SendTransaction err: %s", err.Error())
 }
 
@@ -89,32 +89,19 @@ func doApiError(err error, apiResp *api_code.ApiResp) {
 		strings.Contains(err.Error(), "Unknown(OutPoint(") ||
 		(strings.Contains(err.Error(), "getInputCell") && strings.Contains(err.Error(), "not live")) {
 
-		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, "send tx err")
 	}
 }
 
 func doDasBalanceError(err error, apiResp *api_code.ApiResp) error {
 	if err == core.ErrRejectedOutPoint {
-		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, "ErrRejectedOutPoint")
 	} else if err == core.ErrNotEnoughChange {
-		apiResp.ApiRespErr(api_code.ApiCodeNotEnoughChange, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeNotEnoughChange, "ErrNotEnoughChange")
 	} else if err == core.ErrInsufficientFunds {
-		apiResp.ApiRespErr(api_code.ApiCodeInsufficientBalance, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeInsufficientBalance, "ErrInsufficientFunds")
 	} else {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-	}
-	return err
-}
-
-func doBuildTxs(err error, apiResp *api_code.ApiResp) error {
-	if strings.Contains(err.Error(), core.ErrRejectedOutPoint.Error()) {
-		apiResp.ApiRespErr(api_code.ApiCodeRejectedOutPoint, core.ErrRejectedOutPoint.Error())
-	} else if strings.Contains(err.Error(), core.ErrInsufficientFunds.Error()) {
-		apiResp.ApiRespErr(api_code.ApiCodeInsufficientBalance, core.ErrInsufficientFunds.Error())
-	} else if strings.Contains(err.Error(), core.ErrNotEnoughChange.Error()) {
-		apiResp.ApiRespErr(api_code.ApiCodeNotEnoughChange, core.ErrNotEnoughChange.Error())
-	} else {
-		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "")
 	}
 	return err
 }
