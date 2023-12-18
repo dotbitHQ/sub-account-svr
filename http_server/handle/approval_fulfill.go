@@ -169,6 +169,10 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	resp := RespApprovalEnable{
 		SignInfoList: *signList,
 	}
+
+	if len(signList.List) > 0 {
+		signList.List = nil
+	}
 	apiResp.ApiRespOK(resp)
 	return nil
 }
@@ -261,13 +265,6 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.SubActionFullfillApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
-			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},

@@ -208,6 +208,9 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	}
 	log.Info("doApprovalEnableAccount: ", txHash)
 
+	if len(signList.List) > 0 {
+		signList.List = nil
+	}
 	resp := RespApprovalEnable{
 		SignInfoList: *signList,
 	}
@@ -303,13 +306,6 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.DasActionCreateApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
-			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},

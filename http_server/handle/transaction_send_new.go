@@ -302,17 +302,16 @@ func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiRe
 		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 	}
 
-	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
+	signList := make([]txbuilder.SignData, 0)
 	if len(req.List) > 0 {
-		if err := txBuilder.AddSignatureForTx(req.List[0].SignList); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
-			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
-		}
+		signList = req.List[0].SignList
 	} else {
-		if err := txBuilder.AddSignatureForTx(req.SignList); err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
-			return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
-		}
+		signList = req.SignList
+	}
+	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, sic.BuilderTx)
+	if err := txBuilder.AddSignatureForTx(signList); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "add signature fail")
+		return fmt.Errorf("AddSignatureForTx err: %s", err.Error())
 	}
 
 	hash, err := txBuilder.SendTransaction()
