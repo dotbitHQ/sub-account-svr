@@ -1859,6 +1859,135 @@ Please familiarize yourself with the meaning of some common parameters before re
 }
 ```
 
+replace `sign_list[0].sign_msg` to `mm_json.message.digest` and sign mm_json content, like this
+```json
+{
+      "types": {
+        "EIP712Domain": [
+          {
+            "name": "chainId",
+            "type": "uint256"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "verifyingContract",
+            "type": "address"
+          },
+          {
+            "name": "version",
+            "type": "string"
+          }
+        ],
+        "Action": [
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "params",
+            "type": "string"
+          }
+        ],
+        "Cell": [
+          {
+            "name": "capacity",
+            "type": "string"
+          },
+          {
+            "name": "lock",
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "type": "string"
+          },
+          {
+            "name": "data",
+            "type": "string"
+          },
+          {
+            "name": "extraData",
+            "type": "string"
+          }
+        ],
+        "Transaction": [
+          {
+            "name": "DAS_MESSAGE",
+            "type": "string"
+          },
+          {
+            "name": "inputsCapacity",
+            "type": "string"
+          },
+          {
+            "name": "outputsCapacity",
+            "type": "string"
+          },
+          {
+            "name": "fee",
+            "type": "string"
+          },
+          {
+            "name": "action",
+            "type": "Action"
+          },
+          {
+            "name": "inputs",
+            "type": "Cell[]"
+          },
+          {
+            "name": "outputs",
+            "type": "Cell[]"
+          },
+          {
+            "name": "digest",
+            "type": "bytes32"
+          }
+        ]
+      },
+      "primaryType": "Transaction",
+      "domain": {
+        "chainId": 5,
+        "name": "da.systems",
+        "verifyingContract": "0x0000000000000000000000000000000020210722",
+        "version": "1"
+      },
+      "message": {
+        "DAS_MESSAGE": "APPROVE TRANSFER sub-account-test.bit TO 0x52045950a5b582e9b426ad89296c8970c96d09d9 AFTER 1692870747",
+        "inputsCapacity": "226.99988747 CKB",
+        "outputsCapacity": "226.99983611 CKB",
+        "fee": "0.00005136 CKB",
+        "digest": "0x63c1d729b4e293ecef164dabceb1ab3e2be62f5117a036ab1c37d4eb1698ff85",
+        "action": {
+          "action": "create_approval",
+          "params": "0x00"
+        },
+        "inputs": [
+          {
+            "capacity": "226.99988747 CKB",
+            "lock": "das-lock,0x01,0x05deefc10a42cd84c072f2b0e2fa99061a74a069...",
+            "type": "account-cell-type,0x01,0x",
+            "data": "{ account: sub-account-test.bit, expired_at: 2028621581 }",
+            "extraData": "{ status: 0, records_hash: 0x0a5e0d314f2871334d8e3f5d49b2af60c49ac9af594debc705522448c5722ebf }"
+          }
+        ],
+        "outputs": [
+          {
+            "capacity": "226.99983611 CKB",
+            "lock": "das-lock,0x01,0x05deefc10a42cd84c072f2b0e2fa99061a74a069...",
+            "type": "account-cell-type,0x01,0x",
+            "data": "{ account: sub-account-test.bit, expired_at: 2028621581 }",
+            "extraData": "{ status: 4, records_hash: 0x0a5e0d314f2871334d8e3f5d49b2af60c49ac9af594debc705522448c5722ebf }"
+          }
+        ]
+      }
+    }
+```
+and call [Send Transaction](#send-transaction)
+
 ##### sub_account
 ```json
 {
@@ -1879,6 +2008,7 @@ Please familiarize yourself with the meaning of some common parameters before re
   }
 }
 ```
+personal sign with `sign_list[0].sign_msg` and call [Send Transaction](#send-transaction)
 
 ### Approval-Delay
 
