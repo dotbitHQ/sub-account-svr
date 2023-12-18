@@ -523,16 +523,162 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 * path: /v1/transaction/send
 
+PersonalSign
 ```json
 {
-  "action": "enable_sub_account",
-  "sign_key": "",
-  "sign_list": [
+  "action": "create_approval",
+  "sign_key": "18feccf2347ed980f07bd3277f9ce626",
+  "list": [
     {
-      "sign_type": 3,
-      "sign_msg": "0x123"
+      "sign_list": [
+        {
+          "sign_type": 8,
+          "sign_msg": "From .bit: 0ea5ffd13bddbdb3f5a8b492cd6653816d371b9afebb7e6d4ecd8e2962d6b4ca"
+        }
+      ]
     }
   ]
+}
+```
+
+SignWith712
+```json
+{
+  "action": "delay_approval",
+  "sub_action": "",
+  "sign_key": "e6358f9798aea2182329657029e6ff84",
+  "sign_address": "",
+  "is_712": true,
+  "sign_list": [
+    {
+      "sign_type": 5,
+      "sign_msg": "0xa67ee3e2a14602ca7dfa8d720c5c59c0769c8535575b4832aa46bd8f0023b476"
+    }
+  ],
+  "mm_json": {
+    "types": {
+      "EIP712Domain": [
+        {
+          "name": "chainId",
+          "type": "uint256"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "verifyingContract",
+          "type": "address"
+        },
+        {
+          "name": "version",
+          "type": "string"
+        }
+      ],
+      "Action": [
+        {
+          "name": "action",
+          "type": "string"
+        },
+        {
+          "name": "params",
+          "type": "string"
+        }
+      ],
+      "Cell": [
+        {
+          "name": "capacity",
+          "type": "string"
+        },
+        {
+          "name": "lock",
+          "type": "string"
+        },
+        {
+          "name": "type",
+          "type": "string"
+        },
+        {
+          "name": "data",
+          "type": "string"
+        },
+        {
+          "name": "extraData",
+          "type": "string"
+        }
+      ],
+      "Transaction": [
+        {
+          "name": "DAS_MESSAGE",
+          "type": "string"
+        },
+        {
+          "name": "inputsCapacity",
+          "type": "string"
+        },
+        {
+          "name": "outputsCapacity",
+          "type": "string"
+        },
+        {
+          "name": "fee",
+          "type": "string"
+        },
+        {
+          "name": "action",
+          "type": "Action"
+        },
+        {
+          "name": "inputs",
+          "type": "Cell[]"
+        },
+        {
+          "name": "outputs",
+          "type": "Cell[]"
+        },
+        {
+          "name": "digest",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "primaryType": "Transaction",
+    "domain": {
+      "chainId": 5,
+      "name": "da.systems",
+      "verifyingContract": "0x0000000000000000000000000000000020210722",
+      "version": "1"
+    },
+    "message": {
+      "DAS_MESSAGE": "DELAY THE TRANSFER APPROVAL OF sub-account-test.bit TO 1693022303",
+      "inputsCapacity": "226.99983611 CKB",
+      "outputsCapacity": "226.99978213 CKB",
+      "fee": "0.00005398 CKB",
+      "digest": "",
+      "action": {
+        "action": "delay_approval",
+        "params": "0x00"
+      },
+      "inputs": [
+        {
+          "capacity": "226.99983611 CKB",
+          "lock": "das-lock,0x01,0x05deefc10a42cd84c072f2b0e2fa99061a74a069...",
+          "type": "account-cell-type,0x01,0x",
+          "data": "{ account: sub-account-test.bit, expired_at: 2028621581 }",
+          "extraData": "{ status: 4, records_hash: 0x0a5e0d314f2871334d8e3f5d49b2af60c49ac9af594debc705522448c5722ebf }"
+        }
+      ],
+      "outputs": [
+        {
+          "capacity": "226.99978213 CKB",
+          "lock": "das-lock,0x01,0x05deefc10a42cd84c072f2b0e2fa99061a74a069...",
+          "type": "account-cell-type,0x01,0x",
+          "data": "{ account: sub-account-test.bit, expired_at: 2028621581 }",
+          "extraData": "{ status: 4, records_hash: 0x0a5e0d314f2871334d8e3f5d49b2af60c49ac9af594debc705522448c5722ebf }"
+        }
+      ]
+    }
+  }
 }
 ```
 
@@ -540,8 +686,8 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 ```json
 {
-  "errno": 0,
-  "errmsg": "",
+  "err_no": 0,
+  "err_msg": "",
   "data": {
     "hash_list": [""]
   }
