@@ -525,10 +525,11 @@ Please familiarize yourself with the meaning of some common parameters before re
 ```json
 {
   "action": "create_approval",
+  "sub_action": "",
   "sign_key": "18feccf2347ed980f07bd3277f9ce626",
   "sign_list": [
     {
-      "sign_type": 8,
+      "sign_type": 5,
       "sign_msg": "0x0ea5ffd13bddbdb3f5a8b492cd6653816d371b9afebb7e6d4ecd8e2962d6b4ca"
     }
   ]
