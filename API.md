@@ -567,12 +567,12 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 #### Response
 
-* status: 0: pending, 2: unsend
+* status: -1: reject 0: pending, 1: committed, 2: unsend
 
 ```json
 {
-  "errno": 0,
-  "errmsg": "",
+  "err_no": 0,
+  "err_msg": "",
   "data": {
     "block_number": 0,
     "hash": "",
