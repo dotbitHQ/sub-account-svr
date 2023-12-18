@@ -25,6 +25,10 @@ func (b *BlockParser) registerTransactionHandle() {
 	b.mapTransactionHandle[common.DasActionLockSubAccountForCrossChain] = b.DasActionRecycleSubAccount   // todo
 	b.mapTransactionHandle[common.DasActionUnlockSubAccountForCrossChain] = b.DasActionRecycleSubAccount // todo
 	b.mapTransactionHandle[common.DasActionCollectSubAccountChannelProfit] = b.ActionCollectSubAccountChannelProfit
+	b.mapTransactionHandle[common.DasActionCreateApproval] = b.DasActionApproval
+	b.mapTransactionHandle[common.DasActionDelayApproval] = b.DasActionApproval
+	b.mapTransactionHandle[common.DasActionRevokeApproval] = b.DasActionApproval
+	b.mapTransactionHandle[common.DasActionFulfillApproval] = b.DasActionApproval
 }
 
 func isCurrentVersionTx(tx *types.Transaction, name common.DasContractName) (bool, error) {

@@ -3,12 +3,14 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
+	"gorm.io/gorm"
 	"net/http"
 	"strings"
 )
@@ -146,6 +148,21 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				}
 			}
 		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		actionList := []common.DasAction{req.Action}
+		tx, err := h.DbDao.GetPendingStatus(req.chainType, req.address, actionList)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "search tx status err")
+			return fmt.Errorf("GetTransactionStatus err: %s", err.Error())
+		}
+		if tx.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+			return nil
+		}
+		resp.BlockNumber = tx.BlockNumber
+		resp.Hash, _ = common.String2OutPoint(tx.Outpoint)
+		resp.Status = TxStatus(tx.Status)
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist action[%s]", req.Action))
 		return nil
