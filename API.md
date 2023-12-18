@@ -530,7 +530,7 @@ Please familiarize yourself with the meaning of some common parameters before re
   "sign_key": "18feccf2347ed980f07bd3277f9ce626", // same with the api return
   "sign_list": [
     {
-      "sign_type": 5,  // // same with the api return sign_list[0].sign_type
+      "sign_type": 5,  // same with the api return sign_list[0].sign_type
       "sign_msg": "0x0ea5ffd13bddbdb3f5a8b492cd6653816d371b9afebb7e6d4ecd8e2962d6b4ca" // signature result
     }
   ]
