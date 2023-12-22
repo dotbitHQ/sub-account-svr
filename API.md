@@ -1684,12 +1684,24 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 * path: /v1/approval/enable
 
+Params:
+  - platform: platform key info
+    - type: blockchain
+      - key_info
+        - coin_type   `platform coin_type only can be '60'`
+        - key
+  - owner: `account owner key info`
+  - to: `account to key info`
+  - account: `account name`
+  - protected_until: `protected until time, authorization irrevocable time, before this time can not call` [Approval Revoke](#Approval-Revoke)
+  - sealed_until: `sealed until time, authorization effective time, after this time every one can call` [Approval Revoke](#Approval-Revoke)
+  - evm_chain_id: `evm chain id, only the main account need this parameter`
 ```json
 {
   "platform": {
     "type": "blockchain",
     "key_info": {
-      "coin_type": "60",  // platform coin_type only can be '60'
+      "coin_type": "60",
       "key": "0xe58673b9bF0a57398e0C8A1BDAe01EEB730177C8"
     }
   },
@@ -1710,7 +1722,7 @@ Please familiarize yourself with the meaning of some common parameters before re
   "account": "cross15.bit",
   "protected_until": 1692696089,
   "sealed_until": 1692762911,
-  "evm_chain_id": 5 // only the main account need this parameter
+  "evm_chain_id": 5
 }
 ```
 
@@ -2026,7 +2038,7 @@ personal sign with `sign_list[0].sign_msg` and call [Send Transaction](#send-tra
     "key": "0xdeeFC10a42cD84c072f2b0e2fA99061a74A0698c"
   },
   "account": "cross15.bit",
-  "sealed_until": 1692762911,
+  "sealed_until": 1692762911, // extend approval effective time
   "evm_chain_id": 5    // only the main account need this parameter
 }
 ```
