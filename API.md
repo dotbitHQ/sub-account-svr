@@ -1694,7 +1694,7 @@ Params:
   - to: `account to key info`
   - account: `account name`
   - protected_until: `protected until time, authorization irrevocable time, before this time can not call` [Approval Revoke](#Approval-Revoke)
-  - sealed_until: `sealed until time, authorization effective time, after this time every one can call` [Approval Revoke](#Approval-Revoke)
+  - sealed_until: `sealed until time, authorization effective time, after this time every one can call` [Approval Fulfill](#Approval-Fulfill)
   - evm_chain_id: `evm chain id, only the main account need this parameter`
 ```json
 {
