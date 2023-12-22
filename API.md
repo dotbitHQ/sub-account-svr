@@ -563,6 +563,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "key": "0x111..."
   },
   "action": "enable_sub_account",
+  "sub_action": "",
   "account": ""
 }
 ```
