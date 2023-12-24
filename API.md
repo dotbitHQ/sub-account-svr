@@ -570,7 +570,7 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 #### Response
 
-* status: -1: reject 0: pending, 1: committed, 2: unsend
+* status: 0: pending, 2: unsend
 
 ```json
 {
