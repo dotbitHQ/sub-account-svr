@@ -526,7 +526,7 @@ Please familiarize yourself with the meaning of some common parameters before re
 {
   "action": "create_approval",    // same with the api return
   "sub_action": "",               // same with the api return
-  "sign_address": "0x111...",     // same with the api return
+  "sign_address": "0x111...",     // only sign_type='309' webauthn, You need to fill in this address
   "sign_key": "18feccf2347ed980f07bd3277f9ce626", // same with the api return
   "sign_list": [
     {
