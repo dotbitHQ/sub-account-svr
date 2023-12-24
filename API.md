@@ -570,8 +570,9 @@ Please familiarize yourself with the meaning of some common parameters before re
 
 #### Response
 
-* status: 0: pending, 2: unsend
+is pending or unsend
 
+* status: 0: pending, 2: unsend
 ```json
 {
   "err_no": 0,
@@ -581,6 +582,15 @@ Please familiarize yourself with the meaning of some common parameters before re
     "hash": "",
     "status": 0
   }
+}
+```
+
+is committed
+```json
+{
+  "err_no": 11001,
+  "err_msg": "not exits tx",
+  "data": null
 }
 ```
 
