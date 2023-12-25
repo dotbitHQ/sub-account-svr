@@ -320,17 +320,17 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query account")
 		err = fmt.Errorf("GetAccountInfoByAccountId err: %s %s", err.Error(), accountId)
 		return
 	} else if accInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
+		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "account does not exist")
 		return
 	} else if accInfo.Status != tables.AccountStatusNormal {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return
 	} else if accInfo.IsExpired() {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "parent account is expired")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account is expired")
 		return
 	}
 	if accInfo.ExpiredAt-uint64(nowTime.Unix()) < 3600*24*30 {
