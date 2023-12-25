@@ -166,12 +166,11 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	}
 	log.Info("doApprovalEnableAccount: ", txHash)
 
-	resp := RespApprovalEnable{
-		SignInfoList: *signList,
-	}
-
 	if len(signList.List) > 0 {
 		signList.List = nil
+	}
+	resp := RespApprovalEnable{
+		SignInfoList: *signList,
 	}
 	apiResp.ApiRespOK(resp)
 	return nil
