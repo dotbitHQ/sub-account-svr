@@ -396,7 +396,7 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, true)
+	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())
