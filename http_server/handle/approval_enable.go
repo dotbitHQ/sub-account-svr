@@ -342,6 +342,10 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protectedUntil must be greater than current time")
 		return
 	}
+	if req.ProtectedUntil-uint64(nowTime.Unix()) > 3600*24*10 {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protectedUntil must be less than 10 days")
+		return
+	}
 	if uint64(nowTime.Unix()) > req.SealedUntil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "sealedUntil must be greater than current time")
 		return
