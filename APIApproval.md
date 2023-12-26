@@ -29,10 +29,17 @@ Params:
             - key
 - owner: `account owner key info`
 - to: `account to key info`
-- account: `account name`
-- protected_until: `protected until time, authorization irrevocable time, before this time can not call` [Approval Revoke](#Approval-Revoke)
-- sealed_until: `sealed until time, authorization effective time, after this time every one can call` [Approval Fulfill](#Approval-Fulfill)
+- account: `account name, this account must be more than 30 days before expiration` 
+- protected_until: `protected until time: unit second, authorization irrevocable time, max 10 days, before this time can not call` [Approval Revoke](#Approval-Revoke)
+- sealed_until: `sealed until time: unit second, authorization effective time, must be greater than the protected_until, after this time every one can call` [Approval Fulfill](#Approval-Fulfill)
 - evm_chain_id: `evm chain id, only the main account need this parameter`
+
+##### problem scenario descriptions:
+- account expired when in approving status?
+  > if an account expired in the approving status, the execution of fulfill_approval is still allowed, but the expired account will still be recycled later. 
+  > Therefore, this requires the platform to add restrictions to these. For example, add a script to regularly detect transactions that are under authorization and whose accounts are about to expire, 
+  > and to execute revoke_approval, so as not to damage the rights and interests of buyers and purchase an expired account.
+
 ```json
 {
   "platform": {
