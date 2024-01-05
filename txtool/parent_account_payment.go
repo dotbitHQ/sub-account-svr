@@ -91,6 +91,10 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					amount = amount.Mul(feeRate)
 				} else {
 					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+					if amount.Sub(fee).LessThanOrEqual(decimal.Zero) {
+						// old data before 0.99
+						fee = amount.Mul(decimal.NewFromInt(1).Sub(feeRate))
+					}
 					amount = amount.Sub(fee)
 					csvRecord.Fee = fee
 				}
@@ -101,6 +105,10 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					amount = amount.Mul(feeRate)
 				} else {
 					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+					if amount.Sub(fee).LessThanOrEqual(decimal.Zero) {
+						// old data before 0.99
+						fee = amount.Mul(decimal.NewFromInt(1).Sub(feeRate))
+					}
 					amount = amount.Sub(fee)
 					csvRecord.Fee = fee
 				}
