@@ -120,12 +120,24 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		return nil
 	}
 
-	minPrice := decimal.NewFromFloat(0.99)
+	minPrice, err := decimal.NewFromString(config.Cfg.Das.AutoMint.MinPrice)
+	if err != nil {
+		return err
+	}
+	platformFeeRatio, err := decimal.NewFromString(config.Cfg.Das.AutoMint.PlatformFeeRatio)
+	if err != nil {
+		return err
+	}
+	serviceFeeRate, err := decimal.NewFromString(config.Cfg.Das.AutoMint.ServiceFeeRatio)
+	if err != nil {
+		return err
+	}
+
 	minPriceFee := minPrice.
 		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin)).
-		Div(decimal.NewFromFloat(0.15)).
+		Div(platformFeeRatio.Add(serviceFeeRate)).
 		Mul(decimal.New(1, 6))
-	feeRate := decimal.NewFromFloat(0.85).Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio))
+	feeRate := decimal.NewFromInt(1).Sub(platformFeeRatio)
 
 	amount := decimal.Zero
 	for _, statement := range list {

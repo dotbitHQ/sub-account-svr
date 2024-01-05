@@ -29,7 +29,9 @@ das:
       bsc_bnb: "#fefce8"
     payment_min_price: 50
     service_fee_ratio: 0.03
+    platform_fee_ratio: 0.12
     service_fee_min: 0.1
+    min_price: 0.99
   coupon:
     coupon_price: 0.99
     encryption_key: ""

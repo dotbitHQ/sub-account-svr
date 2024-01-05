@@ -40,9 +40,20 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 		return nil, err
 	}
 
-	if config.Cfg.Das.AutoMint.ServiceFeeRatio >= 0.15 {
-		return nil, fmt.Errorf("service fee rate: %f, must less than 0.15", config.Cfg.Das.AutoMint.ServiceFeeRatio)
+	minPrice, err := decimal.NewFromString(config.Cfg.Das.AutoMint.MinPrice)
+	if err != nil {
+		return nil, err
 	}
+	minPriceFee := minPrice.Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
+	platformFeeRatio, err := decimal.NewFromString(config.Cfg.Das.AutoMint.PlatformFeeRatio)
+	if err != nil {
+		return nil, err
+	}
+	serviceFeeRate, err := decimal.NewFromString(config.Cfg.Das.AutoMint.ServiceFeeRatio)
+	if err != nil {
+		return nil, err
+	}
+	feeRate := decimal.NewFromInt(1).Sub(platformFeeRatio).Sub(serviceFeeRate)
 
 	records := make(map[string]map[string]*CsvRecord)
 	for _, v := range list {
@@ -69,18 +80,13 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 			csvRecord.Ids = make([]uint64, 0)
 			records[v.ParentAccountId][v.TokenId] = csvRecord
 		}
-
-		feeRate := decimal.NewFromFloat(0.85)
-		minPriceFee := decimal.NewFromFloat(0.99).
-			Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
-		couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).
-			Mul(decimal.NewFromInt(int64(v.Years)))
+		couponMinPrice := minPriceFee.Div(platformFeeRatio.Add(serviceFeeRate)).Mul(decimal.NewFromInt(int64(v.Years)))
 		amount := v.Amount.Sub(v.PremiumAmount)
 
 		if v.CouponCode == "" {
 			if v.USDAmount.GreaterThan(decimal.Zero) {
 				if v.USDAmount.GreaterThan(couponMinPrice) {
-					csvRecord.FeeRate = decimal.NewFromInt(1).Sub(feeRate)
+					csvRecord.FeeRate = platformFeeRatio.Add(serviceFeeRate)
 					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
 					amount = amount.Mul(feeRate)
 				} else {
