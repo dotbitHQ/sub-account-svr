@@ -262,37 +262,43 @@ func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]d
 		amount := decimal.Zero
 		if v.TokenId != "" && v.Amount.GreaterThan(decimal.Zero) {
 			amount = v.Amount.Sub(v.PremiumAmount)
-			if v.USDAmount.LessThan(minPrice) {
-				// old data before 0.99
-				amount = amount.Mul(feeRate)
-			} else {
-				token := tokens[v.TokenId]
-				couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).Mul(decimal.NewFromInt(int64(v.Years)))
-				tokenMinPrice := couponMinPrice.Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
-				fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
-				if v.CouponCode == "" {
-					if v.USDAmount.GreaterThan(decimal.Zero) {
-						if v.USDAmount.GreaterThan(couponMinPrice) {
-							amount = amount.Mul(feeRate)
-						} else {
-							amount = amount.Sub(fee)
-						}
+
+			token := tokens[v.TokenId]
+			couponMinPrice := minPriceFee.Div(platformFeeRatio.Add(serviceFeeRate)).Mul(decimal.NewFromInt(int64(v.Years)))
+			tokenMinPrice := couponMinPrice.Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+			fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+			if v.CouponCode == "" {
+				if v.USDAmount.GreaterThan(decimal.Zero) {
+					if v.USDAmount.GreaterThan(couponMinPrice) {
+						amount = amount.Mul(feeRate)
 					} else {
-						if v.Amount.GreaterThan(tokenMinPrice) {
-							amount = amount.Mul(feeRate)
-						} else {
+						if amount.Sub(fee).GreaterThan(decimal.Zero) {
 							amount = amount.Sub(fee)
+						} else {
+							// old data before 0.99
+							amount = amount.Mul(feeRate)
 						}
 					}
 				} else {
-					couponSetInfo, err := d.GetSetInfoByCoupon(v.CouponCode)
-					if err != nil {
-						return nil, err
-					}
-					if v.USDAmount.GreaterThan(couponSetInfo.Price) {
-						amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+					if v.Amount.GreaterThan(tokenMinPrice) {
 						amount = amount.Mul(feeRate)
+					} else {
+						if amount.Sub(fee).GreaterThan(decimal.Zero) {
+							amount = amount.Sub(fee)
+						} else {
+							// old data before 0.99
+							amount = amount.Mul(feeRate)
+						}
 					}
+				}
+			} else {
+				couponSetInfo, err := d.GetSetInfoByCoupon(v.CouponCode)
+				if err != nil {
+					return nil, err
+				}
+				if v.USDAmount.GreaterThan(couponSetInfo.Price) {
+					amount = v.USDAmount.Sub(couponSetInfo.Price).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+					amount = amount.Mul(feeRate)
 				}
 			}
 		}
