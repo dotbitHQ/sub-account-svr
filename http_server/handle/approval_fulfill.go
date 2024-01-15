@@ -317,8 +317,8 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 			err = fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 			return
 		}
-		if ownerHex.DasAlgorithmId != approval.OwnerAlgorithmID || !strings.EqualFold(ownerHex.AddressHex, approval.Owner) {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		if !strings.EqualFold(ownerHex.AddressHex, approval.Owner) {
+			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 			return
 		}
 	}
