@@ -179,7 +179,7 @@ func (d *DbDao) CountSmtRecordInfoByActions(parentAccountId string, actions, sub
 }
 
 func (d *DbDao) CountDistinctSmtRecordInfoByActions(parentAccountId string, actions, subActions []string) (total int64, err error) {
-	db := d.db.Model(&tables.TableSmtRecordInfo{}).Select("distinct(register_args)").Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?) and mint_type in (?)",
+	db := d.db.Model(&tables.TableSmtRecordInfo{}).Distinct("register_args").Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?) and mint_type in (?)",
 		parentAccountId, tables.RecordTypeChain, actions, subActions, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual, tables.MintTypeAutoMint}).Order("id desc")
 	if err = db.Count(&total).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return
