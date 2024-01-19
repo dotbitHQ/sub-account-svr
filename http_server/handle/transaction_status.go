@@ -124,6 +124,37 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			record, err = h.DbDao.GetLatestSmtRecordByParentAccountIdAction(accountId, req.Action, req.SubAction)
 		case common.SubActionCreateApproval, common.SubActionDelayApproval, common.SubActionRevokeApproval, common.SubActionFullfillApproval:
 			record, err = h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action, req.SubAction)
+			if record.Id == 0 {
+				record, err = h.DbDao.GetLatestMintRecord(accountId, req.Action, req.SubAction)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+					return fmt.Errorf("GetLatestMintRecord: %s", err.Error())
+				}
+				if record.RecordType == tables.RecordTypeClosed {
+					apiResp.ApiRespErr(api_code.ApiCodeTransactionSendFail, "tx send fail")
+					return nil
+				}
+				if record.RecordType == tables.RecordTypeChain {
+					task, err := h.DbDao.GetTaskByTaskId(record.TaskId)
+					if err != nil {
+						apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+						return fmt.Errorf("GetTaskByTaskId: %s", err.Error())
+					}
+					approval, err := h.DbDao.GetApprovalByAccIdAndOutPoint(accountId, task.Outpoint)
+					if err != nil {
+						apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+						return fmt.Errorf("GetApprovalByAccIdAndOutPoint: %s", err.Error())
+					}
+					if approval.ID == 0 {
+						resp.Status = TxStatusPending
+						apiResp.ApiRespOK(resp)
+						return nil
+					} else {
+						apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
+						return nil
+					}
+				}
+			}
 		default:
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist sub-action[%s]", req.SubAction))
 			return nil

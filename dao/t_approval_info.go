@@ -21,3 +21,11 @@ func (d *DbDao) GetPendingApprovalByAccIdAndPlatform(accountId, platform string)
 	}
 	return
 }
+
+func (d *DbDao) GetApprovalByAccIdAndOutPoint(accountId, outpoint string) (approval tables.ApprovalInfo, err error) {
+	err = d.parserDb.Where("account_id=? and outpoint=?", accountId, outpoint).Order("id desc").First(&approval).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
