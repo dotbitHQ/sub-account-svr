@@ -103,7 +103,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
 	log.Info("doSubAccountInit:", req.Account, acc.AccountId, clientIp, remoteAddrIP)
-	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
+	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeMinCkbCapacity
 	var liveCells []*indexer.LiveCell
 	var change uint64
 	var feeDasLock, feeDasType *types.Script

@@ -32,7 +32,8 @@ type RespConfigInfo struct {
 		PremiumPercentage decimal.Decimal `json:"premium_percentage"`
 		PremiumBase       decimal.Decimal `json:"premium_base"`
 	} `json:"stripe"`
-	TokenList []TokenData `json:"token_list"`
+	TokenList         []TokenData `json:"token_list"`
+	MinChangeCapacity uint64      `json:"min_change_capacity"`
 }
 
 type TokenData struct {
@@ -140,6 +141,7 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 
 	resp.Stripe.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
 	resp.Stripe.PremiumBase = config.Cfg.Stripe.PremiumBase
+	resp.MinChangeCapacity = common.DasLockWithBalanceTypeMinCkbCapacity
 
 	apiResp.ApiRespOK(resp)
 	return nil

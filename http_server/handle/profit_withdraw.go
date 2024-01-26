@@ -105,7 +105,7 @@ func (h *HttpHandle) doProfitWithdraw(req *ReqProfitWithdraw, apiResp *api_code.
 			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "owner permission required")
 			return nil
 		}
-		if subDataDetail.OwnerProfit < common.DasLockWithBalanceTypeOccupiedCkb {
+		if subDataDetail.OwnerProfit < common.DasLockWithBalanceTypeMinCkbCapacity {
 			apiResp.ApiRespErr(api_code.ApiCodeProfitNotEnough, "insufficient earnings to withdraw")
 			return nil
 		}
