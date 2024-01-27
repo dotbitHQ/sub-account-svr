@@ -110,7 +110,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 
 	// check switch
-	defaultRenewRule, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
+	autoDistribution, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -130,15 +130,11 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
 	// get rule price
-	usdAmount, defaultRenewRule2, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder)
+	usdAmount, defaultRenewRule, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder, autoDistribution)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
-	}
-
-	if !defaultRenewRule {
-		defaultRenewRule = defaultRenewRule2
 	}
 
 	log.Info("usdAmount:", usdAmount.String(), req.Years)
