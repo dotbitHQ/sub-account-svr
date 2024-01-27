@@ -34,6 +34,7 @@ type RespAutoAccountSearch struct {
 	ExpiredAt         uint64          `json:"expired_at"`
 	PremiumPercentage decimal.Decimal `json:"premium_percentage"`
 	PremiumBase       decimal.Decimal `json:"premium_base"`
+	DefaultRenewRule  bool            `json:"default_renew_rule"`
 }
 
 type AccStatus int
@@ -98,7 +99,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	}
 
 	// check switch
-	err = h.checkSwitch(parentAccountId, apiResp)
+	err = h.checkSwitch(parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -108,19 +109,20 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	// get max years
 	resp.MaxYear = h.getMaxYears(parentAccount)
 
-	// get rule price
-	resp.Price, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
-	if err != nil {
-		return err
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		return nil
-	}
 	// check min price 0.99$
 	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
+	// get rule price
+	resp.Price, resp.DefaultRenewRule, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 	if req.ActionType == tables.ActionTypeRenew {
@@ -304,7 +306,10 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 	return
 }
 
-func (h *HttpHandle) checkSwitch(parentAccountId string, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) error {
+	if actionType == tables.ActionTypeRenew {
+		return nil
+	}
 	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -339,12 +344,19 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 	return maxYear
 }
 
-func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string, apiResp *api_code.ApiResp) (price decimal.Decimal, e error) {
+func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string, apiResp *api_code.ApiResp, actionType tables.ActionType, priceBuilder *witness.ConfigCellDataBuilder) (price decimal.Decimal, defaultRenewRule bool, e error) {
 	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search rule config")
 		e = fmt.Errorf("GetRuleConfigByAccountId err: %s", err.Error())
 		return
+	} else if ruleConfig.TxHash == "" {
+		if actionType == tables.ActionTypeRenew {
+			defaultRenewRule = true
+			renewSubAccountPrice, _ := molecule.Bytes2GoU64(priceBuilder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+			price = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+			return
+		}
 	}
 	ruleTx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(ruleConfig.TxHash))
 	if err != nil {
@@ -380,6 +392,12 @@ func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string,
 		e = fmt.Errorf("rulePrice.Hit err: %s", err.Error())
 		return
 	} else if !hit {
+		if actionType == tables.ActionTypeRenew {
+			defaultRenewRule = true
+			renewSubAccountPrice, _ := molecule.Bytes2GoU64(priceBuilder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+			price = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+			return
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeNoTSetRules, "not set price rules")
 		return
 	}
