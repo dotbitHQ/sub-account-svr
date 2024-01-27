@@ -99,7 +99,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	}
 
 	// check switch
-	err = h.checkSwitch(parentAccountId, req.ActionType, apiResp)
+	resp.DefaultRenewRule, err = h.checkSwitch(parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -116,11 +116,15 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
 	// get rule price
-	resp.Price, resp.DefaultRenewRule, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder)
+	defaultRenewRule := false
+	resp.Price, defaultRenewRule, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
+	}
+	if !resp.DefaultRenewRule {
+		resp.DefaultRenewRule = defaultRenewRule
 	}
 
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
@@ -311,26 +315,26 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 	return
 }
 
-func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) error {
-	if actionType == tables.ActionTypeRenew {
-		return nil
-	}
+func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) (bool, error) {
 	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		return false, fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
 	subAccTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccCell.OutPoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetTransaction err: %s", err.Error())
+		return false, fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 	subAccData := witness.ConvertSubAccountCellOutputData(subAccTx.Transaction.OutputsData[subAccCell.OutPoint.Index])
 	if subAccData.AutoDistribution == witness.AutoDistributionDefault {
+		if actionType == tables.ActionTypeRenew {
+			return true, nil
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeAutoDistributionClosed, "Automatic allocation is not turned on")
-		return nil
+		return false, nil
 	}
-	return nil
+	return false, nil
 }
 
 func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {
