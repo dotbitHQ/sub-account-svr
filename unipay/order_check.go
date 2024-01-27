@@ -9,7 +9,7 @@ import (
 )
 
 func (t *ToolUniPay) RunOrderCheck() {
-	tickerOrder := time.NewTicker(time.Minute * 5)
+	tickerOrder := time.NewTicker(time.Minute)
 	t.Wg.Add(1)
 	go func() {
 		defer http_api.RecoverPanic()
