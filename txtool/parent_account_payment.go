@@ -144,6 +144,10 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 	recordsNew := make(map[string]map[string]*CsvRecord)
 	for parentAccId, v := range records {
 		for tokenId, record := range v {
+			if record.Amount.LessThanOrEqual(decimal.Zero) {
+				continue
+			}
+
 			token, err := s.DbDao.GetTokenById(tables.TokenId(tokenId))
 			if err != nil {
 				return nil, err
