@@ -300,8 +300,13 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
 		return
 	}
-	if orderInfo.Id > 0 {
-		accStatus = AccStatusMinting
+	if orderInfo.Id > 0 && orderInfo.OrderStatus == tables.OrderStatusDefault {
+		switch actionType {
+		case tables.ActionTypeMint:
+			accStatus = AccStatusMinting
+		case tables.ActionTypeRenew:
+			accStatus = AccStatusRenewing
+		}
 	}
 	return
 }
