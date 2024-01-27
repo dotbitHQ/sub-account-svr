@@ -90,12 +90,20 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					csvRecord.Fee = amount.Mul(csvRecord.FeeRate)
 					amount = amount.Mul(feeRate)
 				} else {
-					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
-					if amount.Sub(fee).LessThanOrEqual(decimal.Zero) {
-						// old data before 0.99
+					var fee decimal.Decimal
+					subFee := v.USDAmount.Sub(minPriceFee)
+					if subFee.Equal(decimal.Zero) {
+						//Pricing: 0.99$ owner has no profit
+						fee = amount
+						amount = decimal.Zero
+					} else if subFee.LessThan(decimal.Zero) {
 						fee = amount.Mul(decimal.NewFromInt(1).Sub(feeRate))
+						amount = amount.Sub(fee)
+					} else {
+						subAmount := subFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
+						fee = amount.Sub(subAmount)
+						amount = subAmount
 					}
-					amount = amount.Sub(fee)
 					csvRecord.Fee = fee
 				}
 			} else {
@@ -105,8 +113,7 @@ func (s *SubAccountTxTool) StatisticsParentAccountPayment(parentAccount string, 
 					amount = amount.Mul(feeRate)
 				} else {
 					fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).Div(token.Price).Ceil()
-					if amount.Sub(fee).LessThanOrEqual(decimal.Zero) {
-						// old data before 0.99
+					if amount.Sub(fee).LessThan(decimal.Zero) {
 						fee = amount.Mul(decimal.NewFromInt(1).Sub(feeRate))
 					}
 					amount = amount.Sub(fee)
