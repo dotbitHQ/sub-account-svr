@@ -281,7 +281,7 @@ func (s *SubAccountTxTool) getAccountPrice(p *ParamBuildUpdateSubAccountTx) (*Ac
 				}
 			}
 		}
-
+		log.Info("yearlyPrice:", yearlyPrice)
 		subAccCapacity := config.PriceToCKB(yearlyPrice, quote, v.RegisterYears+v.RenewYears)
 
 		switch v.MintType {
