@@ -247,33 +247,46 @@ func (s *SubAccountTxTool) getAccountPrice(p *ParamBuildUpdateSubAccountTx) (*Ac
 				yearlyPrice = p.RenewSubAccountPrice
 			}
 		case tables.MintTypeAutoMint:
-			ruleConfig, err := s.DbDao.GetRuleConfigByAccountId(v.ParentAccountId)
-			if err != nil {
-				return nil, err
-			}
-			ruleTx, err := s.DasCore.Client().GetTransaction(s.Ctx, types.HexToHash(ruleConfig.TxHash))
-			if err != nil {
-				return nil, err
-			}
+			subDataDetail := witness.ConvertSubAccountCellOutputData(p.SubAccountOutputsData)
+			if subDataDetail.AutoDistribution == witness.AutoDistributionDefault && v.SubAction == common.SubActionRenew {
+				yearlyPrice = p.RenewSubAccountPrice
+			} else {
+				ruleConfig, err := s.DbDao.GetRuleConfigByAccountId(v.ParentAccountId)
+				if err != nil {
+					return nil, err
+				} else if ruleConfig.TxHash == "" && v.SubAction == common.SubActionRenew {
+					yearlyPrice = p.RenewSubAccountPrice
+				} else {
+					ruleTx, err := s.DasCore.Client().GetTransaction(s.Ctx, types.HexToHash(ruleConfig.TxHash))
+					if err != nil {
+						return nil, err
+					}
 
-			parentAccountInfo, err := s.DbDao.GetAccountInfoByAccountId(v.ParentAccountId)
-			if err != nil {
-				return nil, err
+					parentAccountInfo, err := s.DbDao.GetAccountInfoByAccountId(v.ParentAccountId)
+					if err != nil {
+						return nil, err
+					}
+					subAccountRule := witness.NewSubAccountRuleEntity(parentAccountInfo.Account)
+					if err := subAccountRule.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
+						return nil, err
+					}
+					hit, idx, err := subAccountRule.Hit(v.Account)
+					if err != nil {
+						return nil, err
+					}
+					if !hit {
+						if v.SubAction == common.SubActionRenew {
+							yearlyPrice = p.RenewSubAccountPrice
+						} else {
+							return nil, fmt.Errorf("%s not hit any price rule", v.Account)
+						}
+					} else {
+						yearlyPrice = uint64(subAccountRule.Rules[idx].Price)
+					}
+				}
 			}
-			subAccountRule := witness.NewSubAccountRuleEntity(parentAccountInfo.Account)
-			if err := subAccountRule.ParseFromTx(ruleTx.Transaction, common.ActionDataTypeSubAccountPriceRules); err != nil {
-				return nil, err
-			}
-			hit, idx, err := subAccountRule.Hit(v.Account)
-			if err != nil {
-				return nil, err
-			}
-			if !hit {
-				return nil, fmt.Errorf("%s not hit any price rule", v.Account)
-			}
-			yearlyPrice = uint64(subAccountRule.Rules[idx].Price)
 		}
-
+		log.Info("yearlyPrice:", yearlyPrice)
 		subAccCapacity := config.PriceToCKB(yearlyPrice, quote, v.RegisterYears+v.RenewYears)
 
 		switch v.MintType {

@@ -118,6 +118,9 @@ func (h *HttpHandle) doAutoOrderInfo(req *ReqAutoOrderInfo, apiResp *api_code.Ap
 			resp.OrderStatus = OrderStatusMintFail
 		case tables.RecordTypeChain:
 			resp.OrderStatus = OrderStatusMintOK
+			if order.OrderStatus == tables.OrderStatusDefault {
+				resp.OrderStatus = OrderStatusMinting
+			}
 		}
 	}
 

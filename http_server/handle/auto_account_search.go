@@ -34,6 +34,7 @@ type RespAutoAccountSearch struct {
 	ExpiredAt         uint64          `json:"expired_at"`
 	PremiumPercentage decimal.Decimal `json:"premium_percentage"`
 	PremiumBase       decimal.Decimal `json:"premium_base"`
+	DefaultRenewRule  bool            `json:"default_renew_rule"`
 }
 
 type AccStatus int
@@ -98,7 +99,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	}
 
 	// check switch
-	err = h.checkSwitch(parentAccountId, apiResp)
+	autoDistribution, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -108,19 +109,20 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	// get max years
 	resp.MaxYear = h.getMaxYears(parentAccount)
 
-	// get rule price
-	resp.Price, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
-	if err != nil {
-		return err
-	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
-		return nil
-	}
 	// check min price 0.99$
 	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
 		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
 	}
+	// get rule price
+	resp.Price, resp.DefaultRenewRule, err = h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder, autoDistribution)
+	if err != nil {
+		return err
+	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
+		return nil
+	}
+
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 	minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 	if req.ActionType == tables.ActionTypeRenew {
@@ -275,7 +277,7 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 			return
 		}
 		if orderInfo.Id > 0 {
-			if smtRecord.OrderID == orderInfo.OrderId {
+			if smtRecord.OrderID == orderInfo.OrderId && orderInfo.OrderStatus != tables.OrderStatusDefault {
 				accStatus = AccStatusDefault
 				return
 			}
@@ -298,29 +300,38 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 		e = fmt.Errorf("GetMintOrderInProgressByAccountIdWithAddr err: %s %s", err.Error(), subAccountId)
 		return
 	}
-	if orderInfo.Id > 0 {
-		accStatus = AccStatusMinting
+	if orderInfo.Id > 0 && orderInfo.OrderStatus == tables.OrderStatusDefault {
+		switch actionType {
+		case tables.ActionTypeMint:
+			accStatus = AccStatusMinting
+		case tables.ActionTypeRenew:
+			accStatus = AccStatusRenewing
+		}
 	}
 	return
 }
 
-func (h *HttpHandle) checkSwitch(parentAccountId string, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) (witness.AutoDistribution, error) {
 	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		return witness.AutoDistributionDefault, fmt.Errorf("GetSubAccountCell err: %s", err.Error())
 	}
 	subAccTx, err := h.DasCore.Client().GetTransaction(h.Ctx, subAccCell.OutPoint.TxHash)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
-		return fmt.Errorf("GetTransaction err: %s", err.Error())
+		return witness.AutoDistributionDefault, fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 	subAccData := witness.ConvertSubAccountCellOutputData(subAccTx.Transaction.OutputsData[subAccCell.OutPoint.Index])
+	log.Info("checkSwitch:", subAccData.AutoDistribution, subAccData.Flag)
 	if subAccData.AutoDistribution == witness.AutoDistributionDefault {
+		if subAccData.Flag == witness.FlagTypeCustomRule && actionType == tables.ActionTypeRenew {
+			return witness.AutoDistributionDefault, nil
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeAutoDistributionClosed, "Automatic allocation is not turned on")
-		return nil
+		return witness.AutoDistributionDefault, nil
 	}
-	return nil
+	return witness.AutoDistributionEnable, nil
 }
 
 func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {
@@ -339,12 +350,25 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 	return maxYear
 }
 
-func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string, apiResp *api_code.ApiResp) (price decimal.Decimal, e error) {
+func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string, apiResp *api_code.ApiResp, actionType tables.ActionType, priceBuilder *witness.ConfigCellDataBuilder, autoDistribution witness.AutoDistribution) (price decimal.Decimal, defaultRenewRule bool, e error) {
+	if autoDistribution == witness.AutoDistributionDefault && actionType == tables.ActionTypeRenew {
+		defaultRenewRule = true
+		renewSubAccountPrice, _ := molecule.Bytes2GoU64(priceBuilder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+		price = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+		return
+	}
 	ruleConfig, err := h.DbDao.GetRuleConfigByAccountId(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search rule config")
 		e = fmt.Errorf("GetRuleConfigByAccountId err: %s", err.Error())
 		return
+	} else if ruleConfig.TxHash == "" {
+		if actionType == tables.ActionTypeRenew {
+			defaultRenewRule = true
+			renewSubAccountPrice, _ := molecule.Bytes2GoU64(priceBuilder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+			price = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+			return
+		}
 	}
 	ruleTx, err := h.DasCore.Client().GetTransaction(h.Ctx, types.HexToHash(ruleConfig.TxHash))
 	if err != nil {
@@ -380,6 +404,12 @@ func (h *HttpHandle) getRulePrice(parentAcc, parentAccountId, subAccount string,
 		e = fmt.Errorf("rulePrice.Hit err: %s", err.Error())
 		return
 	} else if !hit {
+		if actionType == tables.ActionTypeRenew {
+			defaultRenewRule = true
+			renewSubAccountPrice, _ := molecule.Bytes2GoU64(priceBuilder.ConfigCellSubAccount.RenewSubAccountPrice().RawData())
+			price = decimal.NewFromInt(int64(renewSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
+			return
+		}
 		apiResp.ApiRespErr(api_code.ApiCodeNoTSetRules, "not set price rules")
 		return
 	}
