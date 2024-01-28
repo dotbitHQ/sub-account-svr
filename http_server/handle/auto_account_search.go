@@ -323,8 +323,9 @@ func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.Actio
 		return witness.AutoDistributionDefault, fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 	subAccData := witness.ConvertSubAccountCellOutputData(subAccTx.Transaction.OutputsData[subAccCell.OutPoint.Index])
+	log.Info("checkSwitch:", subAccData.AutoDistribution, subAccData.Flag)
 	if subAccData.AutoDistribution == witness.AutoDistributionDefault {
-		if actionType == tables.ActionTypeRenew {
+		if subAccData.Flag == witness.FlagTypeCustomRule && actionType == tables.ActionTypeRenew {
 			return witness.AutoDistributionDefault, nil
 		}
 		apiResp.ApiRespErr(api_code.ApiCodeAutoDistributionClosed, "Automatic allocation is not turned on")
