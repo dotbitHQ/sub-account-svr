@@ -259,6 +259,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		signListInfo.Is712 = true
 	} else {
 		signListInfo.List = append(signListInfo.List, SignInfo{signList})
+		signListInfo.SignList = signList
 	}
 	return &signListInfo, txHash.Hex(), nil
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func (t *ToolUniPay) RunOrderCheck() {
-	tickerOrder := time.NewTicker(time.Minute * 5)
+	tickerOrder := time.NewTicker(time.Minute)
 	t.Wg.Add(1)
 	go func() {
 		defer http_api.RecoverPanic()
@@ -78,6 +78,10 @@ func (t *ToolUniPay) doOrderCheck() error {
 			if smtRecord.Id == 0 {
 				continue
 			}
+			if smtRecord.RecordType == tables.RecordTypeDefault {
+				continue
+			}
+
 			newStatus := tables.OrderStatusSuccess
 			if smtRecord.RecordType == tables.RecordTypeClosed {
 				newStatus = tables.OrderStatusFail

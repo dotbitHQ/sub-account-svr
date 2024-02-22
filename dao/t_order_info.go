@@ -242,31 +242,63 @@ func (d *DbDao) GetOrderAmount(accountId string, paid bool) (result map[string]d
 		return nil, err
 	}
 
-	feeRate := decimal.NewFromFloat(0.85)
-	minPriceFee := decimal.NewFromFloat(0.99).
-		Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
+	minPrice, err := decimal.NewFromString(config.Cfg.Das.AutoMint.MinPrice)
+	if err != nil {
+		return nil, err
+	}
+	platformFeeRatio, err := decimal.NewFromString(config.Cfg.Das.AutoMint.PlatformFeeRatio)
+	if err != nil {
+		return nil, err
+	}
+	serviceFeeRate, err := decimal.NewFromString(config.Cfg.Das.AutoMint.ServiceFeeRatio)
+	if err != nil {
+		return nil, err
+	}
+	feeRate := decimal.NewFromInt(1).Sub(platformFeeRatio).Sub(serviceFeeRate)
+	minPriceFee := minPrice.Add(decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeMin))
 
 	result = make(map[string]decimal.Decimal)
 	for _, v := range list {
 		amount := decimal.Zero
 		if v.TokenId != "" && v.Amount.GreaterThan(decimal.Zero) {
-			token := tokens[v.TokenId]
-			couponMinPrice := minPriceFee.Div(decimal.NewFromFloat(0.15)).Mul(decimal.NewFromInt(int64(v.Years)))
-			tokenMinPrice := couponMinPrice.Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
-			fee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
 			amount = v.Amount.Sub(v.PremiumAmount)
+
+			token := tokens[v.TokenId]
+			couponMinPrice := minPriceFee.Div(platformFeeRatio.Add(serviceFeeRate)).Mul(decimal.NewFromInt(int64(v.Years)))
+			tokenMinPrice := couponMinPrice.Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+			minTokenFee := minPriceFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
 			if v.CouponCode == "" {
 				if v.USDAmount.GreaterThan(decimal.Zero) {
 					if v.USDAmount.GreaterThan(couponMinPrice) {
 						amount = amount.Mul(feeRate)
 					} else {
-						amount = amount.Sub(fee)
+						// Greater than 0.99$, sub 0.99$ fee
+						subFee := v.USDAmount.Sub(minPriceFee)
+						if subFee.GreaterThan(decimal.Zero) {
+							amount = subFee.Mul(decimal.NewFromInt(int64(v.Years))).Mul(decimal.New(1, token.Decimals)).DivRound(token.Price, token.Decimals)
+						} else if subFee.Equal(decimal.Zero) {
+							// equal 0.99$, profit is 0
+							amount = decimal.Zero
+						} else {
+							// old data
+							amount = amount.Mul(feeRate)
+						}
 					}
 				} else {
 					if v.Amount.GreaterThan(tokenMinPrice) {
 						amount = amount.Mul(feeRate)
 					} else {
-						amount = amount.Sub(fee)
+						// Greater than 0.99$, sub 0.99$ fee
+						subFee := amount.Sub(minTokenFee)
+						if subFee.GreaterThan(decimal.Zero) {
+							amount = amount.Sub(minTokenFee)
+						} else if subFee.Equal(decimal.Zero) {
+							// equal 0.99$, profit is 0
+							amount = decimal.Zero
+						} else {
+							// old data
+							amount = amount.Mul(feeRate)
+						}
 					}
 				}
 			} else {

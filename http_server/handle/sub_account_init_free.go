@@ -84,7 +84,7 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 	subAccountPreparedFeeCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
-	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeOccupiedCkb
+	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeMinCkbCapacity
 
 	change, liveCells, err := h.getSvrBalance(paramBalance{
 		svrLock:           h.ServerScript,

@@ -3,12 +3,14 @@ package handle
 import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
+	"gorm.io/gorm"
 	"net/http"
 	"strings"
 )
@@ -81,8 +83,11 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 	} else if acc.Id == 0 {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountNotExist, "account not exist")
 		return nil
-	} else if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) &&
-		(req.chainType != acc.ManagerChainType && !strings.EqualFold(req.address, acc.Manager)) {
+	}
+	if (req.chainType != acc.OwnerChainType && !strings.EqualFold(req.address, acc.Owner)) &&
+		(req.chainType != acc.ManagerChainType && !strings.EqualFold(req.address, acc.Manager)) &&
+		(req.Action != common.DasActionFulfillApproval && req.Action != common.DasActionUpdateSubAccount ||
+			req.Action == common.DasActionUpdateSubAccount && req.SubAction != common.SubActionFullfillApproval) {
 		apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 		return nil
 	}
@@ -117,6 +122,39 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 			record, err = h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action, req.SubAction)
 		case common.SubActionRenew:
 			record, err = h.DbDao.GetLatestSmtRecordByParentAccountIdAction(accountId, req.Action, req.SubAction)
+		case common.SubActionCreateApproval, common.SubActionDelayApproval, common.SubActionRevokeApproval, common.SubActionFullfillApproval:
+			record, err = h.DbDao.GetLatestSmtRecordByAccountIdAction(accountId, req.Action, req.SubAction)
+			if record.Id == 0 {
+				record, err = h.DbDao.GetLatestMintRecord(accountId, req.Action, req.SubAction)
+				if err != nil {
+					apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+					return fmt.Errorf("GetLatestMintRecord: %s", err.Error())
+				}
+				if record.RecordType == tables.RecordTypeClosed {
+					apiResp.ApiRespErr(api_code.ApiCodeTransactionSendFail, "tx send fail")
+					return nil
+				}
+				if record.RecordType == tables.RecordTypeChain {
+					task, err := h.DbDao.GetTaskByTaskId(record.TaskId)
+					if err != nil {
+						apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+						return fmt.Errorf("GetTaskByTaskId: %s", err.Error())
+					}
+					approval, err := h.DbDao.GetApprovalByAccIdAndOutPoint(accountId, task.Outpoint)
+					if err != nil {
+						apiResp.ApiRespErr(api_code.ApiCodeDbError, "failed to query record")
+						return fmt.Errorf("GetApprovalByAccIdAndOutPoint: %s", err.Error())
+					}
+					if approval.ID == 0 {
+						resp.Status = TxStatusPending
+						apiResp.ApiRespOK(resp)
+						return nil
+					} else {
+						apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exist tx")
+						return nil
+					}
+				}
+			}
 		default:
 			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist sub-action[%s]", req.SubAction))
 			return nil
@@ -146,6 +184,21 @@ func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api
 				}
 			}
 		}
+	case common.DasActionCreateApproval, common.DasActionDelayApproval,
+		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
+		actionList := []common.DasAction{req.Action}
+		tx, err := h.DbDao.GetPendingStatus(req.chainType, req.address, actionList)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			apiResp.ApiRespErr(api_code.ApiCodeDbError, "search tx status err")
+			return fmt.Errorf("GetTransactionStatus err: %s", err.Error())
+		}
+		if tx.Id == 0 {
+			apiResp.ApiRespErr(api_code.ApiCodeTransactionNotExist, "not exits tx")
+			return nil
+		}
+		resp.BlockNumber = tx.BlockNumber
+		resp.Hash, _ = common.String2OutPoint(tx.Outpoint)
+		resp.Status = TxStatus(tx.Status)
 	default:
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("not exist action[%s]", req.Action))
 		return nil

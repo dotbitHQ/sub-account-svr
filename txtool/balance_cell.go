@@ -28,7 +28,7 @@ func (s *SubAccountTxTool) GetBalanceCell(p *ParamBalance) (uint64, []*indexer.L
 		DasCache:          s.DasCache,
 		LockScript:        p.DasLock,
 		CapacityNeed:      p.NeedCapacity,
-		CapacityForChange: common.DasLockWithBalanceTypeOccupiedCkb,
+		CapacityForChange: common.DasLockWithBalanceTypeMinCkbCapacity,
 		SearchOrder:       indexer.SearchOrderAsc,
 	})
 	if err != nil {

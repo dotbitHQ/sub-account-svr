@@ -66,9 +66,7 @@ func (h *HttpHandle) CheckPermissions(ctx *gin.Context) {
 	}
 	address := common.FormatAddressPayload(addrHex.AddressPayload, addrHex.DasAlgorithmId)
 
-	if !strings.EqualFold(address, claims.Address) ||
-		addrHex.DasAlgorithmId != claims.Aid ||
-		addrHex.DasSubAlgorithmId != claims.SubAid {
+	if !strings.EqualFold(address, claims.Address) {
 		apiResp.ApiRespErr(api_code.ApiCodeUnauthorized, "unauthorized")
 		return
 	}

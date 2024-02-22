@@ -32,7 +32,8 @@ type RespConfigInfo struct {
 		PremiumPercentage decimal.Decimal `json:"premium_percentage"`
 		PremiumBase       decimal.Decimal `json:"premium_base"`
 	} `json:"stripe"`
-	TokenList []TokenData `json:"token_list"`
+	TokenList         []TokenData `json:"token_list"`
+	MinChangeCapacity uint64      `json:"min_change_capacity"`
 }
 
 type TokenData struct {
@@ -124,10 +125,23 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 	resp.ManagementTimes = 10000
 
 	resp.AutoMint.PaymentMinPrice = config.Cfg.Das.AutoMint.PaymentMinPrice
-	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", decimal.NewFromFloat(config.Cfg.Das.AutoMint.ServiceFeeRatio*100).String())
+
+	platformFeeRatio, err := decimal.NewFromString(config.Cfg.Das.AutoMint.PlatformFeeRatio)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "errWg.Wait err")
+		return err
+	}
+	serviceFeeRate, err := decimal.NewFromString(config.Cfg.Das.AutoMint.ServiceFeeRatio)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "errWg.Wait err")
+		return err
+	}
+	feeRatio := platformFeeRatio.Add(serviceFeeRate).Mul(decimal.NewFromInt(100)).String()
+	resp.AutoMint.ServiceFeeRatio = fmt.Sprintf("%s%%", feeRatio)
 
 	resp.Stripe.PremiumPercentage = config.Cfg.Stripe.PremiumPercentage
 	resp.Stripe.PremiumBase = config.Cfg.Stripe.PremiumBase
+	resp.MinChangeCapacity = common.DasLockWithBalanceTypeMinCkbCapacity
 
 	apiResp.ApiRespOK(resp)
 	return nil

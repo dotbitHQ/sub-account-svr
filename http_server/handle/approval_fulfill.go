@@ -166,6 +166,9 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	}
 	log.Info("doApprovalEnableAccount: ", txHash)
 
+	if len(signList.List) > 0 {
+		signList.List = nil
+	}
 	resp := RespApprovalEnable{
 		SignInfoList: *signList,
 	}
@@ -261,13 +264,6 @@ func (h *HttpHandle) doApprovalFulfillSubAccount(req *ReqApprovalFulfill, apiRes
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.SubActionFullfillApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
-			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},
@@ -321,8 +317,8 @@ func (h *HttpHandle) doApprovalFulfillCheck(req *ReqApprovalFulfill, now time.Ti
 			err = fmt.Errorf("FormatChainTypeAddress err: %s", err.Error())
 			return
 		}
-		if ownerHex.DasAlgorithmId != approval.OwnerAlgorithmID || !strings.EqualFold(ownerHex.AddressHex, approval.Owner) {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
+		if !strings.EqualFold(ownerHex.AddressHex, approval.Owner) {
+			apiResp.ApiRespErr(api_code.ApiCodePermissionDenied, "permission denied")
 			return
 		}
 	}

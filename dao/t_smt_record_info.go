@@ -166,6 +166,30 @@ func (d *DbDao) FindSmtRecordInfoByActions(parentAccountId string, actions, subA
 	return
 }
 
+func (d *DbDao) CountSmtRecordInfoByActions(parentAccountId string, actions, subActions []string) (total int64, err error) {
+	db := d.db.Model(&tables.TableSmtRecordInfo{}).Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?) and mint_type in (?)",
+		parentAccountId, tables.RecordTypeChain, actions, subActions, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual, tables.MintTypeAutoMint}).Order("id desc")
+	if err = db.Count(&total).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
+func (d *DbDao) CountDistinctSmtRecordInfoByActions(parentAccountId string, actions, subActions []string) (total int64, err error) {
+	db := d.db.Model(&tables.TableSmtRecordInfo{}).Distinct("register_args").Where("parent_account_id=? and record_type=? and action in (?) and sub_action in (?) and mint_type in (?)",
+		parentAccountId, tables.RecordTypeChain, actions, subActions, []tables.MintType{tables.MintTypeDefault, tables.MintTypeManual, tables.MintTypeAutoMint}).Order("id desc")
+	if err = db.Count(&total).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return
+}
+
 func (d *DbDao) GetSmtRecordManualMintYears(parentAccountId string) (total uint64, err error) {
 	err = d.db.Model(&tables.TableSmtRecordInfo{}).Select("IFNULL(sum(register_years+renew_years),0)").
 		Where("parent_account_id=? and mint_type in (?) and sub_action in (?) and record_type=? and quote=0",

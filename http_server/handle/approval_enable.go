@@ -208,6 +208,9 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	}
 	log.Info("doApprovalEnableAccount: ", txHash)
 
+	if len(signList.List) > 0 {
+		signList.List = nil
+	}
 	resp := RespApprovalEnable{
 		SignInfoList: *signList,
 	}
@@ -303,13 +306,6 @@ func (h *HttpHandle) doApprovalEnableSubAccount(req *ReqApprovalEnable, apiResp 
 			Action:    common.DasActionUpdateSubAccount,
 			SubAction: common.DasActionCreateApproval,
 			SignKey:   signKey,
-			List: []SignInfo{
-				{
-					SignList: []txbuilder.SignData{
-						signData,
-					},
-				},
-			},
 			SignList: []txbuilder.SignData{
 				signData,
 			},
@@ -324,17 +320,17 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	accInfo, err = h.DbDao.GetAccountInfoByAccountId(accountId)
 	if err != nil {
-		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query parent account")
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query account")
 		err = fmt.Errorf("GetAccountInfoByAccountId err: %s %s", err.Error(), accountId)
 		return
 	} else if accInfo.Id == 0 {
-		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "parent account does not exist")
+		apiResp.ApiRespErr(api_code.ApiCodeParentAccountNotExist, "account does not exist")
 		return
 	} else if accInfo.Status != tables.AccountStatusNormal {
 		apiResp.ApiRespErr(api_code.ApiCodeAccountStatusOnSaleOrAuction, "account status is not normal")
 		return
 	} else if accInfo.IsExpired() {
-		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "parent account is expired")
+		apiResp.ApiRespErr(api_code.ApiCodeAccountIsExpired, "account is expired")
 		return
 	}
 	if accInfo.ExpiredAt-uint64(nowTime.Unix()) < 3600*24*30 {
@@ -344,6 +340,10 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 
 	if uint64(nowTime.Unix()) > req.ProtectedUntil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protectedUntil must be greater than current time")
+		return
+	}
+	if req.ProtectedUntil-uint64(nowTime.Unix()) > 3600*24*10 {
+		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "protectedUntil must be less than 10 days")
 		return
 	}
 	if uint64(nowTime.Unix()) > req.SealedUntil {
@@ -400,7 +400,7 @@ func (h *HttpHandle) doApprovalEnableCheck(req *ReqApprovalEnable, apiResp *api_
 		return
 	}
 
-	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, true)
+	toLock, _, err = req.To.FormatChainTypeAddressToScript(config.Cfg.Server.Net, false)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "owner address invalid")
 		err = fmt.Errorf("FormatChainTypeAddress err:%s", err.Error())

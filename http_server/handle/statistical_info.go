@@ -106,7 +106,9 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	errG := &errgroup.Group{}
 
 	errG.Go(func() error {
-		subAccountNum, err := h.DbDao.GetSubAccountNum(accountId)
+		actions := []string{common.DasActionUpdateSubAccount}
+		subActions := []string{common.SubActionCreate}
+		subAccountNum, err := h.DbDao.CountSmtRecordInfoByActions(accountId, actions, subActions)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return err
@@ -116,12 +118,14 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 	})
 
 	errG.Go(func() error {
-		subAccountDistinct, err := h.DbDao.GetSubAccountNumDistinct(accountId)
+		actions := []string{common.DasActionUpdateSubAccount}
+		subActions := []string{common.SubActionCreate}
+		subAccountDistinctNum, err := h.DbDao.CountDistinctSmtRecordInfoByActions(accountId, actions, subActions)
 		if err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "db error")
 			return err
 		}
-		resp.AddressNum = subAccountDistinct
+		resp.AddressNum = subAccountDistinctNum
 		return nil
 	})
 

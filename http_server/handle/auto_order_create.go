@@ -110,7 +110,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 
 	// check switch
-	err = h.checkSwitch(parentAccountId, apiResp)
+	autoDistribution, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -123,8 +123,14 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
+	// check min price 0.99$
+	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
+	if err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
+		return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
+	}
 	// get rule price
-	usdAmount, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp)
+	usdAmount, defaultRenewRule, err := h.getRulePrice(parentAccount.Account, parentAccountId, req.SubAccount, apiResp, req.ActionType, builder, autoDistribution)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -207,21 +213,29 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	// usd price -> token price
 	if actualUsdPrice.GreaterThan(decimal.Zero) {
 		// check user payment config
-		userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
-			return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
-		} else if cfg, ok := userConfig.CfgMap[string(req.TokenId)]; !ok || !cfg.Enable {
-			apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
-			return nil
+		if defaultRenewRule {
+			find := false
+			for _, v := range config.Cfg.Das.AutoMint.SupportPaymentToken {
+				if v == string(req.TokenId) {
+					find = true
+					break
+				}
+			}
+			if !find {
+				apiResp.ApiRespErr(api_code.ApiCodeNoSupportPaymentToken, "payment method not supported")
+				return nil
+			}
+		} else {
+			userConfig, err := h.DbDao.GetUserPaymentConfig(parentAccountId)
+			if err != nil {
+				apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to search payment config")
+				return fmt.Errorf("GetUserPaymentConfig err: %s", err.Error())
+			} else if cfg, ok := userConfig.CfgMap[string(req.TokenId)]; !ok || !cfg.Enable {
+				apiResp.ApiRespErr(api_code.ApiCodeTokenIdNotSupported, "payment method not supported")
+				return nil
+			}
 		}
 
-		// check min price 0.99$
-		builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
-		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to get config info")
-			return fmt.Errorf("ConfigCellDataBuilderByTypeArgsList err: %s", err.Error())
-		}
 		newSubAccountPrice, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
 		minPrice := decimal.NewFromInt(int64(newSubAccountPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 		if req.ActionType == tables.ActionTypeRenew {
