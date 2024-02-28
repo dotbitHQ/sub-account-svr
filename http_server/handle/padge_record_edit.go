@@ -1,0 +1,111 @@
+package handle
+
+import (
+	"das_sub_account/http_server/api_code"
+	"das_sub_account/tables"
+	"encoding/hex"
+	"fmt"
+	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
+	"github.com/dotbitHQ/das-lib/http_api"
+	"github.com/dotbitHQ/das-lib/witness"
+	"github.com/gin-gonic/gin"
+	"github.com/scorpiotzh/toolib"
+	"net/http"
+	"time"
+)
+
+type ReqPadgeRecordEdit struct {
+	Account     string                   `json:"account"`
+	Nonce       uint64                   `json:"nonce"`
+	Signature   string                   `json:"signature"`
+	SignAddress string                   `json:"sign_address"`
+	ExpiredAt   uint64                   `json:"expired_at"`
+	AlgId       common.DasAlgorithmId    `json:"alg_id"`
+	SubAlgId    common.DasSubAlgorithmId `json:"sub_alg_id"`
+	Payload     string                   `json:"payload"`
+	Records     []witness.Record         `json:"records"`
+}
+
+type RespPadgeRecordEdit struct {
+}
+
+func (h *HttpHandle) PadgeRecordEdit(ctx *gin.Context) {
+	var (
+		funcName               = "PadgeRecordEdit"
+		clientIp, remoteAddrIP = GetClientIp(ctx)
+		req                    ReqPadgeRecordEdit
+		apiResp                http_api.ApiResp
+		err                    error
+	)
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		apiResp.ApiRespErr(http_api.ApiCodeParamsInvalid, "params invalid")
+		ctx.JSON(http.StatusOK, apiResp)
+		return
+	}
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+
+	//time.Sleep(time.Minute * 3)
+	if err = h.doPadgeRecordEdit(&req, &apiResp); err != nil {
+		log.Error("doPadgeRecordEdit err:", err.Error(), funcName, clientIp, ctx)
+	}
+
+	ctx.JSON(http.StatusOK, apiResp)
+}
+
+func (h *HttpHandle) doPadgeRecordEdit(req *ReqPadgeRecordEdit, apiResp *http_api.ApiResp) error {
+	var resp RespPadgeRecordEdit
+
+	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
+	acc, err := h.DbDao.GetAccountInfoByAccountId(accountId)
+	if err != nil {
+		apiResp.ApiRespErr(http_api.ApiCodeError500, err.Error())
+		return fmt.Errorf("GetAccountInfoByAccountId err: %s", err.Error())
+	} else if acc.Id == 0 {
+		apiResp.ApiRespErr(http_api.ApiCodeAccountNotExist, "account not exist")
+		return nil
+	} else if acc.ParentAccountId != "0x71cb663835a96d62020647e0bde504968558d5e6" {
+		apiResp.ApiRespErr(http_api.ApiCodeParamsInvalid, "account is invalid")
+		return nil
+	}
+
+	payloadBys, _ := hex.DecodeString(req.Payload)
+	addressHex := common.FormatAddressPayload(payloadBys, req.AlgId)
+	addrNormal, err := h.DasCore.Daf().HexToNormal(core.DasAddressHex{
+		DasAlgorithmId:    req.AlgId,
+		DasSubAlgorithmId: req.SubAlgId,
+		AddressHex:        addressHex,
+		AddressPayload:    payloadBys,
+		IsMulti:           false,
+		ChainType:         req.AlgId.ToChainType(),
+	})
+
+	// add record
+	smtRecord := tables.TableSmtRecordInfo{
+		AccountId:       accountId,
+		Nonce:           req.Nonce,
+		RecordType:      tables.RecordTypeDefault,
+		Action:          common.DasActionUpdateSubAccount,
+		ParentAccountId: acc.ParentAccountId,
+		Account:         acc.Account,
+		EditKey:         "records",
+		Signature:       req.Signature,
+		LoginChainType:  req.AlgId.ToChainType(),
+		LoginAddress:    addrNormal.AddressNormal,
+		SignAddress:     req.SignAddress,
+		EditRecords:     toolib.JsonString(&req.Records),
+		Timestamp:       time.Now().UnixMilli(),
+		SubAction:       common.SubActionEdit,
+		ExpiredAt:       req.ExpiredAt,
+	}
+
+	if err := h.DbDao.CreateSmtRecordInfo(smtRecord); err != nil {
+		apiResp.ApiRespErr(api_code.ApiCodeDbError, "fail to create smt record")
+		return fmt.Errorf("CreateSmtRecordInfo err:%s", err.Error())
+	}
+
+	apiResp.ApiRespOK(resp)
+	return nil
+}
