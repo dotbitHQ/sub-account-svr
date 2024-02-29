@@ -90,7 +90,7 @@ func (h *HttpHandle) doPadgeRecordEdit(req *ReqPadgeRecordEdit, apiResp *http_ap
 		// add record
 		smtRecord := tables.TableSmtRecordInfo{
 			AccountId:       accountId,
-			Nonce:           v.Nonce,
+			Nonce:           v.Nonce + 1,
 			RecordType:      tables.RecordTypeDefault,
 			Action:          common.DasActionUpdateSubAccount,
 			ParentAccountId: acc.ParentAccountId,
