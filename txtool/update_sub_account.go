@@ -92,7 +92,10 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err := s.webAuthn(txParams, p); err != nil {
 		return nil, err
 	}
-
+	rebuildTxParams, err := txbuilder.DeepCopyTxParams(txParams)
+	if err != nil {
+		return nil, fmt.Errorf("deepCopy err %s", err.Error())
+	}
 	// build tx
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(s.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(txParams); err != nil {
@@ -107,12 +110,31 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 
 	// note: change fee
 	sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
-	changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
-	changeCapacity = changeCapacity - sizeInBlock - 5000
-	log.Infof("BuildCreateSubAccountTx txSize: %d", sizeInBlock)
-
-	txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
-
+	txFeeRate := config.Cfg.Server.TxTeeRate
+	if txFeeRate == 0 {
+		txFeeRate = 1
+	}
+	txFee := txFeeRate*sizeInBlock + 5000
+	log.Info("buildTx tx fee:", "update_sub_acc", txFee, sizeInBlock, txFee)
+	checkTxFeeParam := &txbuilder.CheckTxFeeParam{
+		TxParams:      rebuildTxParams,
+		DasCache:      s.DasCache,
+		TxFee:         txFee,
+		FeeLock:       s.ServerScript,
+		TxBuilderBase: s.TxBuilderBase,
+		DasCore:       s.DasCore,
+	}
+	if txFee < common.UserCellTxFeeLimit {
+		changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
+		changeCapacity = changeCapacity - txFee
+		log.Infof("BuildCreateSubAccountTx txSize: %d", sizeInBlock)
+		txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
+	} else {
+		txBuilder, err = txbuilder.CheckTxFee(checkTxFeeParam)
+		if err != nil {
+			return nil, fmt.Errorf("CheckTxFee err %s ", err.Error())
+		}
+	}
 	hash, err := txBuilder.Transaction.ComputeHash()
 	if err != nil {
 		return nil, fmt.Errorf("ComputeHash err: %s", err.Error())

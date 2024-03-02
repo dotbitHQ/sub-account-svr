@@ -75,6 +75,7 @@ type CfgServer struct {
 		RecycleSwitch          bool              `json:"recycle_switch" yaml:"recycle_switch"`
 		RecycleLimit           int               `json:"recycle_limit" yaml:"recycle_limit"`
 		PrometheusPushGateway  string            `json:"prometheus_push_gateway" yaml:"prometheus_push_gateway"`
+		TxTeeRate              uint64            `json:"tx_fee_rate" yaml:"tx_fee_rate"`
 	} `json:"server" yaml:"server"`
 	Das struct {
 		MaxRegisterYears uint64 `json:"max_register_years" yaml:"max_register_years"`
