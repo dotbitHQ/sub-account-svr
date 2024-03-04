@@ -92,10 +92,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err := s.webAuthn(txParams, p); err != nil {
 		return nil, err
 	}
-	rebuildTxParams, err := txbuilder.DeepCopyTxParams(txParams)
-	if err != nil {
-		return nil, fmt.Errorf("deepCopy err %s", err.Error())
-	}
+
 	// build tx
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(s.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(txParams); err != nil {
@@ -117,7 +114,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	txFee := txFeeRate*sizeInBlock + 5000
 	log.Info("buildTx tx fee:", "update_sub_acc", txFee, sizeInBlock, txFee)
 	checkTxFeeParam := &txbuilder.CheckTxFeeParam{
-		TxParams:      rebuildTxParams,
+		TxParams:      txParams,
 		DasCache:      s.DasCache,
 		TxFee:         txFee,
 		FeeLock:       s.ServerScript,
@@ -134,6 +131,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		if err != nil {
 			return nil, fmt.Errorf("CheckTxFee err %s ", err.Error())
 		}
+		txBuilder.Transaction.HeaderDeps = append(txBuilder.Transaction.HeaderDeps, *subTx.TxStatus.BlockHash)
 	}
 	hash, err := txBuilder.Transaction.ComputeHash()
 	if err != nil {
