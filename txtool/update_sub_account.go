@@ -121,7 +121,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		TxBuilderBase: s.TxBuilderBase,
 		DasCore:       s.DasCore,
 	}
-	if txFee > common.UserCellTxFeeLimit {
+	if txFee < 30*common.UserCellTxFeeLimit {
 		changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 		changeCapacity = changeCapacity - txFee
 		log.Infof("BuildCreateSubAccountTx txSize: %d", sizeInBlock)
