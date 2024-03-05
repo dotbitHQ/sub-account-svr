@@ -4,7 +4,6 @@ import (
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
-	"das_sub_account/txtool"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -13,6 +12,7 @@ import (
 	"github.com/dotbitHQ/das-lib/witness"
 	"github.com/gin-gonic/gin"
 	"github.com/nervosnetwork/ckb-sdk-go/address"
+	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
@@ -232,13 +232,25 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 		PreviousOutput: subAccountCell.OutPoint,
 	})
 
-	change, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
-		DasLock:      h.TxTool.ServerScript,
-		NeedCapacity: common.OneCkb,
+	//change, liveBalanceCell, err := h.TxTool.GetBalanceCell(&txtool.ParamBalance{
+	//	DasLock:      h.TxTool.ServerScript,
+	//	NeedCapacity: common.OneCkb,
+	//})
+	//if err != nil {
+	//	return fmt.Errorf("GetBalanceCell err: %s", err.Error())
+	//}
+
+	change, liveBalanceCell, err := h.DasCore.GetBalanceCellWithLock(&core.ParamGetBalanceCells{
+		LockScript:        h.ServerScript,
+		CapacityNeed:      common.OneCkb,
+		DasCache:          h.DasCache,
+		CapacityForChange: common.DasLockWithBalanceTypeMinCkbCapacity,
+		SearchOrder:       indexer.SearchOrderAsc,
 	})
 	if err != nil {
-		return fmt.Errorf("GetBalanceCell err: %s", err.Error())
+		return fmt.Errorf("GetBalanceCellWithLock err %s", err.Error())
 	}
+
 	for _, v := range liveBalanceCell {
 		txParams.Inputs = append(txParams.Inputs, &types.CellInput{
 			PreviousOutput: v.OutPoint,
