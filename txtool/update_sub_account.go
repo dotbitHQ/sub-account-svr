@@ -510,16 +510,30 @@ func (s *SubAccountTxTool) getBalance(txParams *txbuilder.BuildTransactionParams
 		txParams.OutputsData = append(txParams.OutputsData, dpOutputData...)
 
 		// provider normal cell
-		manualChange, manualBalanceLiveCells, err := s.GetBalanceCell(&ParamBalance{
-			DasLock:      p.BalanceDasLock,
-			DasType:      p.BalanceDasType,
-			NeedCapacity: accountPrice.manualTotalCapacity + replenishNormal + p.CommonFee,
+		//manualChange, manualBalanceLiveCells, err := s.GetBalanceCell(&ParamBalance{
+		//	DasLock:      p.BalanceDasLock,
+		//	DasType:      p.BalanceDasType,
+		//	NeedCapacity: accountPrice.manualTotalCapacity + replenishNormal + p.CommonFee,
+		//})
+		//if err != nil {
+		//	log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+		//	_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
+		//	return fmt.Errorf("getBalanceCell err: %s", err.Error())
+		//}
+
+		manualChange, manualBalanceLiveCells, err := s.DasCore.GetBalanceCellWithLock(&core.ParamGetBalanceCells{
+			LockScript:        s.ServerScript,
+			CapacityNeed:      accountPrice.manualTotalCapacity + replenishNormal + p.CommonFee,
+			DasCache:          s.DasCache,
+			CapacityForChange: common.DasLockWithBalanceTypeMinCkbCapacity,
+			SearchOrder:       indexer.SearchOrderAsc,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
 			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
 			return fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
+
 		manualChange += p.CommonFee
 		// balance input
 		for _, v := range manualBalanceLiveCells {
@@ -546,16 +560,30 @@ func (s *SubAccountTxTool) getBalance(txParams *txbuilder.BuildTransactionParams
 		if manualPrice == 0 {
 			needCapacity += p.CommonFee
 		}
-		autoChange, autoBalanceLiveCells, err := s.GetBalanceCell(&ParamBalance{
-			DasLock:      p.BalanceDasLock,
-			DasType:      p.BalanceDasType,
-			NeedCapacity: needCapacity,
+		//autoChange, autoBalanceLiveCells, err := s.GetBalanceCell(&ParamBalance{
+		//	DasLock:      p.BalanceDasLock,
+		//	DasType:      p.BalanceDasType,
+		//	NeedCapacity: needCapacity,
+		//})
+		//if err != nil {
+		//	log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
+		//	_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
+		//	return fmt.Errorf("getBalanceCell err: %s", err.Error())
+		//}
+
+		autoChange, autoBalanceLiveCells, err := s.DasCore.GetBalanceCellWithLock(&core.ParamGetBalanceCells{
+			LockScript:        p.BalanceDasLock,
+			CapacityNeed:      needCapacity,
+			DasCache:          s.DasCache,
+			CapacityForChange: common.DasLockWithBalanceTypeMinCkbCapacity,
+			SearchOrder:       indexer.SearchOrderAsc,
 		})
 		if err != nil {
 			log.Info("UpdateTaskStatusToRollbackWithBalanceErr:", p.TaskInfo.TaskId)
 			_ = s.DbDao.UpdateTaskStatusToRollbackWithBalanceErr(p.TaskInfo.TaskId)
 			return fmt.Errorf("getBalanceCell err: %s", err.Error())
 		}
+
 		if manualPrice == 0 {
 			autoChange += p.CommonFee
 		}
