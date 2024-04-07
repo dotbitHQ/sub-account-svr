@@ -54,14 +54,16 @@ func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 	case common.EditKeyOwner:
 		addrHex, err = r.EditValue.Owner.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeInvalidTargetAddress, "owner address is invalid")
+			//apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
 		r.EditValue.OwnerChainType, r.EditValue.OwnerAddress = addrHex.ChainType, addrHex.AddressHex
 	case common.EditKeyManager:
 		addrHex, err = r.EditValue.Manager.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 		if err != nil {
-			apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
+			apiResp.ApiRespErr(api_code.ApiCodeInvalidTargetAddress, "manager address is invalid")
+			//apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid: "+err.Error())
 			return
 		}
 		r.EditValue.ManagerChainType, r.EditValue.ManagerAddress = addrHex.ChainType, addrHex.AddressHex
