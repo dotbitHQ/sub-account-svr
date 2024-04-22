@@ -65,25 +65,19 @@ func (t *SmtTask) doUpdateDistribution() error {
 			return fmt.Errorf("GetSubAccountCell err: %s, parent_account_id: %s", err.Error(), smtRecordList[0].ParentAccountId)
 		}
 		if errors.Is(err, core.SubAccountNotFound) {
-			parentAcc, err := t.DbDao.GetAccountInfoByAccountId(smtRecordList[0].ParentAccountId)
-			if err != nil {
+			// disable all sub_account task of parent account
+			if err := t.DbDao.Transaction(func(tx *gorm.DB) error {
+				for i := range smtRecordList {
+					smtRecordList[i].RecordType = tables.RecordTypeClosed
+					if err := tx.Save(&smtRecordList[i]).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			}); err != nil {
 				return err
 			}
-			if parentAcc.Id == 0 {
-				// disable all sub_account task of parent account
-				if err := t.DbDao.Transaction(func(tx *gorm.DB) error {
-					for i := range smtRecordList {
-						smtRecordList[i].RecordType = tables.RecordTypeClosed
-						if err := tx.Save(&smtRecordList[i]).Error; err != nil {
-							return err
-						}
-					}
-					return nil
-				}); err != nil {
-					return err
-				}
-				continue
-			}
+			continue
 		}
 
 		subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
