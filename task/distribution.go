@@ -71,11 +71,14 @@ func (t *SmtTask) doUpdateDistribution() error {
 			}
 			if parentAcc.Id == 0 {
 				// disable all sub_account task of parent account
-				for _, v := range smtRecordList {
-					v.RecordType = tables.RecordTypeClosed
-				}
 				if err := t.DbDao.Transaction(func(tx *gorm.DB) error {
-					return tx.Updates(&smtRecordList).Error
+					for i := range smtRecordList {
+						smtRecordList[i].RecordType = tables.RecordTypeClosed
+						if err := tx.Save(&smtRecordList[i]).Error; err != nil {
+							return err
+						}
+					}
+					return nil
 				}); err != nil {
 					return err
 				}
