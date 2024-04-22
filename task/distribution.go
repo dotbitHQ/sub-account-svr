@@ -59,7 +59,7 @@ func (t *SmtTask) doUpdateDistribution() error {
 		// check custom-script
 		subAccLiveCell, err := t.DasCore.GetSubAccountCell(smtRecordList[0].ParentAccountId)
 		if err != nil {
-			return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+			return fmt.Errorf("GetSubAccountCell err: %s, parent_account_id: %s", err.Error(), smtRecordList[0].ParentAccountId)
 		}
 		subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
 		customScripHash := ""
