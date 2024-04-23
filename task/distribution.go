@@ -3,9 +3,12 @@ package task
 import (
 	"das_sub_account/config"
 	"das_sub_account/tables"
+	"errors"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
+	"github.com/dotbitHQ/das-lib/core"
 	"github.com/dotbitHQ/das-lib/witness"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -58,9 +61,25 @@ func (t *SmtTask) doUpdateDistribution() error {
 	for _, smtRecordList := range mapSmtRecordList {
 		// check custom-script
 		subAccLiveCell, err := t.DasCore.GetSubAccountCell(smtRecordList[0].ParentAccountId)
-		if err != nil {
-			return fmt.Errorf("GetSubAccountCell err: %s", err.Error())
+		if err != nil && !errors.Is(err, core.SubAccountNotFound) {
+			return fmt.Errorf("GetSubAccountCell err: %s, parent_account_id: %s", err.Error(), smtRecordList[0].ParentAccountId)
 		}
+		if errors.Is(err, core.SubAccountNotFound) {
+			// disable all sub_account task of parent account
+			if err := t.DbDao.Transaction(func(tx *gorm.DB) error {
+				for i := range smtRecordList {
+					smtRecordList[i].RecordType = tables.RecordTypeClosed
+					if err := tx.Save(&smtRecordList[i]).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+
 		subAccDetail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
 		customScripHash := ""
 		if subAccDetail.HasCustomScriptArgs() {
