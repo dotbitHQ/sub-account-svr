@@ -8,6 +8,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/scorpiotzh/toolib"
 	"github.com/shopspring/decimal"
+	"github.com/sjatsh/uint128"
 )
 
 var (
@@ -162,11 +163,10 @@ func GetUnipayAddress(tokenId tables.TokenId) string {
 
 func PriceToCKB(price, quote, years uint64) (total uint64) {
 	log.Info("PriceToCKB:", price, quote, years)
-	if price > quote {
-		total = price / quote * common.OneCkb * years
-	} else {
-		total = price * common.OneCkb / quote * years
+	if quote == 0 {
+		return 0
 	}
+	total = uint128.From64(price).Mul(uint128.From64(common.OneCkb)).Div(uint128.From64(quote)).Mul(uint128.From64(years)).Big().Uint64()
 	log.Info("PriceToCKB:", price, quote, total)
 	return
 }
