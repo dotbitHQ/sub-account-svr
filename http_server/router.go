@@ -52,7 +52,7 @@ func (h *HttpServer) initRouter() {
 		v1.StaticFS("/static", http.FS(static_files.MintJs))
 
 		//v1.POST("/sub/account/init", api_code.DoMonitorLog("account_init"), h.H.SubAccountInit)               // enable_sub_account
-		//v1.POST("/sub/account/init/free", api_code.DoMonitorLog("account_init_free"), h.H.SubAccountInitFree) // enable_sub_account
+		v1.POST("/sub/account/init/free", api_code.DoMonitorLog("account_init_free"), h.H.SubAccountInitFree) // enable_sub_account
 		v1.POST("/sub/account/check", api_code.DoMonitorLog("account_check"), cacheHandleShort, h.H.SubAccountCheck)
 		v1.POST("/sub/account/create", api_code.DoMonitorLog("account_create"), h.H.SubAccountCreateNew)            // create_sub_account
 		v1.POST("/sub/account/renew", api_code.DoMonitorLog("account_renew"), h.H.SubAccountRenew)                  // renew_sub_account
