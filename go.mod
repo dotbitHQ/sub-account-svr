@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/btcsuite/btcd/btcutil v1.1.3
-	github.com/dotbitHQ/das-lib v1.1.1-0.20240422033232-bf380515e2fa
+	github.com/dotbitHQ/das-lib v1.1.1-0.20240530014753-ecfe93beba6d
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/getsentry/sentry-go v0.25.0
 	github.com/gin-gonic/gin v1.9.1
