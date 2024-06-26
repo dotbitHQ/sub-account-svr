@@ -56,6 +56,7 @@ func (h *HttpHandle) ProfitWithdraw(ctx *gin.Context) {
 
 func (h *HttpHandle) doProfitWithdraw(req *ReqProfitWithdraw, apiResp *api_code.ApiResp) error {
 	var resp RespProfitWithdraw
+	req.Account = strings.ToLower(req.Account)
 
 	hexAddress, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {

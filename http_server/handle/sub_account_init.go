@@ -60,6 +60,7 @@ func (h *HttpHandle) SubAccountInit(ctx *gin.Context) {
 func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.ApiResp, clientIp, remoteAddrIP string) error {
 	var resp RespSubAccountInit
 	resp.List = make([]SignInfo, 0)
+	req.Account = strings.ToLower(req.Account)
 
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"strings"
 )
 
 type ReqSubAccountList struct {
@@ -55,6 +56,8 @@ func (h *HttpHandle) SubAccountList(ctx *gin.Context) {
 func (h *HttpHandle) doSubAccountList(req *ReqSubAccountList, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountList
 	resp.List = make([]AccountData, 0)
+	req.Account = strings.ToLower(req.Account)
+	req.Keyword = strings.ToLower(req.Keyword)
 
 	// check params
 	if req.ChainTypeAddress.KeyInfo.Key != "" {

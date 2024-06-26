@@ -69,6 +69,10 @@ func (h *HttpHandle) SubAccountCreateNew(ctx *gin.Context) {
 
 func (h *HttpHandle) doSubAccountCreateNew(req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountCreate
+	req.Account = strings.ToLower(req.Account)
+	for i, v := range req.SubAccountList {
+		req.SubAccountList[i].Account = strings.ToLower(v.Account)
+	}
 
 	// check params
 	if err := h.doSubAccountCheckParams(req, apiResp); err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"strings"
 )
 
 type ReqAccountList struct {
@@ -53,6 +54,7 @@ func (h *HttpHandle) AccountList(ctx *gin.Context) {
 func (h *HttpHandle) doAccountList(req *ReqAccountList, apiResp *api_code.ApiResp) error {
 	var resp RespAccountList
 	resp.List = make([]AccountData, 0)
+	req.Keyword = strings.ToLower(req.Keyword)
 
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)

@@ -49,6 +49,7 @@ func (h *HttpHandle) OwnerProfit(ctx *gin.Context) {
 
 func (h *HttpHandle) doOwnerProfit(req *ReqOwnerProfit, apiResp *api_code.ApiResp) error {
 	var resp RespOwnerProfit
+	req.Account = strings.ToLower(req.Account)
 
 	hexAddress, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
 	if err != nil {

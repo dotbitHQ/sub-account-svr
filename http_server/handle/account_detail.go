@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
 	"net/http"
+	"strings"
 )
 
 type ReqAccountDetail struct {
@@ -79,6 +80,7 @@ func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.Ap
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params is invalid")
 		return nil
 	}
+	req.Account = strings.ToLower(req.Account)
 
 	// get account detail
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,7 @@ func (h *HttpHandle) OwnerPaymentExport(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
+	req.Account = strings.ToLower(req.Account)
 
 	end, err := time.Parse("2006-01-02", req.End)
 	if err != nil {
