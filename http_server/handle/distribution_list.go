@@ -68,6 +68,7 @@ func (h *HttpHandle) DistributionList(ctx *gin.Context) {
 }
 
 func (h *HttpHandle) doDistributionList(req *ReqDistributionList, apiResp *api_code.ApiResp) error {
+	req.Account = strings.ToLower(req.Account)
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.checkForSearch(accountId, apiResp); err != nil {
 		return err

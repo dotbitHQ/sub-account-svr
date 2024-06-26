@@ -65,6 +65,7 @@ func (h *HttpHandle) SubAccountRenew(ctx *gin.Context) {
 
 func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountRenew
+	req.Account = strings.ToLower(req.Account)
 
 	// check params
 	if err := h.doSubAccountRenewCheckParams(req, apiResp); err != nil {

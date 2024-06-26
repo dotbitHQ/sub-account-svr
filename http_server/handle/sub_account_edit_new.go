@@ -130,6 +130,7 @@ func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountEdit
 	resp.List = make([]SignInfo, 0)
+	req.Account = strings.ToLower(req.Account)
 
 	// check params
 	h.checkReqSubAccountEdit(req, apiResp)

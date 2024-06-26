@@ -65,6 +65,7 @@ func (h *HttpHandle) TransactionStatus(ctx *gin.Context) {
 
 func (h *HttpHandle) doTransactionStatus(req *ReqTransactionStatus, apiResp *api_code.ApiResp) error {
 	var resp RespTransactionStatus
+	req.Account = strings.ToLower(req.Account)
 
 	// check params
 	addrHex, err := req.FormatChainTypeAddress(config.Cfg.Server.Net, true)
