@@ -124,7 +124,7 @@ func (d *DbDao) GetAccountList(chainType common.ChainType, address string, limit
 	switch category {
 	//case tables.CategoryDefault:
 	case tables.CategoryMainAccount:
-		db = db.Where("parent_account_id=''")
+		db = db.Where("parent_account_id='' AND status=?", tables.AccountStatusNormal)
 	case tables.CategorySubAccount:
 		db = db.Where("parent_account_id!=''")
 	//case tables.CategoryOnSale:
@@ -163,7 +163,7 @@ func (d *DbDao) GetAccountListTotal(chainType common.ChainType, address string, 
 	switch category {
 	//case tables.CategoryDefault:
 	case tables.CategoryMainAccount:
-		db = db.Where("parent_account_id=''")
+		db = db.Where("parent_account_id='' AND status=?", tables.AccountStatusNormal)
 	case tables.CategorySubAccount:
 		db = db.Where("parent_account_id!=''")
 	//case tables.CategoryOnSale:
