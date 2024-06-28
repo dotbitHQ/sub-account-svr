@@ -1,16 +1,21 @@
 * [API LIST](#api-list)
+    * [Version](#version)
     * [Get Config Info](#get-config-info)
     * [Get Account List](#get-account-list)
     * [Get Account Detail](#get-account-detail)
     * [Get Sub Account List](#get-sub-account-list)
+    * [Transaction Status](#transaction-status)
+    * [Sub Account Mint Status](#sub-account-mint-status)
     * [Init Sub Account](#init-sub-account)
     * [Check Sub Account](#check-sub-account)
     * [Create Sub Account](#create-sub-account)
+    * [Renew Sub Account](#Renew-Sub-Account)
+    * [Check Renew Sub Account](#Check-Renew-Sub-Account)
     * [Edit Sub Account](#edit-sub-account)
     * [Send Transaction](#send-transaction)
-    * [Transaction Status](#transaction-status)
+    
     * [Task Status](#task-status)
-    * [Sub Account Mint Status](#sub-account-mint-status)
+   
     * [Custom Script Set](#custom-script-set)
     * [Custom Script Info](#custom-script-info)
     * [Custom Script Price](#custom-script-price)
@@ -20,7 +25,22 @@
     * [Internal Mint Sub Account](#internal-mint-sub-account)
     * [Internal Check Smt Info](#internal-check-smt-info)
     * [Internal Update Smt](#internal-update-smt)
+    * [Internal Smt Info](#Internal-Smt-Info)
+    * [Internal Smt SyncTree](#Internal-Smt-SyncTree)
+    * [Owner Payment Export](Owner-Payment-Export)
+    * [Internal Unipay Notice](#Internal-Unipay-Notice)
+    * [Service Provider Withdraw](#Service Provider Withdraw)
+    * [Service Provider Withdraw2](#Service Provider Withdraw2)
+    * [Internal Recycle Account](Internal-Recycle-Account)
+    * [Coupon Statistical Info](#Coupon-Statistical-Info)
+    * [Padge Record Edit](#Padge-Record-Edit)
 * [API for SubAccount Distribution](#API-for-SubAccount-Distribution)
+  * [Coupon Order Info](#Coupon-Order-Info)
+  * [Coupon Code Info](Coupon-Code-Info)
+  * [Coupon Info](Coupon-Info)
+  * [Coupon Download](Coupon-Download)
+  * [Coupon Order Create](Coupon-Order-Create)
+  * [Signin Info](Signin-Info)
   * [Statistical Info](#Statistical-Info)
   * [Distribution List](#Distribution-List)
   * [Update Mint Config](#Update-Mint-Config)
@@ -51,6 +71,31 @@ Please familiarize yourself with the meaning of some common parameters before re
 | account                                                                                  | Contains the suffix `.bit` in it                   |
 | key                                                                                      | Generally refers to the blockchain address for now |
 
+#### Version
+
+**Request**
+
+* path: /version
+* param: none
+
+**Response**
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "version": 1.0
+  }
+}
+```
+
+**Usage**
+
+```curl
+curl -X POST http://127.0.0.1:8120/v1/config/info
+```
+
 ### Get Config Info
 
 #### Request
@@ -69,7 +114,30 @@ Please familiarize yourself with the meaning of some common parameters before re
     "sub_account_prepared_fee_capacity": 0,
     "sub_account_new_sub_account_price": 0,
     "sub_account_renew_sub_account_price": 0,
-    "sub_account_common_fee": 0
+    "sub_account_common_fee": 0,
+    "ckb_quote": "",
+    "auto_mint": {
+      "payment_min_price": 0,
+      "service_fee_ratio": ""
+    },
+    "mint_costs_manually": 0.00,
+    "renew_costs_manually": 0.00,
+    "management_times": 2,
+    "stripe": {
+      "premium_percentage": 0.00,
+      "premium_base": 0.00
+    },
+    "token_list": [
+      {
+        "token_id": "ckb_ckb",
+        "coin_type": "60",
+        "symbol": "",
+        "decimals": 8,
+        "price": 0.00,
+        "display_name": "",
+        "icon": ""
+      }
+    ]
   }
 }
 ```
@@ -93,6 +161,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "coin_type": "60",
     "key": "0x111..."
   },
+  "address": "",
   "category": 6,
   "keyword": ""
 }
@@ -105,9 +174,11 @@ Please familiarize yourself with the meaning of some common parameters before re
   "errno": 0,
   "errmsg": "",
   "data": {
+    "total": 1,
     "list": [
       {
         "account": "",
+        "account_id": "",
         "owner": {
           "type": "blockchain",
           "key_info": {
@@ -127,7 +198,8 @@ Please familiarize yourself with the meaning of some common parameters before re
         "status": 0,
         "enable_sub_account": 0,
         "renew_sub_account_price": 0,
-        "nonce": 0
+        "nonce": 0,
+        "avatar": ""
       }
     ]
   }
@@ -155,6 +227,7 @@ Please familiarize yourself with the meaning of some common parameters before re
   "data": {
     "account_info": {
       "account": "",
+      "account_id": "",
       "owner": {
         "type": "blockchain",
         "key_info": {
@@ -185,7 +258,8 @@ Please familiarize yourself with the meaning of some common parameters before re
         "value": "",
         "ttl": ""
       }
-    ]
+    ],
+    "custom_script": ""
   }
 }
 ```
@@ -219,6 +293,8 @@ Please familiarize yourself with the meaning of some common parameters before re
     "chain_id": "1",
     "key": "0x111..."
   },
+  "chain_type": 0,
+  "address": "",
   "keyword": "",
   "category": 0,
   "order_type": 0
@@ -237,9 +313,11 @@ Please familiarize yourself with the meaning of some common parameters before re
   "errno": 0,
   "errmsg": "",
   "data": {
+    "total": 1,
     "list": [
       {
         "account": "",
+        "account_id": "",
         "owner": {
           "type": "blockchain",
           "key_info": {
@@ -424,7 +502,8 @@ Please familiarize yourself with the meaning of some common parameters before re
       "key_info": {
         "coin_type": "60",
         "key": "0x111..."
-      }
+      },
+      "address": ""
     }
   ]
 }
@@ -438,6 +517,141 @@ Please familiarize yourself with the meaning of some common parameters before re
   "errmsg": "",
   "data": {
     "action": "create_sub_account",
+    "sign_key": "",
+    "sign_list": [
+      {
+        "sign_type": 3,
+        "sign_msg": "from did: 0x123"
+      }
+    ]
+  }
+}
+```
+
+### Renew Sub Account
+
+#### Request
+
+* path: /v1/sub/account/renew
+* account_char_str： the charset of sub-account name
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "account": "",
+  "sub_account_list": [
+    {
+      "account": "",
+      "mint_for_account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        }
+      ],
+      "register_years": 1,
+      "type": "blockchain",
+      "key_info": {
+        "coin_type": "60",
+        "key": "0x111..."
+      },
+      "address": ""
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "action": "edit_sub_account",
+    "sign_key": "",
+    "sign_list": [
+      {
+        "sign_type": 3,
+        "sign_msg": "from did: 0x123"
+      }
+    ]
+  }
+}
+```
+### Check Renew Sub Account
+
+#### Request
+
+* path: /v1/sub/account/renew/check
+* account_char_str： the charset of sub-account name
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "account": "",
+  "sub_account_list": [
+    {
+      "account": "",
+      "mint_for_account": "",
+      "account_char_str": [
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        },
+        {
+          "char_set_name": 2,
+          "char": "a"
+        }
+      ],
+      "register_years": 1,
+      "type": "blockchain",
+      "key_info": {
+        "coin_type": "60",
+        "key": "0x111..."
+      },
+      "address": ""
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "action": "edit_sub_account",
     "sign_key": "",
     "sign_list": [
       {
@@ -522,6 +736,7 @@ Please familiarize yourself with the meaning of some common parameters before re
 {
   "action": "create_approval",    // same with the api return
   "sub_action": "",               // same with the api return
+  "is712": true,
   "sign_address": "0x111...",     // only sign_type='309' webauthn, You need to fill in this address
   "sign_key": "18feccf2347ed980f07bd3277f9ce626", // same with the api return
   "sign_list": [
@@ -530,6 +745,7 @@ Please familiarize yourself with the meaning of some common parameters before re
       "sign_msg": "0x0ea5ffd13bddbdb3f5a8b492cd6653816d371b9afebb7e6d4ecd8e2962d6b4ca" // signature result
     }
   ]
+  
 }
 ```
 
@@ -558,6 +774,7 @@ Please familiarize yourself with the meaning of some common parameters before re
     "coin_type": "60",
     "key": "0x111..."
   },
+  "chain_type": 0,
   "action": "enable_sub_account",
   "sub_action": "",
   "account": ""
@@ -760,7 +977,8 @@ is committed
 
 ```json
 {
-  "owner_profit": "256.8"
+  "owner_profit": "256.8",
+  "bit_profit": ""
 }
 ```
 
@@ -777,7 +995,8 @@ is committed
     "coin_type": "60",
     "key": "0x111..."
   },
-  "account": "tzh2022070601.bit"
+  "account": "tzh2022070601.bit",
+  "is_withdraw_dot_bit": true
 }
 ```
 
@@ -906,6 +1125,250 @@ is committed
 }
 ```
 
+### Internal Smt Info
+
+#### Request
+
+* path: /v1/internal/smt/info
+
+```json
+{
+  "parent_account_id": ""
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "root": ""
+  }
+}
+```
+
+### Internal Smt SyncTree
+
+#### Request
+
+* path: /v1/internal/smt/syncTree
+
+```json
+{
+  "account_id": []
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "root": ""
+  }
+}
+```
+
+### Owner Payment Export
+
+#### Request
+
+* path: /v1/owner/payment/export
+
+```json
+{
+  "account": "",
+  "end": "",
+  "payment": true
+}
+```
+
+#### Response
+
+### Internal Unipay Notice
+
+#### Request
+
+* path: /v1/unipay/notice
+
+```json
+{
+  "business_id": "",
+  "event_list": [
+    {
+      "event_type": "ORDER.PAY",
+      "order_id": "",
+      "pay_status": 0,
+      "pay_hash": "",
+      "pay_address": "",
+      "refund_status": "",
+      "refund_hash": ""
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "root": ""
+  }
+}
+```
+
+### Service Provider Withdraw
+
+#### Request
+
+* path: /v1/service/provider/withdraw
+
+```json
+{
+  "service_provider_address": ""
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "hash": [""],
+    "action": ""
+  }
+}
+```
+
+### Service Provider Withdraw2
+
+#### Request
+
+* path: /v1/service/provider/withdraw2
+
+```json
+{
+  "service_provider_address": "",
+  "account": "",
+  "withdraw": true
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "hash": "",
+    "amount": 0.00
+  }
+}
+```
+
+### Internal Recycle Account
+
+#### Request
+
+* path: /v1/internal/recycle/account
+
+```json
+{
+  "sub_account_ids": [""]
+
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": null
+}
+```
+
+### Coupon Statistical Info
+
+#### Request
+
+* path: /v1/coupon/statistical/info
+
+```json
+{
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "total": 0,
+    "used": 0,
+    "accounts": 0
+  }
+}
+```
+### Padge Record Edit
+
+#### Request
+
+* path: /v1/padge/record/edit
+
+```json
+{
+  "list": [
+    {
+      "account": "",
+      "nonce": 0,
+      "signature": "",
+      "sign_address": "",
+      "expired_at": "",
+      "alg_id": 0,
+      "sub_alg_id": 0,
+      "payload": "",
+      "records": [
+        {
+          "key": "",
+          "type": "",
+          "label": "",
+          "value": "",
+          "ttl": 0
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "total": 0,
+    "used": 0,
+    "accounts": 0
+  }
+}
+```
+
 
 ## API for SubAccount Distribution
 
@@ -934,17 +1397,23 @@ is committed
       {
         "type": "ETH",       
         "balance": "126560", 
-        "total": "126560"    
+        "total": "126560",
+        "background_color": ""
       },
       {
         "type": "USDT-TRC20",
         "balance": "126560",
-        "total": "126560"
+        "total": "126560",
+        "background_color": ""
       }
     ],
     "ckb_spending":{      
       "balance": "12609", 
       "total": "12609"    
+    },
+    "dp_spending":{
+      "balance": "12609",
+      "total": "12609"
     },
     "auto_mint":{ 
       "enable": true,  
@@ -982,7 +1451,17 @@ is committed
       "time": 1683599534179,
       "account": "test.bit",
       "years": 1,
-      "amount": "100 USDT"
+      "amount": "100 USDT",
+      "symbol": "",
+      "action": "create",
+      "coupon_info": {
+        "cid": "",
+        "order_amount": "",
+        "set_name": "",
+        "code": "",
+        "coupon_price": "",
+        "user_amount": ""
+      }
     }]
   }
 }
@@ -1020,7 +1499,11 @@ is committed
     }
   ],
   "background_color": "",
-  "timestamp": 1683547860 
+  "timestamp": 1683547860 ,
+  "mint_success_page": [{
+    "type": "",
+    "url": ""
+  }]
 }
 ```
 
@@ -1082,11 +1565,180 @@ is committed
         "link": ""
       }
     ],
-    "background_color": ""
+    "background_color": "",
+    "mint_success_page": [
+      {
+        "type": "",
+        "url": ""
+      }
+    ]
+  }
+}
+```
+### Coupon Order Info
+#### Request
+
+* path: /v1/coupon/order/info
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "account": "",
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "order_id": "",
+    "token_id": "",
+    "payment_address": "",
+    "contract_address": "",
+    "client_secret": "",
+    "amount": 0.00,
+    "pay_hash": "",
+    "order_status": 0,
+    "cid": ""
+  }
+}
+```
+### Coupon Code Info
+#### Request
+
+* path: /v1/coupon/order/info
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "account": "",
+  "cid": "",
+  "page": 1,
+  "page_size": 10
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "total": 0,
+    "used": 0,
+    "name": "",
+    "note": "",
+    "price": "",
+    "begin_at": 0,
+    "expired_at": 0,
+    "created_at": 0,
+    "list": [
+      {
+        "code": "",
+        "used_by": "",
+        "status": 0
+      }
+    ]
   }
 }
 ```
 
+### Coupon Info
+#### Request
+
+* path: /v1/coupon/info
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "code": "",
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "code": 0,
+    "price": 0,
+    
+    "begin_at": 0,
+    "expired_at": 0,
+    "status": 0
+  }
+}
+```
+
+### Coupon Download
+#### Request
+
+* path: /v1/coupon/download
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+  "account": "",
+  "cid": ""
+}
+```
+
+#### Response
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": null
+}
+```
+
+
+### Signin Info
+#### Request
+
+* path: /v1/signin/info
+
+```json
+{
+  "type": "blockchain",
+  "key_info": {
+    "coin_type": "60",
+    "key": "0x111"
+  },
+
+}
+```
+
+#### Response
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": null
+}
+```
 
 ### Search Account for Distribution
 
@@ -1101,7 +1753,8 @@ is committed
     "coin_type":"60",
     "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
   },
-  "sub_account": "test.test.bit"
+  "sub_account": "test.test.bit",
+  "action_type": 0
 }
 ```
 
@@ -1117,8 +1770,10 @@ is committed
     "status": 0, 
     "is_self": false, 
     "order_id": "" ,
+    "expired_at": 0,
     "premium_percentage": "0.036", // for usd premium
     "premium_base": "0.52" // for usd premium
+    "default_renew_rule": true
   }
 }
 ```
@@ -1148,7 +1803,8 @@ is committed
   "sub_account": "test.test.bit",  
   "action_type": 0,     
   "token_id": "eth_eth",  
-  "years":1 
+  "years":1 ,
+  "coupon_code": ""
 }
 ```
 
@@ -1164,6 +1820,7 @@ is committed
     "amount": "",
     "contract_address": "", // for usdt contract
     "client_secret": "", // for stripe usd
+    "payment_status": 0
   }
 }
 ```
@@ -1280,11 +1937,6 @@ is committed
 
 ```json
 {
-  "type":"blockchain",
-  "key_info":{
-    "coin_type":"60",
-    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
-  },
   "account": "test.bit"
 }
 ```
@@ -1306,7 +1958,7 @@ is committed
 
 #### Request
 
-* path: /v1/config/auto_mint/get
+* path: /v1/currency/list
 
 ```json
 {
@@ -1386,6 +2038,47 @@ is committed
         "sign_msg": "From .bit: 8b3a8750b3ded888c3b4ac53a80f7665e31ef6862e491bd634d78db4f6d25b9e"
       }
     ]
+  }
+}
+```
+
+### Coupon Order Create
+
+#### Request
+
+* path: /v1/coupon/order/create
+
+```json
+{
+  "type":"blockchain",
+  "key_info":{
+    "coin_type":"60",
+    "key":"0xc9f53b1d85356b60453f867610888d89a0b667ad"
+  },
+  "order_id": "",
+  "account": "test.bit",
+  "token_id": "eth_eth",
+  "num": 1,
+  "name": "",
+  "note": "",
+  "price": "",
+  "begin_at": 0,
+  "expired_at": 0
+}
+```
+
+#### Response
+
+```json
+{
+  "err_no": 0,
+  "err_msg": "",
+  "data": {
+    "order_id": "",
+    "payment_address": "",
+    "contract_address": "",
+    "client_secret": "",
+    "amount": 0.00
   }
 }
 ```
@@ -1488,6 +2181,7 @@ is committed
   "account": "test.bit",
   "list": [
     {
+      "index": 2,
       "name": "account length",
       "note": "",
       "price": 100000000,
@@ -1602,6 +2296,7 @@ is committed
   "account": "test.bit",
   "list": [
     {
+      "index": 2,
       "name": "account length",
       "note": "",
       "price": 100000000,
@@ -1659,7 +2354,8 @@ is committed
     "coin_type": "60",
     "key": "0xc9f53b1d85356b60453f867610888d89a0b667ad"
   },
-  "account": "test.bit"
+  "account": "test.bit",
+  "address": ""
 }
 ```
 
