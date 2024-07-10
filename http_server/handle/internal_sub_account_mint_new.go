@@ -2,6 +2,7 @@ package handle
 
 import (
 	"bytes"
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
@@ -28,15 +29,15 @@ func (h *HttpHandle) InternalSubAccountMintNew(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doInternalSubAccountMintNew(&req, &apiResp); err != nil {
-		log.Error("doInternalSubAccountMintNew err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doInternalSubAccountMintNew(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doInternalSubAccountMintNew err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
@@ -44,7 +45,7 @@ func (h *HttpHandle) InternalSubAccountMintNew(ctx *gin.Context) {
 
 type RespInternalSubAccountMintNew struct{}
 
-func (h *HttpHandle) doInternalSubAccountMintNew(req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doInternalSubAccountMintNew(ctx context.Context, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
 	var resp RespInternalSubAccountMintNew
 	// check params
 	if err := h.doSubAccountCheckParams(req, apiResp); err != nil {
@@ -62,13 +63,13 @@ func (h *HttpHandle) doInternalSubAccountMintNew(req *ReqSubAccountCreate, apiRe
 	}
 
 	// check list
-	isOk, respCheck, err := h.doSubAccountCheckList(req, apiResp)
+	isOk, respCheck, err := h.doSubAccountCheckList(ctx, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doSubAccountCheckList err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	} else if !isOk {
-		log.Error("doSubAccountCheckList:", toolib.JsonString(respCheck))
+		log.Error(ctx, "doSubAccountCheckList:", toolib.JsonString(respCheck))
 		apiResp.ApiRespErr(api_code.ApiCodeCreateListCheckFail, "create list check failed")
 		return nil
 	}

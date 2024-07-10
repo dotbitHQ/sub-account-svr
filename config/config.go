@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -161,12 +162,12 @@ func GetUnipayAddress(tokenId tables.TokenId) string {
 	return ""
 }
 
-func PriceToCKB(price, quote, years uint64) (total uint64) {
-	log.Info("PriceToCKB:", price, quote, years)
+func PriceToCKB(ctx context.Context, price, quote, years uint64) (total uint64) {
+	log.Info(ctx, "PriceToCKB:", price, quote, years)
 	if quote == 0 {
 		return 0
 	}
 	total = uint128.From64(price).Mul(uint128.From64(common.OneCkb)).Div(uint128.From64(quote)).Mul(uint128.From64(years)).Big().Uint64()
-	log.Info("PriceToCKB:", price, quote, total)
+	log.Info(ctx, "PriceToCKB:", price, quote, total)
 	return
 }

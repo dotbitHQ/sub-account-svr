@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"errors"
 	"fmt"
@@ -33,20 +34,20 @@ func (h *HttpHandle) PriceRuleList(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doRuleList(common.ActionDataTypeSubAccountPriceRules, &req, &apiResp); err != nil {
-		log.Error("doPriceRuleList err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doRuleList(ctx.Request.Context(), common.ActionDataTypeSubAccountPriceRules, &req, &apiResp); err != nil {
+		log.Error("doPriceRuleList err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doRuleList(actionDataType common.ActionDataType, req *ReqPriceRuleList, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doRuleList(ctx context.Context, actionDataType common.ActionDataType, req *ReqPriceRuleList, apiResp *api_code.ApiResp) error {
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.checkForSearch(parentAccountId, apiResp); err != nil {
 		return err

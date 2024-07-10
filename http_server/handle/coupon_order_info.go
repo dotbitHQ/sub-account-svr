@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
 	"fmt"
@@ -40,21 +41,21 @@ func (h *HttpHandle) CouponOrderInfo(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doCouponOrderInfo(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doCouponOrderInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponOrderInfo(req *ReqCouponOrderInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponOrderInfo(ctx context.Context, req *ReqCouponOrderInfo, apiResp *api_code.ApiResp) error {
 	order, err := h.DbDao.GetOrderByOrderID(req.OrderId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query order")

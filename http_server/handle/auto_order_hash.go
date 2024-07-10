@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
@@ -31,21 +32,21 @@ func (h *HttpHandle) AutoOrderHash(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doAutoOrderHash(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderHash err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doAutoOrderHash(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAutoOrderHash err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doAutoOrderHash(req *ReqAutoOrderHash, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doAutoOrderHash(ctx context.Context, req *ReqAutoOrderHash, apiResp *api_code.ApiResp) error {
 	var resp RespAutoOrderHash
 
 	// check key info

@@ -80,7 +80,7 @@ func (t *SmtTask) doTaskDetail(p *paramDoTaskDetail) error {
 	}
 
 	// build tx
-	res, err := t.TxTool.BuildTxsForUpdateSubAccount(&txtool.ParamBuildTxs{
+	res, err := t.TxTool.BuildTxsForUpdateSubAccount(ctx, &txtool.ParamBuildTxs{
 		TaskList:             p.taskList,
 		TaskMap:              p.taskMap,
 		Account:              p.account,

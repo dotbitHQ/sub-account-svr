@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
@@ -48,22 +49,22 @@ func (h *HttpHandle) SubAccountRenew(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountRenew(&req, &apiResp); err != nil {
-		log.Error("doSubAccountRenew err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountRenew(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSubAccountRenew err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountRenew(ctx context.Context, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountRenew
 	req.Account = strings.ToLower(req.Account)
 
@@ -89,7 +90,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	} else if !isOk {
-		log.Error("doSubAccountRenewCheckList:", toolib.JsonString(respCheck))
+		log.Error(ctx, "doSubAccountRenewCheckList:", toolib.JsonString(respCheck))
 		apiResp.ApiRespErr(api_code.ApiCodeCreateListCheckFail, "create list check failed")
 		return nil
 	}
@@ -155,7 +156,7 @@ func (h *HttpHandle) doSubAccountRenew(req *ReqSubAccountRenew, apiResp *api_cod
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
-	log.Info("doRenewSignInfo:", parentAccountId, renewSignInfo, len(listSmtRecord))
+	log.Info(ctx, "doRenewSignInfo:", parentAccountId, renewSignInfo, len(listSmtRecord))
 
 	// sign info
 	dataCache := UpdateSubAccountCache{

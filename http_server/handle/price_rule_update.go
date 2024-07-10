@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -40,20 +41,20 @@ func (h *HttpHandle) PriceRuleUpdate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doPriceRuleUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doPriceRuleUpdate(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doPriceRuleUpdate(ctx context.Context, req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -89,7 +90,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	//	}
 	//}
 
-	txParams, whiteListMap, err := h.rulesTxAssemble(RulesTxAssembleParams{
+	txParams, whiteListMap, err := h.rulesTxAssemble(ctx, RulesTxAssembleParams{
 		Req:                 req,
 		ApiResp:             apiResp,
 		InputActionDataType: common.ActionDataTypeSubAccountPriceRules,
@@ -98,7 +99,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 		return err
 	}
 
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -115,7 +116,7 @@ func (h *HttpHandle) doPriceRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_cod
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
 	resp.SignList = signList.List[0].SignList
-	log.Info("doPriceRuleUpdate:", toolib.JsonString(resp))
+	log.Info(ctx, "doPriceRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("tx_hash=? and tx_status=?", txHash, tables.TxStatusPending).
@@ -158,7 +159,7 @@ type RulesTxAssembleParams struct {
 	AutoDistribution    witness.AutoDistribution
 }
 
-func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
+func (h *HttpHandle) rulesTxAssemble(ctx context.Context, params RulesTxAssembleParams) (*txbuilder.BuildTransactionParams, map[string]Whitelist, error) {
 	if params.Req == nil || params.ApiResp == nil {
 		return nil, nil, fmt.Errorf("params invalid")
 	}
@@ -338,7 +339,7 @@ func (h *HttpHandle) rulesTxAssemble(params RulesTxAssembleParams) (*txbuilder.B
 
 				for _, v := range accWhitelist {
 					accountName := v + "." + params.Req.Account
-					h.checkSubAccountName(params.ApiResp, accountName)
+					h.checkSubAccountName(ctx, params.ApiResp, accountName)
 					if params.ApiResp.ErrNo != api_code.ApiCodeSuccess {
 						return nil, nil, errors.New("account name invalid")
 					}

@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"errors"
@@ -58,20 +59,20 @@ func (h *HttpHandle) StatisticalInfo(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doStatisticalInfo(&req, &apiResp); err != nil {
-		log.Error("doStatisticalInfo err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doStatisticalInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doStatisticalInfo err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doStatisticalInfo(ctx context.Context, req *ReqStatisticalInfo, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.checkForSearch(accountId, apiResp); err != nil {
 		return err
@@ -182,7 +183,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return fmt.Errorf("GetBalanceCells err: %s", err)
 		}
-		log.Infof("totalCapacity: %d", totalCapacity)
+		log.Infof("totalCapacity: %d", totalCapacity, ctx)
 
 		token, err := h.DbDao.GetTokenById(tables.TokenIdCkb)
 		if err != nil {
@@ -258,7 +259,7 @@ func (h *HttpHandle) doStatisticalInfo(req *ReqStatisticalInfo, apiResp *api_cod
 		}
 		subAccountCellDetail := witness.ConvertSubAccountCellOutputData(subAccountTx.Transaction.OutputsData[subAccountCell.OutPoint.Index])
 
-		log.Info("doStatisticalInfo:", subAccountCell.OutPoint.TxHash.String(), subAccountCell.OutPoint.Index)
+		log.Info(ctx, "doStatisticalInfo:", subAccountCell.OutPoint.TxHash.String(), subAccountCell.OutPoint.Index)
 
 		if subAccountCellDetail.Flag == witness.FlagTypeCustomRule &&
 			subAccountCellDetail.AutoDistribution == witness.AutoDistributionEnable {

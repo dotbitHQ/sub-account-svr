@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
@@ -58,24 +59,24 @@ func (h *HttpHandle) AutoAccountSearch(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doAutoAccountSearch(&req, &apiResp); err != nil {
-		log.Error("doAutoAccountSearch err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doAutoAccountSearch(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAutoAccountSearch err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doAutoAccountSearch(ctx context.Context, req *ReqAutoAccountSearch, apiResp *api_code.ApiResp) error {
 	var resp RespAutoAccountSearch
 	// check sub_account name
-	parentAccountId := h.checkSubAccountName(apiResp, req.SubAccount)
+	parentAccountId := h.checkSubAccountName(ctx, apiResp, req.SubAccount)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
@@ -99,7 +100,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	}
 
 	// check switch
-	autoDistribution, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
+	autoDistribution, err := h.checkSwitch(ctx, parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -107,7 +108,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	}
 
 	// get max years
-	resp.MaxYear = h.getMaxYears(parentAccount)
+	resp.MaxYear = h.getMaxYears(ctx, parentAccount)
 
 	// check min price 0.99$
 	builder, err := h.DasCore.ConfigCellDataBuilderByTypeArgsList(common.ConfigCellTypeArgsSubAccount)
@@ -141,7 +142,7 @@ func (h *HttpHandle) doAutoAccountSearch(req *ReqAutoAccountSearch, apiResp *api
 	return nil
 }
 
-func (h *HttpHandle) checkSubAccountName(apiResp *api_code.ApiResp, subAccountName string) (parentAccountId string) {
+func (h *HttpHandle) checkSubAccountName(ctx context.Context, apiResp *api_code.ApiResp, subAccountName string) (parentAccountId string) {
 	if !strings.HasSuffix(subAccountName, common.DasAccountSuffix) {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
 		return
@@ -177,7 +178,7 @@ func (h *HttpHandle) checkSubAccountName(apiResp *api_code.ApiResp, subAccountNa
 		return
 	}
 	if !h.checkAccountCharSet(accountCharStr, subAccountName[:strings.Index(subAccountName, ".")]) {
-		log.Info("checkAccountCharSet:", subAccountName, accountCharStr)
+		log.Info(ctx, "checkAccountCharSet:", subAccountName, accountCharStr)
 		apiResp.ApiRespErr(api_code.ApiCodeInvalidCharset, fmt.Sprintf("sub-account[%s] invalid", subAccountName))
 		return
 	}
@@ -311,7 +312,7 @@ func (h *HttpHandle) checkSubAccount(actionType tables.ActionType, apiResp *api_
 	return
 }
 
-func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) (witness.AutoDistribution, error) {
+func (h *HttpHandle) checkSwitch(ctx context.Context, parentAccountId string, actionType tables.ActionType, apiResp *api_code.ApiResp) (witness.AutoDistribution, error) {
 	subAccCell, err := h.DasCore.GetSubAccountCell(parentAccountId)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
@@ -323,7 +324,7 @@ func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.Actio
 		return witness.AutoDistributionDefault, fmt.Errorf("GetTransaction err: %s", err.Error())
 	}
 	subAccData := witness.ConvertSubAccountCellOutputData(subAccTx.Transaction.OutputsData[subAccCell.OutPoint.Index])
-	log.Info("checkSwitch:", subAccData.AutoDistribution, subAccData.Flag)
+	log.Info(ctx, "checkSwitch:", subAccData.AutoDistribution, subAccData.Flag)
 	if subAccData.AutoDistribution == witness.AutoDistributionDefault {
 		if subAccData.Flag == witness.FlagTypeCustomRule && actionType == tables.ActionTypeRenew {
 			return witness.AutoDistributionDefault, nil
@@ -334,7 +335,7 @@ func (h *HttpHandle) checkSwitch(parentAccountId string, actionType tables.Actio
 	return witness.AutoDistributionEnable, nil
 }
 
-func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 {
+func (h *HttpHandle) getMaxYears(ctx context.Context, parentAccount *tables.TableAccountInfo) uint64 {
 	nowT := uint64(time.Now().Unix())
 	if nowT > parentAccount.ExpiredAt {
 		return 0
@@ -343,7 +344,7 @@ func (h *HttpHandle) getMaxYears(parentAccount *tables.TableAccountInfo) uint64 
 	if maxYear == 0 {
 		return 1
 	}
-	log.Info("getMaxYears:", parentAccount.ExpiredAt, maxYear, config.Cfg.Das.MaxRegisterYears)
+	log.Info(ctx, "getMaxYears:", parentAccount.ExpiredAt, maxYear, config.Cfg.Das.MaxRegisterYears)
 	if maxYear > config.Cfg.Das.MaxRegisterYears {
 		maxYear = config.Cfg.Das.MaxRegisterYears
 	}

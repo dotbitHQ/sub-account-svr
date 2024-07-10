@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"fmt"
@@ -34,20 +35,20 @@ func (h *HttpHandle) ConfigAutoMintUpdate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doConfigAutoMintUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doConfigAutoMintUpdate(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doConfigAutoMintUpdate(ctx context.Context, req *ReqConfigAutoMintUpdate, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -72,7 +73,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		enable = witness.AutoDistributionEnable
 	}
 
-	txParams, _, err := h.rulesTxAssemble(RulesTxAssembleParams{
+	txParams, _, err := h.rulesTxAssemble(ctx, RulesTxAssembleParams{
 		Req: &ReqPriceRuleUpdate{
 			ChainTypeAddress: req.ChainTypeAddress,
 			Account:          req.Account,
@@ -84,7 +85,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 		return err
 	}
 
-	signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -101,7 +102,7 @@ func (h *HttpHandle) doConfigAutoMintUpdate(req *ReqConfigAutoMintUpdate, apiRes
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
 	resp.SignList = signList.List[0].SignList
-	log.Info("doConfigAutoMintUpdate:", toolib.JsonString(resp))
+	log.Info(ctx, "doConfigAutoMintUpdate:", toolib.JsonString(resp))
 
 	apiResp.ApiRespOK(resp)
 	return nil

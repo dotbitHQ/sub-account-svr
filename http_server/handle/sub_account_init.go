@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -42,22 +43,22 @@ func (h *HttpHandle) SubAccountInit(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountInit(&req, &apiResp, clientIp, remoteAddrIP); err != nil {
-		log.Error("doSubAccountInit err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountInit(ctx.Request.Context(), &req, &apiResp, clientIp, remoteAddrIP); err != nil {
+		log.Error("doSubAccountInit err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.ApiResp, clientIp, remoteAddrIP string) error {
+func (h *HttpHandle) doSubAccountInit(ctx context.Context, req *ReqSubAccountInit, apiResp *api_code.ApiResp, clientIp, remoteAddrIP string) error {
 	var resp RespSubAccountInit
 	resp.List = make([]SignInfo, 0)
 	req.Account = strings.ToLower(req.Account)
@@ -103,7 +104,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	subAccountPreparedFeeCapacity, _ := molecule.Bytes2GoU64(builder.ConfigCellSubAccount.PreparedFeeCapacity().RawData())
 	subAccountCommonFee, _ := molecule.Bytes2GoU64(builder.ConfigCellAccount.CommonFee().RawData())
 
-	log.Info("doSubAccountInit:", req.Account, acc.AccountId, clientIp, remoteAddrIP)
+	log.Info(ctx, "doSubAccountInit:", req.Account, acc.AccountId, clientIp, remoteAddrIP)
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeMinCkbCapacity
 	var liveCells []*indexer.LiveCell
 	var change uint64
@@ -150,7 +151,7 @@ func (h *HttpHandle) doSubAccountInit(req *ReqSubAccountInit, apiResp *api_code.
 	//	return fmt.Errorf("BuildTransaction err: %s", err.Error())
 	//}
 
-	signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{},
 		chainType:  req.chainType,

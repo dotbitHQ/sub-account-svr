@@ -2,6 +2,7 @@ package handle
 
 import (
 	"bytes"
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
@@ -57,21 +58,21 @@ func (h *HttpHandle) AccountDetail(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doAccountDetail(&req, &apiResp); err != nil {
-		log.Error("doAccountDetail err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doAccountDetail(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAccountDetail err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doAccountDetail(req *ReqAccountDetail, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doAccountDetail(ctx context.Context, req *ReqAccountDetail, apiResp *api_code.ApiResp) error {
 	var resp RespAccountDetail
 	resp.Records = make([]RecordData, 0)
 

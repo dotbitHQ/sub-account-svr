@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
@@ -33,24 +34,24 @@ func (h *HttpHandle) CouponInfo(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
 	if err = ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 	req.clientIP = clientIp
 
-	if err = h.doCouponInfo(&req, &apiResp); err != nil {
-		log.Error("doCouponInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doCouponInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doCouponInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponInfo(req *ReqCouponInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponInfo(ctx context.Context, req *ReqCouponInfo, apiResp *api_code.ApiResp) error {
 	lockKey := fmt.Sprintf("coupon_info:%s", req.clientIP)
 	if _, err := h.RC.Red.Pipelined(func(p redis.Pipeliner) error {
 		p.HIncrBy(lockKey, req.Code, 1)

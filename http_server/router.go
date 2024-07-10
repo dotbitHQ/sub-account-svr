@@ -5,6 +5,7 @@ import (
 	"das_sub_account/http_server/api_code"
 	"das_sub_account/internal/static_files"
 	"encoding/json"
+	"github.com/dotbitHQ/das-lib/http_api"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/scorpiotzh/toolib"
@@ -25,6 +26,7 @@ func (h *HttpServer) initRouter() {
 	h.engine.Use(sentrygin.New(sentrygin.Options{
 		Repanic: true,
 	}))
+	h.engine.Use(http_api.ReqIdMiddleware())
 	v1 := h.engine.Group("v1")
 	{
 		v1.POST("/version", cacheHandleShort, h.H.Version)

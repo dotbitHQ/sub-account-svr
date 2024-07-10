@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -42,21 +43,21 @@ func (h *HttpHandle) ServiceProviderWithdraw(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doServiceProviderWithdraw(&req, &apiResp); err != nil {
-		log.Error("doServiceProviderWithdraw err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doServiceProviderWithdraw(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doServiceProviderWithdraw err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doServiceProviderWithdraw(ctx context.Context, req *ReqServiceProviderWithdraw, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -65,7 +66,7 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 		return fmt.Errorf("sync block number")
 	}
 
-	hashList, err := h.buildServiceProviderWithdraw(req.ServiceProviderAddress)
+	hashList, err := h.buildServiceProviderWithdraw(ctx, req.ServiceProviderAddress)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return err
@@ -80,7 +81,7 @@ func (h *HttpHandle) doServiceProviderWithdraw(req *ReqServiceProviderWithdraw, 
 	return nil
 }
 
-func (h *HttpHandle) buildServiceProviderWithdraw(providerAddress string) (txHash []string, err error) {
+func (h *HttpHandle) buildServiceProviderWithdraw(ctx context.Context, providerAddress string) (txHash []string, err error) {
 	parseAddress, err := address.Parse(providerAddress)
 	if err != nil {
 		return nil, err
@@ -140,7 +141,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerAddress string) (txHas
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price)
+		log.Infof("txHash: %s, provider: %s, price: %d", v.TxHash, providerId, price, ctx)
 
 		subAccountCell := tx.Transaction.Outputs[0]
 		parentAccountId := common.Bytes2Hex(subAccountCell.Type.Args)
@@ -320,11 +321,11 @@ func (h *HttpHandle) buildServiceProviderWithdraw(providerAddress string) (txHas
 			if err != nil {
 				return err
 			}
-			log.Infof("SendTransaction hash: %s", hash.Hex())
+			log.Infof("SendTransaction hash: %s", hash.Hex(), ctx)
 		}
 		return nil
 	}); err != nil {
-		log.Error("CreateTask err: ", err.Error())
+		log.Error("CreateTask err: ", err.Error(), ctx)
 		return nil, err
 	}
 	return txHashList, nil

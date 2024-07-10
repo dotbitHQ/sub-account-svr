@@ -24,15 +24,15 @@ func (h *HttpHandle) PreservedRuleList(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doRuleList(common.ActionDataTypeSubAccountPreservedRules, &req, &apiResp); err != nil {
-		log.Error("doRuleList err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doRuleList(ctx.Request.Context(), common.ActionDataTypeSubAccountPreservedRules, &req, &apiResp); err != nil {
+		log.Error("doRuleList err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }

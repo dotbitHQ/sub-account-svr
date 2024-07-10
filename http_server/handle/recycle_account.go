@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -28,22 +29,22 @@ func (h *HttpHandle) RecycleAccount(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
 	//time.Sleep(time.Minute * 3)
-	if err = h.doRecycleAccount(&req, &apiResp); err != nil {
-		log.Error("doRecycleAccount err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doRecycleAccount(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doRecycleAccount err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doRecycleAccount(req *ReqRecycleAccount, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doRecycleAccount(ctx context.Context, req *ReqRecycleAccount, apiResp *api_code.ApiResp) error {
 	var resp RespRecycleAccount
 
 	accConfigCell, err := h.DasCore.ConfigCellDataBuilderByTypeArgs(common.ConfigCellTypeArgsAccount)
@@ -62,7 +63,7 @@ func (h *HttpHandle) doRecycleAccount(req *ReqRecycleAccount, apiResp *api_code.
 		return fmt.Errorf("GetTimeCell err: %s", err.Error())
 	}
 	timestamp := timeCell.Timestamp()
-	log.Info("recycleSubAccount:", timestamp, expirationGracePeriod, timestamp-int64(expirationGracePeriod))
+	log.Info(ctx, "recycleSubAccount:", timestamp, expirationGracePeriod, timestamp-int64(expirationGracePeriod))
 	timestamp = timestamp - int64(expirationGracePeriod)
 
 	if len(req.SubAccountIds) == 0 {
@@ -105,7 +106,7 @@ func (h *HttpHandle) doRecycleAccount(req *ReqRecycleAccount, apiResp *api_code.
 		}
 		smtRecordList = append(smtRecordList, tmpSmtRecord)
 	}
-	log.Info("smtRecordList:", len(smtRecordList))
+	log.Info(ctx, "smtRecordList:", len(smtRecordList))
 	if len(smtRecordList) > 0 {
 		if err := h.DbDao.CreateRecycleSmtRecordList(smtRecordList); err != nil {
 			apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to create smt record")

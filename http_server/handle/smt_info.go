@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"fmt"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/dotbitHQ/das-lib/smt"
@@ -27,21 +28,21 @@ func (h *HttpHandle) SmtInfo(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSmtInfo(&req, &apiResp); err != nil {
-		log.Error("doSmtInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSmtInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSmtInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSmtInfo(req *ReqSmtInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSmtInfo(ctx context.Context, req *ReqSmtInfo, apiResp *api_code.ApiResp) error {
 	var resp RespSmtInfo
 	tree := smt.NewSmtSrv(*h.SmtServerUrl, req.ParentAccountId)
 	root, err := tree.GetSmtRoot()

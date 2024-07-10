@@ -2,6 +2,7 @@ package handle
 
 import (
 	"bytes"
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -47,7 +48,7 @@ func (h *HttpHandle) CustomScript(ctx *gin.Context) {
 	}
 	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
 
-	if err = h.doCustomScript(&req, &apiResp); err != nil {
+	if err = h.doCustomScript(ctx, &req, &apiResp); err != nil {
 		log.Error("doCustomScript err:", err.Error(), funcName, clientIp, ctx)
 		doApiError(err, &apiResp)
 	}
@@ -55,7 +56,7 @@ func (h *HttpHandle) CustomScript(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCustomScript(ctx context.Context, req *ReqCustomScript, apiResp *api_code.ApiResp) error {
 	var resp RespCustomScript
 
 	hexAddress, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
@@ -156,7 +157,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 		return fmt.Errorf("buildCustomScriptTx err: %s", err.Error())
 	}
 
-	signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{1},
 		chainType:  hexAddress.ChainType,
@@ -173,7 +174,7 @@ func (h *HttpHandle) doCustomScript(req *ReqCustomScript, apiResp *api_code.ApiR
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
 	resp.SignList = signList.List[0].SignList
-	log.Info("doCustomScript:", toolib.JsonString(resp))
+	log.Info(ctx, "doCustomScript:", toolib.JsonString(resp))
 	apiResp.ApiRespOK(resp)
 	return nil
 }
@@ -189,7 +190,7 @@ type paramBuildTx struct {
 	evmChainId int64
 }
 
-func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
+func (h *HttpHandle) buildTx(ctx context.Context, p *paramBuildTx) (*SignInfoList, string, error) {
 	txBuilder := txbuilder.NewDasTxBuilderFromBase(h.TxBuilderBase, nil)
 	if err := txBuilder.BuildTransaction(p.txParams); err != nil {
 		return nil, "", fmt.Errorf("BuildTransaction err: %s", err.Error())
@@ -205,13 +206,13 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		latestOutput := len(txBuilder.Transaction.Outputs) - 1
 		changeCapacity := txBuilder.Transaction.Outputs[latestOutput].Capacity - sizeInBlock - 5000
 		txBuilder.Transaction.Outputs[latestOutput].Capacity = changeCapacity
-		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity)
+		log.Infof("total size: %d, changeCapacity: %d", sizeInBlock, changeCapacity, ctx)
 	case common.DasActionCreateApproval, common.DasActionDelayApproval,
 		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
 		sizeInBlock, _ := txBuilder.Transaction.SizeInBlock()
 		changeCapacity := txBuilder.Transaction.Outputs[0].Capacity - sizeInBlock - 1000
 		txBuilder.Transaction.Outputs[0].Capacity = changeCapacity
-		log.Info("buildTx:", p.action, sizeInBlock, changeCapacity)
+		log.Info(ctx, "buildTx:", p.action, sizeInBlock, changeCapacity)
 	}
 
 	signList, err := txBuilder.GenerateDigestListFromTx(p.skipGroups)
@@ -227,7 +228,7 @@ func (h *HttpHandle) buildTx(p *paramBuildTx) (*SignInfoList, string, error) {
 		}
 	}
 
-	log.Info("buildTx:", txBuilder.TxString())
+	log.Info(ctx, "buildTx:", txBuilder.TxString())
 
 	// cache
 	sic := SignInfoCache{

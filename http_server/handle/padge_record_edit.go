@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"encoding/hex"
 	"fmt"
@@ -43,22 +44,22 @@ func (h *HttpHandle) PadgeRecordEdit(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(http_api.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
 	//time.Sleep(time.Minute * 3)
-	if err = h.doPadgeRecordEdit(&req, &apiResp); err != nil {
-		log.Error("doPadgeRecordEdit err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doPadgeRecordEdit(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doPadgeRecordEdit err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doPadgeRecordEdit(req *ReqPadgeRecordEdit, apiResp *http_api.ApiResp) error {
+func (h *HttpHandle) doPadgeRecordEdit(ctx context.Context, req *ReqPadgeRecordEdit, apiResp *http_api.ApiResp) error {
 	var resp RespPadgeRecordEdit
 
 	var list []tables.TableSmtRecordInfo

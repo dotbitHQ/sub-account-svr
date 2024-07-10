@@ -112,7 +112,7 @@ func (s *SubAccountTxTool) Run() {
 	}
 }
 
-func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*ResultBuildTxs, error) {
+func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(ctx context.Context, p *ParamBuildTxs) (*ResultBuildTxs, error) {
 	var res ResultBuildTxs
 
 	newSubAccountPrice, _ := molecule.Bytes2GoU64(p.BaseInfo.ConfigCellBuilder.ConfigCellSubAccount.NewSubAccountPrice().RawData())
@@ -159,7 +159,7 @@ func (s *SubAccountTxTool) BuildTxsForUpdateSubAccount(p *ParamBuildTxs) (*Resul
 			//		return nil, fmt.Errorf("BuildUpdateSubAccountTxForCustomScript err: %s", err.Error())
 			//	}
 			//} else {
-			resUpdate, err = s.BuildUpdateSubAccountTx(&ParamBuildUpdateSubAccountTx{
+			resUpdate, err = s.BuildUpdateSubAccountTx(ctx, &ParamBuildUpdateSubAccountTx{
 				TaskInfo:              &p.TaskList[i],
 				Account:               p.Account,
 				AccountOutPoint:       accountOutPoint,

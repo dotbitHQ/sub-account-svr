@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -33,21 +34,21 @@ func (h *HttpHandle) OwnerProfit(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doOwnerProfit(&req, &apiResp); err != nil {
-		log.Error("doOwnerProfit err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doOwnerProfit(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doOwnerProfit err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doOwnerProfit(req *ReqOwnerProfit, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doOwnerProfit(ctx context.Context, req *ReqOwnerProfit, apiResp *api_code.ApiResp) error {
 	var resp RespOwnerProfit
 	req.Account = strings.ToLower(req.Account)
 
@@ -81,7 +82,7 @@ func (h *HttpHandle) doOwnerProfit(req *ReqOwnerProfit, apiResp *api_code.ApiRes
 	}
 
 	detail := witness.ConvertSubAccountCellOutputData(subAccLiveCell.OutputData)
-	log.Info("doOwnerProfit:", req.Account, detail.OwnerProfit, detail.DasProfit)
+	log.Info(ctx, "doOwnerProfit:", req.Account, detail.OwnerProfit, detail.DasProfit)
 
 	decOwnerProfit, err := decimal.NewFromString(fmt.Sprintf("%d", detail.OwnerProfit))
 	if err != nil {
