@@ -87,7 +87,7 @@ func (h *HttpHandle) doSubAccountInitFree(ctx context.Context, req *ReqSubAccoun
 
 	capacityNeed, capacityForChange := subAccountBasicCapacity+subAccountPreparedFeeCapacity+subAccountCommonFee, common.DasLockWithBalanceTypeMinCkbCapacity
 
-	change, liveCells, err := h.getSvrBalance(paramBalance{
+	change, liveCells, err := h.getSvrBalance(ctx, paramBalance{
 		svrLock:           h.ServerScript,
 		capacityForNeed:   capacityNeed,
 		capacityForChange: capacityForChange,
