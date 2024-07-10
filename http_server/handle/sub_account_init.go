@@ -2,6 +2,7 @@ package handle
 
 import (
 	"context"
+	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -20,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ReqSubAccountInit struct {
@@ -322,12 +324,23 @@ func (h *HttpHandle) buildSubAccountInitTx(p *paramsSubAccountInitTx) (*txbuilde
 	return &txParams, nil
 }
 
-func (h *HttpHandle) getSvrBalance(p paramBalance) (uint64, []*indexer.LiveCell, error) {
+func (h *HttpHandle) getSvrBalance(ctx context.Context, p paramBalance) (uint64, []*indexer.LiveCell, error) {
 	if p.capacityForNeed == 0 {
 		return 0, nil, fmt.Errorf("needCapacity is nil")
 	}
-	svrBalanceLock.Lock()
-	defer svrBalanceLock.Unlock()
+	svrLockKey, _ := p.svrLock.Serialize()
+	lockKey := fmt.Sprintf("%x", md5.Sum(svrLockKey))
+	if err := h.RC.Lock(lockKey, time.Second*5); err != nil {
+		return 0, nil, fmt.Errorf("get lock err")
+	}
+	defer func() {
+		if err := h.RC.UnLock(lockKey); err != nil {
+			log.Error(ctx, "UnLock err:", err.Error())
+		}
+	}()
+
+	//svrBalanceLock.Lock()
+	//defer svrBalanceLock.Unlock()
 
 	liveCells, total, err := h.DasCore.GetBalanceCells(&core.ParamGetBalanceCells{
 		DasCache:           h.DasCache,
