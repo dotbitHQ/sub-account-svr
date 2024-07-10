@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
@@ -45,21 +46,21 @@ func (h *HttpHandle) SubAccountRenewCheck(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountRenewCheck(&req, &apiResp); err != nil {
-		log.Error("doSubAccountCheck err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountRenewCheck(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSubAccountCheck err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountRenewCheck(req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountRenewCheck(ctx context.Context, req *ReqSubAccountRenew, apiResp *api_code.ApiResp) error {
 	// check params
 	if err := h.doSubAccountRenewCheckParams(req, apiResp); err != nil {
 		return fmt.Errorf("doSubAccountRenewCheckParams err: %s", err.Error())

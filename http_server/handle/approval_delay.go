@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -41,15 +42,15 @@ func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doApprovalDelay(&req, &apiResp); err != nil {
-		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doApprovalDelay(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		if apiResp.ErrNo == 0 {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		}
@@ -57,7 +58,7 @@ func (h *HttpHandle) ApprovalDelay(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalDelay(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalDelay(ctx context.Context, req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -74,12 +75,12 @@ func (h *HttpHandle) doApprovalDelay(req *ReqApprovalDelay, apiResp *api_code.Ap
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalDelayMainAccount(req, apiResp)
+		return h.doApprovalDelayMainAccount(ctx, req, apiResp)
 	}
 	return h.doApprovalDelaySubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalDelayMainAccount(ctx context.Context, req *ReqApprovalDelay, apiResp *api_code.ApiResp) error {
 	accInfo, accountBuilder, _, err := h.doApprovalDelayCheck(req, apiResp)
 	if err != nil {
 		return err
@@ -143,7 +144,7 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 		},
 	})
 	if err != nil {
-		log.Error("GenWitness err:", err.Error())
+		log.Error(ctx, "GenWitness err:", err.Error())
 		return err
 	}
 	txParams.Witnesses = append(txParams.Witnesses, accWitness)
@@ -179,7 +180,7 @@ func (h *HttpHandle) doApprovalDelayMainAccount(req *ReqApprovalDelay, apiResp *
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:   &txParams,
 		action:     common.DasActionDelayApproval,
 		account:    req.Account,

@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"fmt"
@@ -24,22 +25,22 @@ func (h *HttpHandle) SubAccountInitFree(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountInitFree(&req, &apiResp); err != nil {
-		log.Error("doSubAccountInit err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountInitFree(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSubAccountInit err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		doApiError(err, &apiResp)
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountInitFree(ctx context.Context, req *ReqSubAccountInit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountInit
 	resp.List = make([]SignInfo, 0)
 	resp.SignList = make([]txbuilder.SignData, 0)
@@ -111,7 +112,7 @@ func (h *HttpHandle) doSubAccountInitFree(req *ReqSubAccountInit, apiResp *api_c
 		return fmt.Errorf("buildSubAccountInitSubAccountTx err: %s", err.Error())
 	}
 
-	signList, _, err := h.buildTx(&paramBuildTx{
+	signList, _, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:   txParams,
 		skipGroups: []int{},
 		chainType:  req.chainType,

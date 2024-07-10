@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"fmt"
@@ -53,16 +54,16 @@ func (h *HttpHandle) ConfigInfo(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
-	if err = h.doConfigInfo(&apiResp); err != nil {
-		log.Error("doConfigInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doConfigInfo(ctx.Request.Context(), &apiResp); err != nil {
+		log.Error("doConfigInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doConfigInfo(ctx context.Context, apiResp *api_code.ApiResp) error {
 	var resp RespConfigInfo
 
 	err := h.checkSystemUpgrade(apiResp)
@@ -87,8 +88,8 @@ func (h *HttpHandle) doConfigInfo(apiResp *api_code.ApiResp) error {
 		mintPrice, _ := builder.NewSubAccountPrice()
 		renewPrice, _ := builder.RenewSubAccountPrice()
 		resp.CkbQuote = quote.Div(decimal.NewFromInt(int64(common.OneCkb))).String()
-		resp.SubAccountNewSubAccountPrice = config.PriceToCKB(mintPrice, quoteCell.Quote(), 1)
-		resp.SubAccountRenewSubAccountPrice = config.PriceToCKB(renewPrice, quoteCell.Quote(), 1)
+		resp.SubAccountNewSubAccountPrice = config.PriceToCKB(ctx, mintPrice, quoteCell.Quote(), 1)
+		resp.SubAccountRenewSubAccountPrice = config.PriceToCKB(ctx, renewPrice, quoteCell.Quote(), 1)
 
 		resp.MintCostsManually = decimal.NewFromInt(int64(mintPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)
 		resp.RenewCostsManually = decimal.NewFromInt(int64(renewPrice)).DivRound(decimal.NewFromInt(common.UsdRateBase), 2)

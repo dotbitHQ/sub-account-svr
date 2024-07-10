@@ -2,6 +2,7 @@ package handle
 
 import (
 	"bytes"
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"das_sub_account/txtool"
@@ -45,21 +46,21 @@ func (h *HttpHandle) SubAccountCheck(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountCheck(&req, &apiResp); err != nil {
-		log.Error("doSubAccountCheck err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountCheck(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSubAccountCheck err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doSubAccountCheck(req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountCheck(ctx context.Context, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) error {
 	// check params
 	if err := h.doSubAccountCheckParams(req, apiResp); err != nil {
 		return fmt.Errorf("doSubAccountCheckParams err: %s", err.Error())
@@ -76,7 +77,7 @@ func (h *HttpHandle) doSubAccountCheck(req *ReqSubAccountCreate, apiResp *api_co
 	}
 
 	// check list
-	_, resp, err := h.doSubAccountCheckList(req, apiResp)
+	_, resp, err := h.doSubAccountCheckList(ctx, req, apiResp)
 	if err != nil {
 		return fmt.Errorf("doSubAccountCheckList err: %s", err.Error())
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -138,7 +139,7 @@ func (h *HttpHandle) doSubAccountCheckAccount(account string, apiResp *api_code.
 	return &acc, nil
 }
 
-func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *api_code.ApiResp) (bool, *RespSubAccountCheck, error) {
+func (h *HttpHandle) doSubAccountCheckList(ctx context.Context, req *ReqSubAccountCreate, apiResp *api_code.ApiResp) (bool, *RespSubAccountCheck, error) {
 	isOk := true
 	var resp RespSubAccountCheck
 	resp.Result = make([]CheckSubAccount, 0)
@@ -224,7 +225,7 @@ func (h *HttpHandle) doSubAccountCheckList(req *ReqSubAccountCreate, apiResp *ap
 			tmp.Message = fmt.Sprintf("register years more than %d", config.Cfg.Das.MaxRegisterYears)
 			isOk = false
 		} else if !h.checkAccountCharSet(req.SubAccountList[i].AccountCharStr, req.SubAccountList[i].Account[:strings.Index(req.SubAccountList[i].Account, ".")]) {
-			log.Info("checkAccountCharSet:", req.SubAccountList[i].Account, req.SubAccountList[i].AccountCharStr)
+			log.Info(ctx, "checkAccountCharSet:", req.SubAccountList[i].Account, req.SubAccountList[i].AccountCharStr)
 			tmp.Status = CheckStatusFail
 			tmp.Message = fmt.Sprintf("checkAccountCharSet invalid charset")
 			isOk = false

@@ -54,4 +54,5 @@ docker run -dp 8125-8126:8125-8126 -v $PWD/config/config.yaml:/app/config/config
 ```
 
 ### Others
-More APIs see [API.md](https://github.com/dotbitHQ/sub-account-svr/blob/main/API.md)
+More APIs see
+    [API.md](https://github.com/dotbitHQ/sub-account-svr/blob/main/API.md) and [APIApproval.md](https://github.com/dotbitHQ/sub-account-store/blob/main/APIApproval.md)

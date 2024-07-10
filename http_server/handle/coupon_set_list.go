@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"github.com/dotbitHQ/das-lib/common"
 	"github.com/dotbitHQ/das-lib/core"
@@ -46,22 +47,22 @@ func (h *HttpHandle) CouponSetList(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
 	if err = ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
-	if err = h.doCouponSetList(&req, &apiResp); err != nil {
-		log.Error("doCouponSetList err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doCouponSetList(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doCouponSetList err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponSetList(req *ReqCouponSetList, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponSetList(ctx context.Context, req *ReqCouponSetList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	setInfo, total, err := h.DbDao.FindCouponSetInfoList(accountId, req.Page, req.PageSize)
 	if err != nil {

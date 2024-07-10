@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -41,22 +42,22 @@ func (h *HttpHandle) ServiceProviderWithdraw2(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req))
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
 	//time.Sleep(time.Minute * 3)
-	if err = h.doServiceProviderWithdraw2(&req, &apiResp); err != nil {
-		log.Error("doServiceProviderWithdraw2 err:", err.Error(), funcName, clientIp)
+	if err = h.doServiceProviderWithdraw2(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doServiceProviderWithdraw2 err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doServiceProviderWithdraw2(req *ReqServiceProviderWithdraw2, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doServiceProviderWithdraw2(ctx context.Context, req *ReqServiceProviderWithdraw2, apiResp *api_code.ApiResp) error {
 	var resp RespServiceProviderWithdraw2
 
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
@@ -67,7 +68,7 @@ func (h *HttpHandle) doServiceProviderWithdraw2(req *ReqServiceProviderWithdraw2
 		return fmt.Errorf("sync block number")
 	}
 
-	if err := h.buildServiceProviderWithdraw2Tx(req, &resp); err != nil {
+	if err := h.buildServiceProviderWithdraw2Tx(ctx, req, &resp); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		return fmt.Errorf("buildServiceProviderWithdraw2Tx err: %s", err.Error())
 	}
@@ -75,7 +76,7 @@ func (h *HttpHandle) doServiceProviderWithdraw2(req *ReqServiceProviderWithdraw2
 	return nil
 }
 
-func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWithdraw2, resp *RespServiceProviderWithdraw2) error {
+func (h *HttpHandle) buildServiceProviderWithdraw2Tx(ctx context.Context, req *ReqServiceProviderWithdraw2, resp *RespServiceProviderWithdraw2) error {
 	spAddr, err := address.Parse(req.ServiceProviderAddress)
 	if err != nil {
 		return fmt.Errorf("address.Parse err: %s", err.Error())
@@ -180,8 +181,8 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			}
 		}
 
-		minCkbFee := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPriceFee.IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
-		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(uint64(minPrice.Mul(decimal.New(1, 6)).IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		minCkbFee := decimal.NewFromInt(int64(config.PriceToCKB(ctx, uint64(minPriceFee.IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
+		minCKB := decimal.NewFromInt(int64(config.PriceToCKB(ctx, uint64(minPrice.Mul(decimal.New(1, 6)).IntPart()), uint64(statement.Quote.IntPart()), statement.Years)))
 		if (task.Id == 0 || orderInfo.CouponCode == "") && statement.Price.GreaterThan(minCkbFee) {
 			// other provider or self but not use coupon
 			amount = amount.Add(statement.Price.Mul(feeRate))
@@ -189,7 +190,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 			amount = amount.Add(statement.Price.Sub(minCKB))
 		}
 	}
-	log.Info("ServiceProviderWithdraw2:", req.ServiceProviderAddress, req.Account, amount.String())
+	log.Info(ctx, "ServiceProviderWithdraw2:", req.ServiceProviderAddress, req.Account, amount.String())
 
 	minCellOccupiedCkb := decimal.NewFromInt(int64(common.MinCellOccupiedCkb))
 	if amount.LessThanOrEqual(minCellOccupiedCkb) {
@@ -313,7 +314,7 @@ func (h *HttpHandle) buildServiceProviderWithdraw2Tx(req *ReqServiceProviderWith
 	}
 	taskInfo.InitTaskId()
 	if err := h.DbDao.CreateTask(taskInfo); err != nil {
-		log.Error("CreateTask err: ", err.Error(), hash.Hex())
+		log.Error(ctx, "CreateTask err: ", err.Error(), hash.Hex())
 		return err
 	}
 	return nil

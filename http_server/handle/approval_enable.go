@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -44,16 +45,16 @@ func (h *HttpHandle) ApprovalEnable(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 	reqId := ctx.GetHeader("request_id")
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, reqId, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, reqId, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doApprovalEnableEnable(&req, &apiResp); err != nil {
-		log.Error("ApprovalEnable err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doApprovalEnableEnable(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("ApprovalEnable err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		if apiResp.ErrNo == 0 {
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 		}
@@ -61,7 +62,7 @@ func (h *HttpHandle) ApprovalEnable(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalEnableEnable(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalEnableEnable(ctx context.Context, req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -78,12 +79,12 @@ func (h *HttpHandle) doApprovalEnableEnable(req *ReqApprovalEnable, apiResp *api
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalEnableMainAccount(req, apiResp)
+		return h.doApprovalEnableMainAccount(ctx, req, apiResp)
 	}
 	return h.doApprovalEnableSubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalEnableMainAccount(ctx context.Context, req *ReqApprovalEnable, apiResp *api_code.ApiResp) error {
 	accInfo, platformLock, toLock, err := h.doApprovalEnableCheck(req, apiResp)
 	if err != nil {
 		return err
@@ -194,7 +195,7 @@ func (h *HttpHandle) doApprovalEnableMainAccount(req *ReqApprovalEnable, apiResp
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:   &txParams,
 		action:     common.DasActionCreateApproval,
 		account:    req.Account,

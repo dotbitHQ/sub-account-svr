@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -23,20 +24,20 @@ func (h *HttpHandle) PreservedRuleUpdate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doPreservedRuleUpdate(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doPreservedRuleUpdate(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doPreservedRuleUpdate(ctx context.Context, req *ReqPriceRuleUpdate, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -57,7 +58,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	}
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 
-	txParams, whiteListMap, err := h.rulesTxAssemble(RulesTxAssembleParams{
+	txParams, whiteListMap, err := h.rulesTxAssemble(ctx, RulesTxAssembleParams{
 		Req:                 req,
 		ApiResp:             apiResp,
 		InputActionDataType: common.ActionDataTypeSubAccountPreservedRules,
@@ -66,7 +67,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 		return err
 	}
 
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:  txParams,
 		chainType: res.ChainType,
 		address:   res.AddressHex,
@@ -83,7 +84,7 @@ func (h *HttpHandle) doPreservedRuleUpdate(req *ReqPriceRuleUpdate, apiResp *api
 	resp.SignKey = signList.SignKey
 	resp.List = signList.List
 	resp.SignList = signList.List[0].SignList
-	log.Info("doPreservedRuleUpdate:", toolib.JsonString(resp))
+	log.Info(ctx, "doPreservedRuleUpdate:", toolib.JsonString(resp))
 
 	if err := h.DbDao.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("tx_hash=? and tx_status=?", txHash, tables.TxStatusPending).

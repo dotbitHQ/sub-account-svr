@@ -1,6 +1,7 @@
 package txtool
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/tables"
 	"encoding/json"
@@ -43,7 +44,7 @@ type ResultBuildUpdateSubAccountTx struct {
 	SubAccountOutputsData []byte
 }
 
-func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccountTx) (*ResultBuildUpdateSubAccountTx, error) {
+func (s *SubAccountTxTool) BuildUpdateSubAccountTx(ctx context.Context, p *ParamBuildUpdateSubAccountTx) (*ResultBuildUpdateSubAccountTx, error) {
 	var res ResultBuildUpdateSubAccountTx
 	txParams := &txbuilder.BuildTransactionParams{}
 
@@ -54,7 +55,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	}
 
 	// account price calculate
-	subAccountPriceResp, err := s.getAccountPrice(p)
+	subAccountPriceResp, err := s.getAccountPrice(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if err != nil {
 		return nil, err
 	}
-	log.Info("UpdateSmt spend:", time.Since(now).Seconds())
+	log.Info(ctx, "UpdateSmt spend:", time.Since(now).Seconds())
 
 	// cell deps
 	s.cellDeps(txParams, p, updateSmtResp)
@@ -112,7 +113,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		txFeeRate = 1
 	}
 	txFee := txFeeRate*sizeInBlock + 5000
-	log.Info("buildTx tx fee:", "update_sub_acc", txFee, sizeInBlock, txFee)
+	log.Info(ctx, "buildTx tx fee:", "update_sub_acc", txFee, sizeInBlock, txFee)
 	checkTxFeeParam := &txbuilder.CheckTxFeeParam{
 		TxParams:      txParams,
 		DasCache:      s.DasCache,
@@ -124,7 +125,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 	if txFee < 30*common.UserCellTxFeeLimit {
 		changeCapacity := txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity
 		changeCapacity = changeCapacity - txFee
-		log.Infof("BuildCreateSubAccountTx txSize: %d", sizeInBlock)
+		log.Infof("BuildCreateSubAccountTx txSize: %d", sizeInBlock, ctx)
 		txBuilder.Transaction.Outputs[len(txBuilder.Transaction.Outputs)-1].Capacity = changeCapacity
 	} else {
 		txBuilder, err = txbuilder.CheckTxFee(checkTxFeeParam)
@@ -138,7 +139,7 @@ func (s *SubAccountTxTool) BuildUpdateSubAccountTx(p *ParamBuildUpdateSubAccount
 		return nil, fmt.Errorf("ComputeHash err: %s", err.Error())
 	}
 
-	log.Info("BuildUpdateSubAccountTx:", txBuilder.TxString(), hash.String())
+	log.Info(ctx, "BuildUpdateSubAccountTx:", txBuilder.TxString(), hash.String())
 
 	res.DasTxBuilder = txBuilder
 
@@ -243,7 +244,7 @@ func (s *SubAccountTxTool) getSignInfo(p *ParamBuildUpdateSubAccountTx) (*SignIn
 	return resp, nil
 }
 
-func (s *SubAccountTxTool) getAccountPrice(p *ParamBuildUpdateSubAccountTx) (*AccountPriceResp, error) {
+func (s *SubAccountTxTool) getAccountPrice(ctx context.Context, p *ParamBuildUpdateSubAccountTx) (*AccountPriceResp, error) {
 	resp := &AccountPriceResp{
 		subAccountPriceMap: make(map[string]uint64),
 	}
@@ -306,8 +307,8 @@ func (s *SubAccountTxTool) getAccountPrice(p *ParamBuildUpdateSubAccountTx) (*Ac
 				}
 			}
 		}
-		log.Info("yearlyPrice:", yearlyPrice)
-		subAccCapacity := config.PriceToCKB(yearlyPrice, quote, v.RegisterYears+v.RenewYears)
+		log.Info(ctx, "yearlyPrice:", yearlyPrice)
+		subAccCapacity := config.PriceToCKB(ctx, yearlyPrice, quote, v.RegisterYears+v.RenewYears)
 
 		switch v.MintType {
 		case tables.MintTypeDefault, tables.MintTypeManual:

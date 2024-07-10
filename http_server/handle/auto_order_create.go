@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/tables"
@@ -51,21 +52,21 @@ func (h *HttpHandle) AutoOrderCreate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doAutoOrderCreate(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderCreate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doAutoOrderCreate(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAutoOrderCreate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doAutoOrderCreate(ctx context.Context, req *ReqAutoOrderCreate, apiResp *api_code.ApiResp) error {
 	now := time.Now()
 	// check key info
 	hexAddr, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)
@@ -74,7 +75,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 	// check sub_account name
-	parentAccountId := h.checkSubAccountName(apiResp, req.SubAccount)
+	parentAccountId := h.checkSubAccountName(ctx, apiResp, req.SubAccount)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}
@@ -110,7 +111,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 
 	// check switch
-	autoDistribution, err := h.checkSwitch(parentAccountId, req.ActionType, apiResp)
+	autoDistribution, err := h.checkSwitch(ctx, parentAccountId, req.ActionType, apiResp)
 	if err != nil {
 		return err
 	} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
@@ -118,7 +119,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 	}
 
 	// get max years
-	if maxYear := h.getMaxYears(parentAccount); req.Years > maxYear {
+	if maxYear := h.getMaxYears(ctx, parentAccount); req.Years > maxYear {
 		apiResp.ApiRespErr(api_code.ApiCodeBeyondMaxYears, "The main account is valid for less than one year")
 		return nil
 	}
@@ -137,7 +138,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		return nil
 	}
 
-	log.Info("usdAmount:", usdAmount.String(), req.Years)
+	log.Info(ctx, "usdAmount:", usdAmount.String(), req.Years)
 	// total usd price
 	usdAmount = usdAmount.Mul(decimal.NewFromInt(int64(req.Years)))
 
@@ -152,7 +153,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		}
 		defer func() {
 			if err := h.RC.UnLock(lockKey); err != nil {
-				log.Error("RC.UnLock err:", err.Error())
+				log.Error(ctx, "RC.UnLock err:", err.Error())
 			}
 		}()
 
@@ -303,7 +304,7 @@ func (h *HttpHandle) doAutoOrderCreate(req *ReqAutoOrderCreate, apiResp *api_cod
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
-	log.Info("doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
+	log.Info(ctx, "doAutoOrderCreate:", res.OrderId, res.PaymentAddress, res.ContractAddress, amount)
 
 	orderInfo := tables.OrderInfo{
 		OrderId:           res.OrderId,

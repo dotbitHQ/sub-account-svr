@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -39,20 +40,20 @@ func (h *HttpHandle) ApprovalRevoke(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doApprovalRevoke(&req, &apiResp); err != nil {
-		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doApprovalRevoke(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalRevoke(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalRevoke(ctx context.Context, req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -69,12 +70,12 @@ func (h *HttpHandle) doApprovalRevoke(req *ReqApprovalRevoke, apiResp *api_code.
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalRevokeMainAccount(req, apiResp)
+		return h.doApprovalRevokeMainAccount(ctx, req, apiResp)
 	}
 	return h.doApprovalRevokeSubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalRevokeMainAccount(ctx context.Context, req *ReqApprovalRevoke, apiResp *api_code.ApiResp) error {
 	accInfo, accountBuilder, _, err := h.doApprovalRevokeCheck(req, apiResp)
 	if err != nil {
 		return err
@@ -167,7 +168,7 @@ func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		return err
 	}
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:  &txParams,
 		action:    common.DasActionRevokeApproval,
 		account:   req.Account,
@@ -178,7 +179,7 @@ func (h *HttpHandle) doApprovalRevokeMainAccount(req *ReqApprovalRevoke, apiResp
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
 		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
-	log.Info("doApprovalEnableAccount: ", txHash)
+	log.Info(ctx, "doApprovalEnableAccount: ", txHash)
 
 	if len(signList.List) > 0 {
 		signList.List = nil

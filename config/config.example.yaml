@@ -1,79 +1,100 @@
 server:
+  name: "sub_account"
   is_update: false
-  net: 2 # 1 mainnet 2 testnet
+  net: 2
   http_server_addr: ":8125"
-  http_server_internal_addr: ":8126"
-  parser_url: "http://127.0.0.1:8118/v1" # das-database
+  http_server_internal_addr: ":8127"
+  parser_url: ""
   server_address: ""
-  server_private_key: ""
-  smt_server: "http://10.143.1.180:10000"
-  uni_pay_url: "http://127.0.0.1:9092"
-  refund_switch: false
+  server_private_key: "" #"54958f3d8d35ae97c8d98d8dd94a2c83b271a5b60d9bddf2a771a052879040f5"
+  remote_sign_api_url: "" #"http://127.0.0.1:8345"
+  push_log_index: "" #"das-sub-index"
+  push_log_url: "" #""
+  smt_server: ""
+  uni_pay_url: ""
+  refund_switch: true
+  recycle_switch: true
+  recycle_limit: 10
+  prometheus_push_gateway: ""
+  tx_fee_rate: 2
 das:
   max_register_years: 20
-  max_create_count: 100
-  max_update_count: 100
-  max_retry: 10
+  max_renew_years: 20
+  max_create_count: 500
+  max_update_count: 200
+  max_renew_count: 500
+  max_retry: 1
   auto_mint:
     support_payment_token:
       - "eth_eth"
       - "tron_trx"
       - "bsc_bnb"
       - "stripe_usd"
-      - "tron_trc20_usdt"
-      - "bsc_bep20_usdt"
-      - "polygon_matic"
+      - "did_point"
     background_colors:
-      eth_eth: "#f0fdf4"
-      tron_trx: "#eff6ff"
+      eth_eth: "#eff6ff"
+      tron_trx: "#fdf2f8"
       bsc_bnb: "#fefce8"
-    payment_min_price: 50
+      stripe_usd: "#f0fdf4"
+      did_point: "#d7eaff"
+    payment_min_price: 5
     service_fee_ratio: 0.03
     platform_fee_ratio: 0.12
-    service_fee_min: 0.1
+    service_fee_min: 0
     min_price: 0.99
+  approval:
+    max_delay_count: 1
   coupon:
     coupon_price: 0.99
     encryption_key: ""
     price_min: 0.99
     price_max: 500
-  jwt_key: ""
   dp:
     transfer_white_list: ""
     capacity_whitelist: ""
-    time_online: 1700623410763
+  jwt_key: ""
 origins:
-  - ""
+  - ".*"
+subsidy_whitelist:
 notify:
   lark_error_key: ""
   lark_create_sub_account_key: ""
-  discord_create_sub_account_key: ""
+  discord_create_sub_account_key: "" #""
+  lark_parent_account_payment_key: ""
+  sentry_dsn: ""
 chain:
-  ckb_url: "https://testnet.ckb.dev/"
-  index_url: "https://testnet.ckb.dev/indexer"
-  current_block_number: 6900000 # mainnet 6900000, testnet2 4808730
+  ckb_url: "" #"https://testnet.ckb.dev/"
+  index_url: "" #"https://testnet.ckb.dev/"
+  current_block_number: 0 #4808730
   confirm_num: 4
   concurrency_num: 100
 db:
   mysql:
-    addr: "127.0.0.1:3306"
-    user: "root"
-    password: "123456"
-    db_name: "das_database"
+    addr: ""
+    user: ""
+    password: ""
+    db_name: ""
     max_open_conn: 100
     max_idle_conn: 50
   parser_mysql:
-    addr: "127.0.0.1:3306"
-    user: "root"
-    password: "123456"
-    db_name: "das_database"
+    addr: ""
+    user: ""
+    password: ""
+    db_name: ""
     max_open_conn: 100
     max_idle_conn: 50
 cache:
   redis:
-    addr: "127.0.0.1:6379" # 172.17.0.1: docker 182.17.0.1: docker-compose
+    addr: ""
     password: ""
-    db_num: 0
+    db_num: 22
+suspend_map:
+  "": ""
 unipay_address_map:
   "evm": ""
   "tron": ""
+  "ckb": ""
+stripe:
+  premium_percentage: "0.036"
+  premium_base: "0.52"
+

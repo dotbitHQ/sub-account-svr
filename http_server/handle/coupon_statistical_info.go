@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
 	"github.com/gin-gonic/gin"
@@ -24,22 +25,22 @@ func (h *HttpHandle) CouponStatisticalInfo(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
 	if err = ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
-	if err = h.doCouponStatisticalInfo(&req, &apiResp); err != nil {
-		log.Error("doCouponStatisticalInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doCouponStatisticalInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doCouponStatisticalInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponStatisticalInfo(req *ReqCouponStatisticalInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponStatisticalInfo(ctx context.Context, req *ReqCouponStatisticalInfo, apiResp *api_code.ApiResp) error {
 	total, err := h.DbDao.GetCouponNum()
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeDbError, "Failed to query coupon")

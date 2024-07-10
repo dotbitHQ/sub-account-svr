@@ -2,6 +2,7 @@ package handle
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"das_sub_account/config"
 	"das_sub_account/dao"
@@ -40,7 +41,7 @@ type RespSubAccountEdit struct {
 	SignInfoList
 }
 
-func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_code.ApiResp) {
+func (h *HttpHandle) checkReqSubAccountEdit(ctx context.Context, r *ReqSubAccountEdit, apiResp *api_code.ApiResp) {
 	// check params
 	addrHex, err := r.FormatChainTypeAddress(config.Cfg.Server.Net, true)
 	if err != nil {
@@ -73,7 +74,7 @@ func (h *HttpHandle) checkReqSubAccountEdit(r *ReqSubAccountEdit, apiResp *api_c
 			apiResp.ApiRespErr(api_code.ApiCodeError500, err.Error())
 			return
 		}
-		log.Info("ConfigCellRecordKeys:", builder.ConfigCellRecordKeys)
+		log.Info(ctx, "ConfigCellRecordKeys:", builder.ConfigCellRecordKeys)
 		var mapRecordKey = make(map[string]struct{})
 		for _, v := range builder.ConfigCellRecordKeys {
 			mapRecordKey[v] = struct{}{}
@@ -114,26 +115,26 @@ func (h *HttpHandle) SubAccountEditNew(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doSubAccountEditNew(&req, &apiResp); err != nil {
-		log.Error("doSubAccountEditNew err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doSubAccountEditNew(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doSubAccountEditNew err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
-func (h *HttpHandle) doSubAccountEditNew(req *ReqSubAccountEdit, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubAccountEditNew(ctx context.Context, req *ReqSubAccountEdit, apiResp *api_code.ApiResp) error {
 	var resp RespSubAccountEdit
 	resp.List = make([]SignInfo, 0)
 	req.Account = strings.ToLower(req.Account)
 
 	// check params
-	h.checkReqSubAccountEdit(req, apiResp)
+	h.checkReqSubAccountEdit(ctx, req, apiResp)
 	if apiResp.ErrNo != api_code.ApiCodeSuccess {
 		return nil
 	}

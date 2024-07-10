@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/core"
@@ -45,22 +46,22 @@ func (h *HttpHandle) AutoOrderInfo(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, toolib.JsonString(req), ctx.Request.Context())
 
 	//time.Sleep(time.Minute * 3)
-	if err = h.doAutoOrderInfo(&req, &apiResp); err != nil {
-		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doAutoOrderInfo(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doAutoOrderInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doAutoOrderInfo(req *ReqAutoOrderInfo, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doAutoOrderInfo(ctx context.Context, req *ReqAutoOrderInfo, apiResp *api_code.ApiResp) error {
 	var resp RespAutoOrderInfo
 	// check key info
 	_, err := req.FormatChainTypeAddress(h.DasCore.NetType(), true)

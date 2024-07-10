@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/internal"
 	"das_sub_account/tables"
@@ -38,20 +39,20 @@ func (h *HttpHandle) ApprovalFulfill(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doApprovalFulfill(&req, &apiResp); err != nil {
-		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doApprovalFulfill(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doApprovalEnableDelay err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doApprovalFulfill(req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalFulfill(ctx context.Context, req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
 	if err := h.checkSystemUpgrade(apiResp); err != nil {
 		return fmt.Errorf("checkSystemUpgrade err: %s", err.Error())
 	}
@@ -68,12 +69,12 @@ func (h *HttpHandle) doApprovalFulfill(req *ReqApprovalFulfill, apiResp *api_cod
 	req.isMainAcc = len(accountSection) == 2
 
 	if req.isMainAcc {
-		return h.doApprovalFulfillMainAccount(req, apiResp)
+		return h.doApprovalFulfillMainAccount(ctx, req, apiResp)
 	}
 	return h.doApprovalFulfillSubAccount(req, apiResp)
 }
 
-func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doApprovalFulfillMainAccount(ctx context.Context, req *ReqApprovalFulfill, apiResp *api_code.ApiResp) error {
 	now := time.Now()
 	accInfo, accountBuilder, _, err := h.doApprovalFulfillCheck(req, now, apiResp)
 	if err != nil {
@@ -153,7 +154,7 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 	})
 	txParams.OutputsData = append(txParams.OutputsData, accData)
 
-	signList, txHash, err := h.buildTx(&paramBuildTx{
+	signList, txHash, err := h.buildTx(ctx, &paramBuildTx{
 		txParams:  &txParams,
 		action:    common.DasActionFulfillApproval,
 		account:   req.Account,
@@ -164,7 +165,7 @@ func (h *HttpHandle) doApprovalFulfillMainAccount(req *ReqApprovalFulfill, apiRe
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "buildTx err: "+err.Error())
 		return fmt.Errorf("buildTx err: %s", err.Error())
 	}
-	log.Info("doApprovalEnableAccount: ", txHash)
+	log.Info(ctx, "doApprovalEnableAccount: ", txHash)
 
 	if len(signList.List) > 0 {
 		signList.List = nil

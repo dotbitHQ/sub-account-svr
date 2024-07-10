@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"crypto/md5"
 	"das_sub_account/cache"
 	"das_sub_account/config"
@@ -61,21 +62,21 @@ func (h *HttpHandle) CouponOrderCreate(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doCouponOrderCreate(&req, &apiResp); err != nil {
-		log.Error("doCouponOrderCreate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doCouponOrderCreate(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doCouponOrderCreate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doCouponOrderCreate(ctx context.Context, req *ReqCouponOrderCreate, apiResp *api_code.ApiResp) error {
 	lockKey := fmt.Sprintf("%x", md5.Sum([]byte(couponCreateLockKey+req.Account)))
 	if err := h.RC.Lock(lockKey); err != nil {
 		if errors.Is(err, cache.ErrDistributedLockPreemption) {
@@ -87,7 +88,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 	}
 	defer func() {
 		if err := h.RC.UnLock(lockKey); err != nil {
-			log.Error("UnLock err:", err.Error())
+			log.Error(ctx, "UnLock err:", err.Error())
 		}
 	}()
 
@@ -162,7 +163,7 @@ func (h *HttpHandle) doCouponOrderCreate(req *ReqCouponOrderCreate, apiResp *api
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "Failed to create order by unipay")
 		return fmt.Errorf("unipay.CreateOrder err: %s", err.Error())
 	}
-	log.Info("doCouponOrderCreate:", createOrderRes.OrderId, createOrderRes.PaymentAddress, createOrderRes.ContractAddress, amount)
+	log.Info(ctx, "doCouponOrderCreate:", createOrderRes.OrderId, createOrderRes.PaymentAddress, createOrderRes.ContractAddress, amount)
 
 	orderInfo := tables.OrderInfo{
 		OrderId:           createOrderRes.OrderId,

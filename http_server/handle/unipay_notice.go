@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/notify"
 	"das_sub_account/tables"
 	"das_sub_account/unipay"
@@ -47,21 +48,21 @@ func (h *HttpHandle) UniPayNotice(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doUniPayNotice(&req, &apiResp); err != nil {
-		log.Error("doUniPayNotice err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doUniPayNotice(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doUniPayNotice err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doUniPayNotice(ctx context.Context, req *ReqUniPayNotice, apiResp *api_code.ApiResp) error {
 	var resp RespUniPayNotice
 
 	// check BusinessId
@@ -74,21 +75,21 @@ func (h *HttpHandle) doUniPayNotice(req *ReqUniPayNotice, apiResp *api_code.ApiR
 		switch v.EventType {
 		case EventTypeOrderPay:
 			if err := unipay.DoPaymentConfirm(h.DasCore, h.DbDao, v.OrderId, v.PayHash); err != nil {
-				log.Error("DoPaymentConfirm err: ", err.Error())
+				log.Error(ctx, "DoPaymentConfirm err: ", err.Error())
 				notify.SendLarkErrNotify("DoPaymentConfirm", err.Error())
 			}
 		case EventTypeOrderRefund:
 			if err := h.DbDao.UpdateRefundStatusToRefunded(v.PayHash, v.OrderId, v.RefundHash); err != nil {
-				log.Error("UpdateRefundStatusToRefunded err: ", err.Error())
+				log.Error(ctx, "UpdateRefundStatusToRefunded err: ", err.Error())
 				notify.SendLarkErrNotify("UpdateRefundStatusToRefunded", err.Error())
 			}
 		case EventTypePaymentDispute:
 			if err := h.DbDao.UpdatePayHashStatusToFailByDispute(v.PayHash, v.OrderId); err != nil {
-				log.Error("UpdatePayHashStatusToFailByDispute err: ", err.Error())
+				log.Error(ctx, "UpdatePayHashStatusToFailByDispute err: ", err.Error())
 				notify.SendLarkErrNotify("UpdatePayHashStatusToFailByDispute", err.Error())
 			}
 		default:
-			log.Error("EventType invalid:", v.EventType)
+			log.Error(ctx, "EventType invalid:", v.EventType)
 		}
 	}
 

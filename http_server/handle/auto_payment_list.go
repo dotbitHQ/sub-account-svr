@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/tables"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
@@ -38,20 +39,20 @@ func (h *HttpHandle) AutoPaymentList(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.autoPaymentList(&req, &apiResp); err != nil {
-		log.Error("autoPaymentList err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.autoPaymentList(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("autoPaymentList err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) autoPaymentList(req *ReqAutoPaymentList, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) autoPaymentList(ctx context.Context, req *ReqAutoPaymentList, apiResp *api_code.ApiResp) error {
 	accountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.checkForSearch(accountId, apiResp); err != nil {
 		return err

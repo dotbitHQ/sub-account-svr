@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"fmt"
 	"github.com/dotbitHQ/das-lib/common"
 	api_code "github.com/dotbitHQ/das-lib/http_api"
@@ -28,20 +29,20 @@ func (h *HttpHandle) ConfigAutoMintGet(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doConfigAutoMintGet(&req, &apiResp); err != nil {
-		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+	if err = h.doConfigAutoMintGet(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doConfigAutoMintUpdate err:", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doConfigAutoMintGet(req *ReqConfigAutoMintGet, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doConfigAutoMintGet(ctx context.Context, req *ReqConfigAutoMintGet, apiResp *api_code.ApiResp) error {
 	parentAccountId := common.Bytes2Hex(common.GetAccountIdByAccount(req.Account))
 	if err := h.checkForSearch(parentAccountId, apiResp); err != nil {
 		return err

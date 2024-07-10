@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"context"
 	"das_sub_account/config"
 	"das_sub_account/consts"
 	"das_sub_account/internal"
@@ -37,22 +38,22 @@ func (h *HttpHandle) TransactionSendNew(ctx *gin.Context) {
 	)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, toolib.JsonString(req), ctx.Request.Context())
 
-	if err = h.doTransactionSendNew(&req, &apiResp); err != nil {
-		log.Error("doTransactionSendNew err:", err.Error(), funcName, clientIp, ctx)
+	if err = h.doTransactionSendNew(ctx.Request.Context(), &req, &apiResp); err != nil {
+		log.Error("doTransactionSendNew err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 
 	ctx.JSON(http.StatusOK, apiResp)
 }
 
-func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doTransactionSendNew(ctx context.Context, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	var resp RespTransactionSend
 	resp.HashList = make([]string, 0)
 
@@ -66,27 +67,27 @@ func (h *HttpHandle) doTransactionSendNew(req *ReqTransactionSend, apiResp *api_
 		return fmt.Errorf("sync block number")
 	}
 
-	if err := h.doEditSignMsg(req, apiResp); err != nil {
+	if err := h.doEditSignMsg(ctx, req, apiResp); err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "doEditSignMsg err ")
 		return fmt.Errorf("doEditSignMsg err: %s", err.Error())
 	}
 
 	switch req.Action {
 	case common.DasActionEnableSubAccount, common.DasActionConfigSubAccountCustomScript, common.DasActionConfigSubAccount:
-		if err := h.doActionNormal(req, apiResp, &resp); err != nil {
+		if err := h.doActionNormal(ctx, req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionNormal err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
 	case common.DasActionCreateApproval, common.DasActionDelayApproval,
 		common.DasActionRevokeApproval, common.DasActionFulfillApproval:
-		if err := h.doApproval(req, apiResp, &resp); err != nil {
+		if err := h.doApproval(ctx, req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doApproval err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
 		}
 	case common.DasActionUpdateSubAccount:
-		if err := h.doActionUpdateSubAccount(req, apiResp, &resp); err != nil {
+		if err := h.doActionUpdateSubAccount(ctx, req, apiResp, &resp); err != nil {
 			return fmt.Errorf("doActionUpdateSubAccount err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -230,7 +231,7 @@ func (h *HttpHandle) doActionAutoMint(req *ReqTransactionSend, apiResp *api_code
 	return nil
 }
 
-func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
+func (h *HttpHandle) doActionNormal(ctx context.Context, req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
 	var sic SignInfoCache
 	if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 		if err == redis.Nil {
@@ -279,13 +280,13 @@ func (h *HttpHandle) doActionNormal(req *ReqTransactionSend, apiResp *api_code.A
 		}
 		taskInfo.InitTaskId()
 		if err := h.DbDao.CreateTask(&taskInfo); err != nil {
-			log.Error("CreateTask err: ", err.Error())
+			log.Error(ctx, "CreateTask err: ", err.Error())
 		}
 	}
 	return nil
 }
 
-func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
+func (h *HttpHandle) doApproval(ctx context.Context, req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
 	var sic SignInfoCache
 	txStr, err := h.RC.GetSignTxCache(req.SignKey)
 	if err != nil {
@@ -333,13 +334,13 @@ func (h *HttpHandle) doApproval(req *ReqTransactionSend, apiResp *api_code.ApiRe
 			BlockTimestamp: uint64(time.Now().UnixNano() / 1e6),
 		}
 		if err = h.DbDao.CreatePending(&pending); err != nil {
-			log.Error("CreatePending err: ", err.Error(), toolib.JsonString(pending))
+			log.Error(ctx, "CreatePending err: ", err.Error(), toolib.JsonString(pending))
 		}
 	}
 	return nil
 }
 
-func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
+func (h *HttpHandle) doActionUpdateSubAccount(ctx context.Context, req *ReqTransactionSend, apiResp *api_code.ApiResp, resp *RespTransactionSend) error {
 	var dataCache UpdateSubAccountCache
 	if txStr, err := h.RC.GetSignTxCache(req.SignKey); err != nil {
 		if err == redis.Nil {
@@ -352,7 +353,7 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 		apiResp.ApiRespErr(api_code.ApiCodeError500, "json.Unmarshal err")
 		return fmt.Errorf("json.Unmarshal err: %s", err.Error())
 	}
-	log.Info("UpdateSubAccountCache:", dataCache.Account, dataCache.SubAction)
+	log.Info(ctx, "UpdateSubAccountCache:", dataCache.Account, dataCache.SubAction)
 
 	switch dataCache.SubAction {
 	case common.SubActionCreate, common.SubActionRenew:
@@ -362,7 +363,7 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 			return nil
 		}
 	case common.SubActionEdit:
-		if err := h.doSubActionEdit(dataCache, req, apiResp); err != nil {
+		if err := h.doSubActionEdit(ctx, dataCache, req, apiResp); err != nil {
 			return fmt.Errorf("doSubActionEdit err: %s", err.Error())
 		} else if apiResp.ErrNo != api_code.ApiCodeSuccess {
 			return nil
@@ -381,7 +382,7 @@ func (h *HttpHandle) doActionUpdateSubAccount(req *ReqTransactionSend, apiResp *
 	return nil
 }
 
-func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doSubActionEdit(ctx context.Context, dataCache UpdateSubAccountCache, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	loginAddress, subAcc, err := dataCache.EditCheck(h.DbDao, apiResp)
 	if err != nil {
 		return fmt.Errorf("EditCheck err: %s", err.Error())
@@ -397,7 +398,7 @@ func (h *HttpHandle) doSubActionEdit(dataCache UpdateSubAccountCache, req *ReqTr
 		return nil
 	}
 
-	log.Warn("SubActionEdit:", signData.SignMsg, loginAddress)
+	log.Warn(ctx, "SubActionEdit:", signData.SignMsg, loginAddress)
 
 	//signature := req.List[0].SignList[0].SignMsg
 	//signType := req.SignList[0].SignType
@@ -570,7 +571,7 @@ func (h *HttpHandle) doSubActionApproval(dataCache UpdateSubAccountCache, req *R
 	return nil
 }
 
-func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
+func (h *HttpHandle) doEditSignMsg(ctx context.Context, req *ReqTransactionSend, apiResp *api_code.ApiResp) error {
 	hasWebAuthn := false
 
 	for _, signInfo := range req.List {
@@ -676,7 +677,7 @@ func (h *HttpHandle) doEditSignMsg(req *ReqTransactionSend, apiResp *api_code.Ap
 		return err
 	}
 	req.SignAddress = signAddressHex.AddressHex
-	log.Info("-----", loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
+	log.Info(ctx, loginAddrHex.AddressHex, "--", signAddressHex.AddressHex)
 	idx, err := h.DasCore.GetIdxOfKeylist(loginAddrHex, signAddressHex)
 	if err != nil {
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "GetIdxOfKeylist err: "+err.Error())

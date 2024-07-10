@@ -27,17 +27,17 @@ func (h *HttpHandle) CouponDownload(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
 	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
-		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx)
+		log.Error("ShouldBindJSON err: ", err.Error(), funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
 	if err = h.doCouponDownload(ctx, &req, &apiResp); err != nil {
-		log.Error("doCouponDownload err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("doCouponDownload err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 }
 

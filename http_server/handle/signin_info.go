@@ -24,17 +24,17 @@ func (h *HttpHandle) SignInInfo(ctx *gin.Context) {
 		apiResp                api_code.ApiResp
 		err                    error
 	)
-	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx)
+	log.Info("ApiReq:", funcName, clientIp, remoteAddrIP, ctx.Request.Context())
 
 	if err = ctx.ShouldBindJSON(&req); err != nil {
-		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("ctx.ShouldBindJSON err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 		apiResp.ApiRespErr(api_code.ApiCodeParamsInvalid, "params invalid")
 		ctx.JSON(http.StatusOK, apiResp)
 		return
 	}
 
 	if err = h.doSignInInfo(ctx, &req, &apiResp); err != nil {
-		log.Error("doSignInInfo err:", err.Error(), funcName, clientIp, ctx)
+		log.Error("doSignInInfo err:", err.Error(), funcName, clientIp, ctx.Request.Context())
 	}
 	ctx.JSON(http.StatusOK, apiResp)
 }
