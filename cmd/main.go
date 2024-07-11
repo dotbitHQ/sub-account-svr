@@ -47,6 +47,11 @@ func main() {
 				Aliases: []string{"c"},
 				Usage:   "Load configuration from `FILE`",
 			},
+			&cli.StringFlag{
+				Name:    "mode",
+				Aliases: []string{"m"},
+				Usage:   "Server Type, ``(default): api and timer server, `api`: api server, `timer`: timer server",
+			},
 		},
 		Action: runServer,
 	}
@@ -120,89 +125,109 @@ func runServer(ctx *cli.Context) error {
 		return fmt.Errorf("Smt service is not available, err: ", err.Error())
 	}
 
-	// tx tool
-	txtool.Init(&txtool.SubAccountTxTool{
-		Ctx:           ctxServer,
-		DbDao:         dbDao,
-		DasCore:       dasCore,
-		DasCache:      dasCache,
-		ServerScript:  serverScript,
-		TxBuilderBase: txBuilderBase,
-	})
-	txtool.Tools.Run()
-	log.Infof("tx tool ok")
+	//service mode
+	mode := ctx.String("mode")
 
-	// block parser
-	if config.Cfg.Slb.SvrName == "" {
-		blockParser := block_parser.BlockParser{
-			DasCore:            dasCore,
-			CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
-			DbDao:              dbDao,
-			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
-			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
-			Ctx:                ctxServer,
-			Cancel:             cancel,
-			Wg:                 &wgServer,
-			SmtServerUrl:       &smtServer,
+	if mode == "api" {
+		if err := initApiServer(txBuilderBase, serverScript, dasCore, dasCache, dbDao, rc, smtServer); err != nil {
+			return fmt.Errorf("initApiServer err : %s", err.Error())
 		}
-		if err := blockParser.Run(); err != nil {
-			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
+	} else if mode == "timer" {
+		if err := initTimer(txBuilderBase, serverScript, dasCore, dasCache, dbDao, rc, smtServer); err != nil {
+			return fmt.Errorf("initTimer err : %s", err.Error())
 		}
-		log.Infof("block parser ok")
-		// refund
-		toolUniPay := unipay.ToolUniPay{
-			Ctx:     ctxServer,
-			Wg:      &wgServer,
-			DbDao:   dbDao,
-			DasCore: dasCore,
+	} else {
+		if err := initTimer(txBuilderBase, serverScript, dasCore, dasCache, dbDao, rc, smtServer); err != nil {
+			return fmt.Errorf("initTimer err : %s", err.Error())
 		}
-		toolUniPay.RunConfirmStatus()
-		toolUniPay.RunOrderRefund()
-		toolUniPay.RunOrderCheck()
+		if err := initApiServer(txBuilderBase, serverScript, dasCore, dasCache, dbDao, rc, smtServer); err != nil {
+			return fmt.Errorf("initApiServer err : %s", err.Error())
+		}
 	}
-
-	// task
-	smtTask := task.SmtTask{
-		Ctx:          ctxServer,
-		Wg:           &wgServer,
-		DbDao:        dbDao,
-		DasCore:      dasCore,
-		TxTool:       txtool.Tools,
-		RC:           rc,
-		MaxRetry:     config.Cfg.Das.MaxRetry,
-		SmtServerUrl: smtServer,
-	}
-	smtTask.RunTaskCheckTx()
-	smtTask.RunTaskConfirmOtherTx()
-	smtTask.RunTaskRollback()
-	smtTask.RunUpdateSubAccountTaskDistribution()
-	smtTask.RunUpdateSubAccountTask()
-	smtTask.RunRecycleSubAccount()
-	if err := smtTask.RunParentAccountPayment(); err != nil {
-		panic(err)
-	}
-
-	log.Infof("task ok")
-
-	// http
-	hs := http_server.HttpServer{
-		Ctx:             ctxServer,
-		Address:         config.Cfg.Server.HttpServerAddr,
-		InternalAddress: config.Cfg.Server.HttpServerInternalAddr,
-		H: &handle.HttpHandle{
-			Ctx:           ctxServer,
-			DasCore:       dasCore,
-			DasCache:      dasCache,
-			TxBuilderBase: txBuilderBase,
-			DbDao:         dbDao,
-			RC:            rc,
-			TxTool:        txtool.Tools,
-			SmtServerUrl:  &smtServer,
-			ServerScript:  serverScript,
-		},
-	}
-	hs.Run()
-	log.Info("http server ok")
+	//
+	//// tx tool
+	//txtool.Init(&txtool.SubAccountTxTool{
+	//	Ctx:           ctxServer,
+	//	DbDao:         dbDao,
+	//	DasCore:       dasCore,
+	//	DasCache:      dasCache,
+	//	ServerScript:  serverScript,
+	//	TxBuilderBase: txBuilderBase,
+	//})
+	//txtool.Tools.Run()
+	//log.Infof("tx tool ok")
+	//
+	//// block parser
+	//if config.Cfg.Slb.SvrName == "" {
+	//	blockParser := block_parser.BlockParser{
+	//		DasCore:            dasCore,
+	//		CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
+	//		DbDao:              dbDao,
+	//		ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
+	//		ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+	//		Ctx:                ctxServer,
+	//		Cancel:             cancel,
+	//		Wg:                 &wgServer,
+	//		SmtServerUrl:       &smtServer,
+	//	}
+	//	if err := blockParser.Run(); err != nil {
+	//		return fmt.Errorf("blockParser.Run() err: %s", err.Error())
+	//	}
+	//	log.Infof("block parser ok")
+	//	// refund
+	//	toolUniPay := unipay.ToolUniPay{
+	//		Ctx:     ctxServer,
+	//		Wg:      &wgServer,
+	//		DbDao:   dbDao,
+	//		DasCore: dasCore,
+	//	}
+	//	toolUniPay.RunConfirmStatus()
+	//	toolUniPay.RunOrderRefund()
+	//	toolUniPay.RunOrderCheck()
+	//}
+	//
+	//// task
+	//smtTask := task.SmtTask{
+	//	Ctx:          ctxServer,
+	//	Wg:           &wgServer,
+	//	DbDao:        dbDao,
+	//	DasCore:      dasCore,
+	//	TxTool:       txtool.Tools,
+	//	RC:           rc,
+	//	MaxRetry:     config.Cfg.Das.MaxRetry,
+	//	SmtServerUrl: smtServer,
+	//}
+	//smtTask.RunTaskCheckTx()
+	//smtTask.RunTaskConfirmOtherTx()
+	//smtTask.RunTaskRollback()
+	//smtTask.RunUpdateSubAccountTaskDistribution()
+	//smtTask.RunUpdateSubAccountTask()
+	//smtTask.RunRecycleSubAccount()
+	//if err := smtTask.RunParentAccountPayment(); err != nil {
+	//	panic(err)
+	//}
+	//
+	//log.Infof("task ok")
+	//
+	//// http
+	//hs := http_server.HttpServer{
+	//	Ctx:             ctxServer,
+	//	Address:         config.Cfg.Server.HttpServerAddr,
+	//	InternalAddress: config.Cfg.Server.HttpServerInternalAddr,
+	//	H: &handle.HttpHandle{
+	//		Ctx:           ctxServer,
+	//		DasCore:       dasCore,
+	//		DasCache:      dasCache,
+	//		TxBuilderBase: txBuilderBase,
+	//		DbDao:         dbDao,
+	//		RC:            rc,
+	//		TxTool:        txtool.Tools,
+	//		SmtServerUrl:  &smtServer,
+	//		ServerScript:  serverScript,
+	//	},
+	//}
+	//hs.Run()
+	//log.Info("http server ok")
 	// ============= service end =============
 	toolib.ExitMonitoring(func(sig os.Signal) {
 		log.Warn("ExitMonitoring:", sig.String())
@@ -300,4 +325,93 @@ func initTxBuilder(dasCore *core.DasCore) (*txbuilder.DasTxBuilderBase, *types.S
 	txBuilderBase := txbuilder.NewDasTxBuilderBase(ctxServer, dasCore, handleSign, serverAddressScriptArgs)
 
 	return txBuilderBase, serverScript, nil
+}
+
+func initTimer(txBuilderBase *txbuilder.DasTxBuilderBase, serverScript *types.Script, dasCore *core.DasCore, dasCache *dascache.DasCache, dbDao *dao.DbDao, rc *cache.RedisCache, smtServer string) error {
+	// tx tool
+	txtool.Init(&txtool.SubAccountTxTool{
+		Ctx:           ctxServer,
+		DbDao:         dbDao,
+		DasCore:       dasCore,
+		DasCache:      dasCache,
+		ServerScript:  serverScript,
+		TxBuilderBase: txBuilderBase,
+	})
+	txtool.Tools.Run()
+	log.Infof("tx tool ok")
+	// block parser
+	if config.Cfg.Slb.SvrName == "" {
+		blockParser := block_parser.BlockParser{
+			DasCore:            dasCore,
+			CurrentBlockNumber: config.Cfg.Chain.CurrentBlockNumber,
+			DbDao:              dbDao,
+			ConcurrencyNum:     config.Cfg.Chain.ConcurrencyNum,
+			ConfirmNum:         config.Cfg.Chain.ConfirmNum,
+			Ctx:                ctxServer,
+			Cancel:             cancel,
+			Wg:                 &wgServer,
+			SmtServerUrl:       &smtServer,
+		}
+		if err := blockParser.Run(); err != nil {
+			return fmt.Errorf("blockParser.Run() err: %s", err.Error())
+		}
+		log.Infof("block parser ok")
+		// refund
+		toolUniPay := unipay.ToolUniPay{
+			Ctx:     ctxServer,
+			Wg:      &wgServer,
+			DbDao:   dbDao,
+			DasCore: dasCore,
+		}
+		toolUniPay.RunConfirmStatus()
+		toolUniPay.RunOrderRefund()
+		toolUniPay.RunOrderCheck()
+	}
+
+	// task
+	smtTask := task.SmtTask{
+		Ctx:          ctxServer,
+		Wg:           &wgServer,
+		DbDao:        dbDao,
+		DasCore:      dasCore,
+		TxTool:       txtool.Tools,
+		RC:           rc,
+		MaxRetry:     config.Cfg.Das.MaxRetry,
+		SmtServerUrl: smtServer,
+	}
+	smtTask.RunTaskCheckTx()
+	smtTask.RunTaskConfirmOtherTx()
+	smtTask.RunTaskRollback()
+	smtTask.RunUpdateSubAccountTaskDistribution()
+	smtTask.RunUpdateSubAccountTask()
+	smtTask.RunRecycleSubAccount()
+	if err := smtTask.RunParentAccountPayment(); err != nil {
+		panic(err)
+	}
+
+	log.Infof("task ok")
+	return nil
+}
+
+func initApiServer(txBuilderBase *txbuilder.DasTxBuilderBase, serverScript *types.Script, dasCore *core.DasCore, dasCache *dascache.DasCache, dbDao *dao.DbDao, rc *cache.RedisCache, smtServer string) error {
+	// http
+	hs := http_server.HttpServer{
+		Ctx:             ctxServer,
+		Address:         config.Cfg.Server.HttpServerAddr,
+		InternalAddress: config.Cfg.Server.HttpServerInternalAddr,
+		H: &handle.HttpHandle{
+			Ctx:           ctxServer,
+			DasCore:       dasCore,
+			DasCache:      dasCache,
+			TxBuilderBase: txBuilderBase,
+			DbDao:         dbDao,
+			RC:            rc,
+			TxTool:        txtool.Tools,
+			SmtServerUrl:  &smtServer,
+			ServerScript:  serverScript,
+		},
+	}
+	hs.Run()
+	log.Info("http server ok")
+	return nil
 }
