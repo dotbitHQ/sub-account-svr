@@ -362,7 +362,7 @@ func (h *HttpHandle) doAutoOrderCreate(ctx context.Context, req *ReqAutoOrderCre
 
 func RoundAmount(amount decimal.Decimal, tokenId tables.TokenId) decimal.Decimal {
 	switch tokenId {
-	case tables.TokenIdEth, tables.TokenIdBnb, tables.TokenIdMatic:
+	case tables.TokenIdEth, tables.TokenIdBnb, tables.TokenIdPOL: //, tables.TokenIdMatic:
 		dec := decimal.New(1, 8)
 		amount = amount.Div(dec).Ceil().Mul(dec)
 	case tables.TokenIdCkb, tables.TokenIdDoge:
